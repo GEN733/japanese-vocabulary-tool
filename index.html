@@ -51,9 +51,6 @@
             border-radius: 8px;
             color: white;
         }
-        .btn-start { background: #4CAF50; }
-        .btn-reset { background: #f44336; }
-        .btn-mark { background: #ff9800; }
         
         .primary-actions {
             display: flex;
@@ -264,56 +261,53 @@
             color: #4a6fa5;
         }
         
-        /* 新增搜索样式 */
+        /* 新增样式：练习数量自定义输入框 */
+        .count-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .count-selector input {
+            width: 80px;
+            padding: 8px;
+        }
+        
+        .count-selector button {
+            padding: 8px 15px;
+        }
+        
+        /* 新增样式：搜索框 */
         .search-box {
             margin: 15px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .search-box input {
+            width: calc(100% - 120px);
+            display: inline-block;
+            margin-right: 10px;
+        }
+        
+        /* 新增样式：练习页面按钮 */
+        .practice-actions-simple {
             display: flex;
             gap: 10px;
+            margin-top: 20px;
         }
-        .search-box input {
+        
+        .practice-actions-simple button {
             flex: 1;
-            padding: 10px;
+            padding: 12px;
             font-size: 16px;
         }
         
-        /* 冲突解决样式 */
-        .conflict-dialog {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            z-index: 1000;
-            width: 90%;
-            max-width: 600px;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-        
-        .conflict-choice {
-            margin: 15px 0;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .conflict-choice:hover {
-            background: #f5f5f5;
-        }
-        .conflict-choice.selected {
-            border-color: #4a6fa5;
-            background: #e3f2fd;
-        }
-        
-        .sync-history {
-            font-size: 12px;
-            color: #666;
-            margin-top: 5px;
-        }
+        .btn-start { background: #4CAF50; }
+        .btn-upload { background: #2196F3; }
+        .btn-download { background: #FF9800; }
         
         /* 响应式调整 */
         @media (max-width: 768px) {
@@ -321,12 +315,22 @@
                 grid-template-columns: 1fr;
             }
             
-            .primary-actions, .bottom-actions {
+            .primary-actions, .bottom-actions, .practice-actions-simple {
                 flex-direction: column;
             }
             
-            .search-box {
+            .search-box input {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            
+            .count-selector {
                 flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .count-selector input {
+                width: 100%;
             }
         }
     </style>
@@ -372,14 +376,31 @@
             <h3>练习设置</h3>
             <div>
                 <label>每次练习单词数：</label>
-                <input type="number" 
-                       id="practiceCount" 
-                       min="1" 
-                       max="1000" 
-                       value="30" 
-                       onchange="saveSettings()"
-                       style="width: 80px; padding: 8px; font-size: 16px;">
-                <span> (输入1-1000的数字，0表示全部)</span>
+                <select id="practiceCount" onchange="saveSettings()">
+                    <option value="10">10个</option>
+                    <option value="20">20个</option>
+                    <option value="30" selected>30个</option>
+                    <option value="50">50个</option>
+                    <option value="100">100个</option>
+                    <option value="0">全部</option>
+                    <option value="custom">自定义</option>
+                </select>
+            </div>
+            
+            <!-- 新增：自定义练习数量输入框 -->
+            <div id="customCountContainer" style="display: none; margin-top: 10px;">
+                <div class="count-selector">
+                    <input type="number" id="customPracticeCount" min="1" max="999" placeholder="输入数量" style="width: 120px;">
+                    <button onclick="saveCustomCount()" style="background: #4CAF50;">保存</button>
+                </div>
+                <small>输入1-999之间的数字，点击保存</small>
+            </div>
+            
+            <!-- 新增：下载数据按钮 -->
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ccc;">
+                <h3>数据同步</h3>
+                <button onclick="downloadFromGithub()" class="btn-download">📥 下载数据</button>
+                <p style="font-size: 14px; color: #666; margin-top: 5px;">进入网页后先下载最新数据</p>
             </div>
         </div>
         
@@ -432,10 +453,10 @@
             <button class="primary-btn next" onclick="nextWord()">➡ 下一个</button>
         </div>
         
-        <div class="bottom-actions">
+        <!-- 修改：简化按钮区域 -->
+        <div class="practice-actions-simple">
             <button onclick="startPractice()" class="btn-start">开始练习</button>
-            <button onclick="resetPractice()" class="btn-reset">重新开始</button>
-            <button onclick="markWrong()" class="btn-mark">标记错题</button>
+            <button onclick="uploadToGithubFromPractice()" class="btn-upload">📤 上传数据</button>
         </div>
     </div>
     
@@ -451,20 +472,18 @@
     <div id="manage" class="page">
         <h2>单词管理</h2>
         
+        <!-- 新增：搜索功能 -->
+        <div class="search-box">
+            <h3>搜索单词</h3>
+            <input type="text" id="searchWord" placeholder="输入中文或日语假名进行搜索" onkeyup="searchWords()">
+            <button onclick="clearSearch()">清除搜索</button>
+            <div id="searchResultInfo" style="margin-top: 10px; font-size: 14px; color: #666;"></div>
+        </div>
+        
         <div class="settings">
             <h3>词库信息</h3>
             <p>当前词库总数：<span id="deckCount">0</span></p>
             <p>当前单词总数：<span id="wordCount">0</span></p>
-        </div>
-        
-        <!-- 新增搜索功能 -->
-        <div class="search-box">
-            <input type="text" 
-                   id="searchWordInput" 
-                   placeholder="搜索中文或日语假名..." 
-                   oninput="searchWords()"
-                   style="flex: 1;">
-            <button onclick="clearSearch()" style="background: #666;">清除搜索</button>
         </div>
         
         <h3>添加新单词</h3>
@@ -591,9 +610,6 @@
                     <div id="gistInfo" style="margin-top:10px; font-size:12px; color:#666;">
                         <!-- Gist信息将在这里显示 -->
                     </div>
-                    <div id="conflictInfo" style="margin-top:10px; font-size:12px; color:#666;">
-                        <!-- 冲突信息将在这里显示 -->
-                    </div>
                 </div>
             </div>
             
@@ -646,484 +662,1964 @@
 
     <!-- 创建词库模态框 -->
     <div id="createDeckOverlay" class="overlay" style="display:none;"></div>
-    <div id="createDeckForm" class="edit-form" style="display:none;">
-        <button class="close-btn" onclick="closeCreateDeckForm()">×</button>
-        <h3 id="createDeckTitle">新建词库</h3>
-        <div class="form-group">
-            <label>名称：</label>
-            <input type="text" id="newDeckName" style="width:100%;" placeholder="输入词库名称">
-        </div>
-        <div class="form-group" id="parentBookGroup" style="display:none;">
-            <label>所属书本：</label>
-            <select id="parentBookSelect"></select>
-        </div>
-        <div class="form-group">
-            <button onclick="saveNewDeck()" style="background:#4CAF50; width:100%;" id="saveDeckButton">创建</button>
-        </div>
+<div id="createDeckForm" class="edit-form" style="display:none;">
+    <button class="close-btn" onclick="closeCreateDeckForm()">×</button>
+    <h3 id="createDeckTitle">新建词库</h3>
+    <div class="form-group">
+        <label>名称：</label>
+        <input type="text" id="newDeckName" style="width:100%;" placeholder="输入词库名称">
     </div>
-
-    <!-- 冲突解决模态框 -->
-    <div id="conflictOverlay" class="overlay" style="display:none;"></div>
-    <div id="conflictDialog" class="conflict-dialog" style="display:none;">
-        <h3>⚠️ 发现数据冲突</h3>
-        <p>云端数据和本地数据不一致，请选择要保留的数据：</p>
-        
-        <div class="conflict-choice" onclick="selectConflictChoice('cloud')" id="cloudChoice">
-            <h4>云端数据</h4>
-            <div id="cloudDataInfo"></div>
-            <div class="sync-history" id="cloudSyncHistory"></div>
-        </div>
-        
-        <div class="conflict-choice" onclick="selectConflictChoice('local')" id="localChoice">
-            <h4>本地数据</h4>
-            <div id="localDataInfo"></div>
-            <div class="sync-history" id="localSyncHistory"></div>
-        </div>
-        
-        <div class="conflict-choice" onclick="selectConflictChoice('merge')" id="mergeChoice">
-            <h4>合并数据（推荐）</h4>
-            <p>智能合并云端和本地的所有数据，不会丢失任何单词</p>
-            <div id="mergeDataInfo"></div>
-        </div>
-        
-        <div style="margin-top: 20px; display: flex; gap: 10px;">
-            <button onclick="resolveConflict()" style="background:#4CAF50; flex:1;">确认选择</button>
-            <button onclick="cancelConflictResolution()" style="background:#666; flex:1;">取消</button>
-        </div>
+    <div class="form-group" id="parentBookGroup" style="display:none;">
+        <label>所属书本：</label>
+        <select id="parentBookSelect"></select>
     </div>
+    <div class="form-group">
+        <button onclick="saveNewDeck()" style="background:#4CAF50; width:100%;" id="saveDeckButton">创建</button>
+    </div>
+</div>
 
-    <script>
-        // ==================== 核心数据结构 ====================
-        let allVocabularies = [];
-        let allDecks = [];
-        let wrongWords = [];
-        let practiceWords = [];
-        let currentIndex = 0;
-        let settings = { practiceCount: 30 };
-        let practiceStats = { total: 0, correct: 0, wrong: 0 };
-        let isAnswerChecked = false;
-        let isMobile = false;
-        let uploadHistory = [];
-        let currentDeckAction = 'create'; // 'create' 或 'edit'
-        let currentDeckId = null;
+<script>
+    // ==================== 核心数据结构 ====================
+    let allVocabularies = [];
+    let allDecks = [];
+    let wrongWords = [];
+    let practiceWords = [];
+    let currentIndex = 0;
+    let settings = { practiceCount: 30 };
+    let practiceStats = { total: 0, correct: 0, wrong: 0 };
+    let isAnswerChecked = false;
+    let isMobile = false;
+    let uploadHistory = [];
+    let currentDeckAction = 'create'; // 'create' 或 'edit'
+    let currentDeckId = null;
+    
+    // 错题练习相关变量
+    let currentWrongWordIndex = null; // 当前练习的单词在错题库中的索引
+    let isWrongPracticeMode = false; // 是否在错题练习模式
+    
+    // GitHub同步配置
+    let githubConfig = {
+        username: '',
+        token: '',
+        gistId: ''
+    };
+    
+    // 搜索相关变量
+    let searchResults = [];
+    let isSearchActive = false;
+
+    // ==================== 页面加载 ====================
+    window.onload = function() {
+        isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        loadData();
+        loadSettings();
+        loadGithubConfig();
+        initAllSelectors();
         
-        // 错题练习相关变量
-        let currentWrongWordIndex = null; // 当前练习的单词在错题库中的索引
-        let isWrongPracticeMode = false; // 是否在错题练习模式
+        const answerInput = document.getElementById('answer');
+        const answerForm = document.getElementById('answerForm');
         
-        // GitHub同步配置
-        let githubConfig = {
-            username: '',
-            token: '',
-            gistId: ''
-        };
-
-        // 同步状态和冲突检测
-        let syncState = {
-            lastSyncTime: null,
-            localChanges: false,
-            cloudChanges: false,
-            conflictData: null
-        };
-
-        // ==================== 页面加载 ====================
-        window.onload = function() {
-            isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            loadData();
-            loadSettings();
-            loadGithubConfig();
-            initAllSelectors();
-            
-            const answerInput = document.getElementById('answer');
-            const answerForm = document.getElementById('answerForm');
-            
-            answerForm.addEventListener('submit', function(event) {
+        answerForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            handleFormSubmit();
+            return false;
+        });
+        
+        answerInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' || event.keyCode === 13) {
                 event.preventDefault();
-                handleFormSubmit();
+                if (!isAnswerChecked) {
+                    checkAnswer();
+                } else {
+                    nextWord();
+                }
                 return false;
-            });
-            
-            answerInput.addEventListener('keydown', function(event) {
-                if (event.key === 'Enter' || event.keyCode === 13) {
-                    event.preventDefault();
-                    if (!isAnswerChecked) {
-                        checkAnswer();
-                    } else {
-                        nextWord();
-                    }
-                    return false;
-                }
-            });
-            
-            // 修复移动端输入同步显示问题
-            answerInput.addEventListener('input', function(event) {
-                // 移动端和PC端都同步显示输入
-                document.getElementById('currentAnswerText').textContent = this.value;
-            });
-            
-            if (practiceWords.length > 0) {
-                showQuestion();
             }
-            
-            // 初始显示词库统计
-            updateDeckStatistics();
-            renderDeckCards();
-            updateSyncStatus();
-            
-            // 检查是否有未同步的本地更改
-            checkLocalChanges();
-        };
+        });
         
-        // ==================== 数据加载和保存 ====================
-        function loadData() {
-            // 加载词库数据
-            if (localStorage.getItem('japaneseDecks')) {
-                allDecks = JSON.parse(localStorage.getItem('japaneseDecks'));
+        // 修改：为移动端也添加输入同步显示功能
+        answerInput.addEventListener('input', function(event) {
+            // 无论是PC还是移动端，都同步显示输入内容
+            document.getElementById('currentAnswerText').textContent = this.value;
+        });
+        
+        // 监听练习数量选择框的变化
+        document.getElementById('practiceCount').addEventListener('change', function() {
+            const customContainer = document.getElementById('customCountContainer');
+            if (this.value === 'custom') {
+                customContainer.style.display = 'block';
+            } else {
+                customContainer.style.display = 'none';
+                saveSettings();
             }
-            
-            // 加载单词数据
-            if (localStorage.getItem('japaneseVocabularies')) {
-                allVocabularies = JSON.parse(localStorage.getItem('japaneseVocabularies'));
-            }
-            
-            // 加载上传历史
-            if (localStorage.getItem('uploadHistory')) {
-                uploadHistory = JSON.parse(localStorage.getItem('uploadHistory'));
-            }
-            
-            // 旧版本数据迁移
-            if (localStorage.getItem('japaneseWords') && allVocabularies.length === 0) {
-                const oldWords = JSON.parse(localStorage.getItem('japaneseWords'));
-                if (oldWords && oldWords.length > 0) {
-                    alert('检测到旧版本单词数据，正在自动迁移到新版本...');
-                    const defaultBookName = "我的默认词库";
-                    const defaultUnitName = "默认单元";
-                    
-                    let defaultBook = allDecks.find(d => d.name === defaultBookName && d.type === 'book');
-                    if (!defaultBook) {
-                        defaultBook = { 
-                            id: generateId(), 
-                            name: defaultBookName, 
-                            type: 'book',
-                            createdAt: new Date().toISOString()
-                        };
-                        allDecks.push(defaultBook);
-                    }
-                    
-                    let defaultUnit = allDecks.find(d => d.name === defaultUnitName && d.parentId === defaultBook.id);
-                    if (!defaultUnit) {
-                        defaultUnit = { 
-                            id: generateId(), 
-                            name: defaultUnitName, 
-                            parentId: defaultBook.id, 
-                            type: 'unit',
-                            createdAt: new Date().toISOString()
-                        };
-                        allDecks.push(defaultUnit);
-                    }
-                    
-                    allVocabularies = oldWords.map(word => ({
-                        ...word,
-                        deckId: defaultUnit.id,
-                        book: defaultBookName,
-                        unit: defaultUnitName,
+        });
+        
+        if (practiceWords.length > 0) {
+            showQuestion();
+        }
+        
+        // 初始显示词库统计
+        updateDeckStatistics();
+        renderDeckCards();
+        updateSyncStatus();
+        
+        // 自动显示练习页面
+        showPage('practice');
+    };
+    
+    // ==================== 数据加载和保存 ====================
+    function loadData() {
+        // 加载词库数据
+        if (localStorage.getItem('japaneseDecks')) {
+            allDecks = JSON.parse(localStorage.getItem('japaneseDecks'));
+        }
+        
+        // 加载单词数据
+        if (localStorage.getItem('japaneseVocabularies')) {
+            allVocabularies = JSON.parse(localStorage.getItem('japaneseVocabularies'));
+        }
+        
+        // 加载上传历史
+        if (localStorage.getItem('uploadHistory')) {
+            uploadHistory = JSON.parse(localStorage.getItem('uploadHistory'));
+        }
+        
+        // 旧版本数据迁移
+        if (localStorage.getItem('japaneseWords') && allVocabularies.length === 0) {
+            const oldWords = JSON.parse(localStorage.getItem('japaneseWords'));
+            if (oldWords && oldWords.length > 0) {
+                alert('检测到旧版本单词数据，正在自动迁移到新版本...');
+                const defaultBookName = "我的默认词库";
+                const defaultUnitName = "默认单元";
+                
+                let defaultBook = allDecks.find(d => d.name === defaultBookName && d.type === 'book');
+                if (!defaultBook) {
+                    defaultBook = { 
+                        id: generateId(), 
+                        name: defaultBookName, 
+                        type: 'book',
                         createdAt: new Date().toISOString()
-                    }));
-                    
-                    // 记录上传历史
-                    uploadHistory.push({
-                        type: 'migration',
-                        book: defaultBookName,
-                        unit: defaultUnitName,
-                        count: allVocabularies.length,
-                        date: new Date().toISOString()
-                    });
-                    
-                    saveData();
-                    alert(`迁移完成！共迁移 ${allVocabularies.length} 个单词到"${defaultBookName} - ${defaultUnitName}"。`);
-                }
-            }
-            
-            // 加载其他数据
-            if (localStorage.getItem('wrongWords')) {
-                wrongWords = JSON.parse(localStorage.getItem('wrongWords'));
-            }
-            if (localStorage.getItem('practiceStats')) {
-                practiceStats = JSON.parse(localStorage.getItem('practiceStats'));
-            }
-            
-            // 加载同步状态
-            if (localStorage.getItem('lastSyncTime')) {
-                syncState.lastSyncTime = localStorage.getItem('lastSyncTime');
-            }
-            
-            updateCounts();
-        }
-        
-        function saveData() {
-            localStorage.setItem('japaneseDecks', JSON.stringify(allDecks));
-            localStorage.setItem('japaneseVocabularies', JSON.stringify(allVocabularies));
-            localStorage.setItem('wrongWords', JSON.stringify(wrongWords));
-            localStorage.setItem('practiceStats', JSON.stringify(practiceStats));
-            localStorage.setItem('uploadHistory', JSON.stringify(uploadHistory));
-            localStorage.setItem('lastSyncTime', syncState.lastSyncTime || new Date().toISOString());
-            updateCounts();
-            
-            // 标记有本地更改
-            syncState.localChanges = true;
-            updateSyncStatus();
-        }
-        
-        function generateId() {
-            return Date.now() + Math.floor(Math.random() * 1000);
-        }
-        
-        // ==================== GitHub 同步功能 ====================
-        // 加载GitHub配置
-        function loadGithubConfig() {
-            if (localStorage.getItem('githubConfig')) {
-                githubConfig = JSON.parse(localStorage.getItem('githubConfig'));
-                // 在输入框中显示已保存的配置
-                document.getElementById('githubUsername').value = githubConfig.username;
-                // token出于安全考虑不显示
-            }
-        }
-
-        // 保存GitHub配置
-        function saveGithubConfig() {
-            const username = document.getElementById('githubUsername').value.trim();
-            const token = document.getElementById('githubToken').value.trim();
-            
-            if (!username || !token) {
-                alert('请填写GitHub用户名和Token');
-                return;
-            }
-            
-            githubConfig.username = username;
-            githubConfig.token = token;
-            
-            localStorage.setItem('githubConfig', JSON.stringify(githubConfig));
-            updateSyncStatus();
-            alert('GitHub配置保存成功！');
-        }
-
-        // 更新同步状态显示
-        function updateSyncStatus() {
-            const statusDiv = document.getElementById('syncStatus');
-            const lastSyncDiv = document.getElementById('lastSyncTime');
-            const gistInfoDiv = document.getElementById('gistInfo');
-            const conflictInfoDiv = document.getElementById('conflictInfo');
-            
-            if (githubConfig.username && githubConfig.token) {
-                statusDiv.innerHTML = `✅ GitHub已配置<br>用户名: ${githubConfig.username}`;
-                
-                if (githubConfig.gistId) {
-                    gistInfoDiv.innerHTML = `Gist ID: ${githubConfig.gistId}<br>同步文件: japanese_vocab_${githubConfig.username}.json`;
-                } else {
-                    gistInfoDiv.innerHTML = '尚未创建同步文件，请先上传数据';
+                    };
+                    allDecks.push(defaultBook);
                 }
                 
-                // 显示本地更改状态
-                if (syncState.localChanges) {
-                    conflictInfoDiv.innerHTML = '⚠️ 有未同步的本地更改';
-                } else {
-                    conflictInfoDiv.innerHTML = '✅ 所有数据已同步';
+                let defaultUnit = allDecks.find(d => d.name === defaultUnitName && d.parentId === defaultBook.id);
+                if (!defaultUnit) {
+                    defaultUnit = { 
+                        id: generateId(), 
+                        name: defaultUnitName, 
+                        parentId: defaultBook.id, 
+                        type: 'unit',
+                        createdAt: new Date().toISOString()
+                    };
+                    allDecks.push(defaultUnit);
                 }
+                
+                allVocabularies = oldWords.map(word => ({
+                    ...word,
+                    deckId: defaultUnit.id,
+                    book: defaultBookName,
+                    unit: defaultUnitName,
+                    createdAt: new Date().toISOString()
+                }));
+                
+                // 记录上传历史
+                uploadHistory.push({
+                    type: 'migration',
+                    book: defaultBookName,
+                    unit: defaultUnitName,
+                    count: allVocabularies.length,
+                    date: new Date().toISOString()
+                });
+                
+                saveData();
+                alert(`迁移完成！共迁移 ${allVocabularies.length} 个单词到"${defaultBookName} - ${defaultUnitName}"。`);
+            }
+        }
+        
+        // 加载其他数据
+        if (localStorage.getItem('wrongWords')) {
+            wrongWords = JSON.parse(localStorage.getItem('wrongWords'));
+        }
+        if (localStorage.getItem('practiceStats')) {
+            practiceStats = JSON.parse(localStorage.getItem('practiceStats'));
+        }
+        
+        updateCounts();
+    }
+    
+    function saveData() {
+        localStorage.setItem('japaneseDecks', JSON.stringify(allDecks));
+        localStorage.setItem('japaneseVocabularies', JSON.stringify(allVocabularies));
+        localStorage.setItem('wrongWords', JSON.stringify(wrongWords));
+        localStorage.setItem('practiceStats', JSON.stringify(practiceStats));
+        localStorage.setItem('uploadHistory', JSON.stringify(uploadHistory));
+        updateCounts();
+    }
+    
+    function generateId() {
+        return Date.now() + Math.floor(Math.random() * 1000);
+    }
+    
+    // ==================== GitHub 同步功能 ====================
+    // 加载GitHub配置
+    function loadGithubConfig() {
+        if (localStorage.getItem('githubConfig')) {
+            githubConfig = JSON.parse(localStorage.getItem('githubConfig'));
+            // 在输入框中显示已保存的配置
+            document.getElementById('githubUsername').value = githubConfig.username;
+            // token出于安全考虑不显示
+        }
+    }
+
+    // 保存GitHub配置
+    function saveGithubConfig() {
+        const username = document.getElementById('githubUsername').value.trim();
+        const token = document.getElementById('githubToken').value.trim();
+        
+        if (!username || !token) {
+            alert('请填写GitHub用户名和Token');
+            return;
+        }
+        
+        githubConfig.username = username;
+        githubConfig.token = token;
+        
+        localStorage.setItem('githubConfig', JSON.stringify(githubConfig));
+        updateSyncStatus();
+        alert('GitHub配置保存成功！');
+    }
+
+    // 更新同步状态显示
+    function updateSyncStatus() {
+        const statusDiv = document.getElementById('syncStatus');
+        const lastSyncDiv = document.getElementById('lastSyncTime');
+        const gistInfoDiv = document.getElementById('gistInfo');
+        const lastSync = localStorage.getItem('lastSyncTime');
+        
+        if (githubConfig.username && githubConfig.token) {
+            statusDiv.innerHTML = `✅ GitHub已配置<br>用户名: ${githubConfig.username}`;
+            
+            if (githubConfig.gistId) {
+                gistInfoDiv.innerHTML = `Gist ID: ${githubConfig.gistId}<br>同步文件: japanese_vocab_${githubConfig.username}.json`;
             } else {
-                statusDiv.innerHTML = '❌ GitHub未配置';
-                gistInfoDiv.innerHTML = '';
-                conflictInfoDiv.innerHTML = '';
+                gistInfoDiv.innerHTML = '尚未创建同步文件，请先上传数据';
             }
-            
-            if (syncState.lastSyncTime) {
-                lastSyncDiv.innerHTML = `上次同步时间: ${new Date(syncState.lastSyncTime).toLocaleString()}`;
-            } else {
-                lastSyncDiv.innerHTML = '上次同步时间：从未同步';
-            }
+        } else {
+            statusDiv.innerHTML = '❌ GitHub未配置';
+            gistInfoDiv.innerHTML = '';
         }
-
-        // 检查本地是否有未同步的更改
-        function checkLocalChanges() {
-            // 这里可以添加更复杂的检查逻辑
-            // 暂时标记为有更改
-            syncState.localChanges = true;
+        
+        if (lastSync) {
+            lastSyncDiv.innerHTML = `上次同步时间: ${new Date(lastSync).toLocaleString()}`;
+        } else {
+            lastSyncDiv.innerHTML = '上次同步时间：从未同步';
         }
+    }
 
-        // 上传数据到GitHub - 自动使用固定文件名，自动查找或创建Gist
-        async function uploadToGithub() {
-            if (!githubConfig.username || !githubConfig.token) {
-                alert('请先配置GitHub用户名和Token');
-                return;
-            }
-            
-            const uploadStatus = document.getElementById('uploadStatus');
-            uploadStatus.innerHTML = '正在上传数据到GitHub...';
-            
-            try {
-                // 准备数据
-                const allData = {
-                    allDecks: allDecks,
-                    allVocabularies: allVocabularies,
-                    wrongWords: wrongWords,
-                    uploadHistory: uploadHistory,
-                    settings: settings,
-                    practiceStats: practiceStats,
-                    exportDate: new Date().toISOString(),
-                    lastSyncTime: new Date().toISOString()
-                };
-                
-                const dataStr = JSON.stringify(allData, null, 2);
-                const filename = `japanese_vocab_${githubConfig.username}.json`;
-                
-                // 首先尝试查找是否已经存在该文件名的Gist
-                let gistId = githubConfig.gistId;
-                
-                if (!gistId) {
-                    // 尝试通过API查找现有的Gist
-                    const existingGist = await findExistingGist(filename);
-                    if (existingGist) {
-                        gistId = existingGist.id;
-                        githubConfig.gistId = gistId;
-                        localStorage.setItem('githubConfig', JSON.stringify(githubConfig));
-                    }
-                }
-                
-                let response;
-                
-                if (gistId) {
-                    // 检查云端数据是否比本地新
-                    const cloudData = await getGist(gistId);
-                    const cloudUpdated = new Date(cloudData.updated_at);
-                    const localLastSync = syncState.lastSyncTime ? new Date(syncState.lastSyncTime) : new Date(0);
-                    
-                    // 如果云端数据比本地最后同步时间新，说明可能有冲突
-                    if (cloudUpdated > localLastSync && syncState.localChanges) {
-                        // 下载云端数据进行比较
-                        const cloudContent = JSON.parse(cloudData.files[filename].content);
-                        const conflictInfo = detectConflicts(allData, cloudContent);
-                        
-                        if (conflictInfo.hasConflict) {
-                            // 显示冲突解决对话框
-                            showConflictDialog(conflictInfo, allData, cloudContent, filename, dataStr, gistId);
-                            uploadStatus.innerHTML = '发现数据冲突，请选择解决方案';
-                            return;
-                        }
-                    }
-                    
-                    // 更新现有的Gist
-                    uploadStatus.innerHTML = '正在更新现有的Gist...';
-                    response = await updateGist(gistId, filename, dataStr);
-                    uploadStatus.innerHTML = `✅ 更新成功！<br>Gist ID: ${gistId}<br>数据已更新到GitHub`;
-                } else {
-                    // 创建新的Gist
-                    uploadStatus.innerHTML = '正在创建新的Gist...';
-                    gistId = await createGist(filename, dataStr);
-                    githubConfig.gistId = gistId;
-                    localStorage.setItem('githubConfig', JSON.stringify(githubConfig));
-                    uploadStatus.innerHTML = `✅ 上传成功！<br>Gist ID: ${gistId}<br>数据已安全保存到GitHub<br>现在可以在其他设备上下载了`;
-                }
-                
-                // 保存同步时间
-                syncState.lastSyncTime = new Date().toISOString();
-                syncState.localChanges = false;
-                localStorage.setItem('lastSyncTime', syncState.lastSyncTime);
-                
-                updateSyncStatus();
-                
-            } catch (error) {
-                console.error('上传失败:', error);
-                uploadStatus.innerHTML = `❌ 上传失败: ${error.message}<br>请检查Token是否有gist权限`;
-            }
+    // 上传数据到GitHub - 自动使用固定文件名，自动查找或创建Gist
+    async function uploadToGithub() {
+        if (!githubConfig.username || !githubConfig.token) {
+            alert('请先配置GitHub用户名和Token');
+            return;
         }
-
-        // 从GitHub下载数据 - 自动查找Gist
-        async function downloadFromGithub() {
-            if (!githubConfig.username || !githubConfig.token) {
-                alert('请先配置GitHub用户名和Token');
-                return;
-            }
+        
+        const uploadStatus = document.getElementById('uploadStatus');
+        uploadStatus.innerHTML = '正在上传数据到GitHub...';
+        
+        try {
+            // 准备数据
+            const allData = {
+                allDecks: allDecks,
+                allVocabularies: allVocabularies,
+                wrongWords: wrongWords,
+                uploadHistory: uploadHistory,
+                settings: settings,
+                practiceStats: practiceStats,
+                exportDate: new Date().toISOString()
+            };
             
-            const downloadStatus = document.getElementById('downloadStatus');
-            downloadStatus.innerHTML = '正在从GitHub下载数据...';
+            const dataStr = JSON.stringify(allData, null, 2);
+            const filename = `japanese_vocab_${githubConfig.username}.json`;
             
-            try {
-                let gistId = githubConfig.gistId;
-                const filename = `japanese_vocab_${githubConfig.username}.json`;
-                
-                // 如果没有gistId，尝试通过文件名查找
-                if (!gistId) {
-                    downloadStatus.innerHTML = '正在查找同步文件...';
-                    const existingGist = await findExistingGist(filename);
-                    
-                    if (!existingGist) {
-                        downloadStatus.innerHTML = '❌ 未找到同步文件，请先在另一设备上传数据';
-                        return;
-                    }
-                    
+            // 首先尝试查找是否已经存在该文件名的Gist
+            let gistId = githubConfig.gistId;
+            
+            if (!gistId) {
+                // 尝试通过API查找现有的Gist
+                const existingGist = await findExistingGist(filename);
+                if (existingGist) {
                     gistId = existingGist.id;
                     githubConfig.gistId = gistId;
                     localStorage.setItem('githubConfig', JSON.stringify(githubConfig));
-                    updateSyncStatus();
+                }
+            }
+            
+            let response;
+            
+            if (gistId) {
+                // 更新现有的Gist
+                uploadStatus.innerHTML = '正在更新现有的Gist...';
+                response = await updateGist(gistId, filename, dataStr);
+                uploadStatus.innerHTML = `✅ 更新成功！<br>Gist ID: ${gistId}<br>数据已更新到GitHub`;
+            } else {
+                // 创建新的Gist
+                uploadStatus.innerHTML = '正在创建新的Gist...';
+                gistId = await createGist(filename, dataStr);
+                githubConfig.gistId = gistId;
+                localStorage.setItem('githubConfig', JSON.stringify(githubConfig));
+                uploadStatus.innerHTML = `✅ 上传成功！<br>Gist ID: ${gistId}<br>数据已安全保存到GitHub<br>现在可以在其他设备上下载了`;
+            }
+            
+            // 保存同步时间
+            localStorage.setItem('lastSyncTime', new Date().toISOString());
+            
+            updateSyncStatus();
+            
+        } catch (error) {
+            console.error('上传失败:', error);
+            uploadStatus.innerHTML = `❌ 上传失败: ${error.message}<br>请检查Token是否有gist权限`;
+        }
+    }
+    
+    // 从练习页面调用上传功能
+    function uploadToGithubFromPractice() {
+        if (!githubConfig.username || !githubConfig.token) {
+            alert('请先在"同步"页面配置GitHub信息');
+            showPage('sync');
+            return;
+        }
+        
+        if (confirm('确定要上传当前数据到GitHub吗？')) {
+            uploadToGithub();
+        }
+    }
+
+    // 从GitHub下载数据 - 自动查找Gist
+    async function downloadFromGithub() {
+        if (!githubConfig.username || !githubConfig.token) {
+            alert('请先在"同步"页面配置GitHub信息');
+            showPage('sync');
+            return;
+        }
+        
+        const downloadStatus = document.getElementById('downloadStatus');
+        downloadStatus.innerHTML = '正在从GitHub下载数据...';
+        
+        try {
+            let gistId = githubConfig.gistId;
+            const filename = `japanese_vocab_${githubConfig.username}.json`;
+            
+            // 如果没有gistId，尝试通过文件名查找
+            if (!gistId) {
+                downloadStatus.innerHTML = '正在查找同步文件...';
+                const existingGist = await findExistingGist(filename);
+                
+                if (!existingGist) {
+                    downloadStatus.innerHTML = '❌ 未找到同步文件，请先在另一设备上传数据';
+                    return;
                 }
                 
-                // 获取gist数据
-                const gistData = await getGist(gistId);
-                
-                // 查找包含日语单词数据的文件
-                let dataFile = null;
-                for (const fileFilename in gistData.files) {
-                    if (fileFilename === filename || fileFilename.includes('japanese_vocab')) {
-                        dataFile = gistData.files[fileFilename];
-                        break;
+                gistId = existingGist.id;
+                githubConfig.gistId = gistId;
+                localStorage.setItem('githubConfig', JSON.stringify(githubConfig));
+                updateSyncStatus();
+            }
+            
+            // 获取gist数据
+            const gistData = await getGist(gistId);
+            
+            // 查找包含日语单词数据的文件
+            let dataFile = null;
+            for (const fileFilename in gistData.files) {
+                if (fileFilename === filename || fileFilename.includes('japanese_vocab')) {
+                    dataFile = gistData.files[fileFilename];
+                    break;
+                }
+            }
+            
+            if (!dataFile || !dataFile.content) {
+                throw new Error('未找到单词数据文件');
+            }
+            
+            // 解析数据
+            const allData = JSON.parse(dataFile.content);
+            
+            // 显示下载信息
+            const downloadTime = new Date(allData.exportDate).toLocaleString();
+            const wordCount = allData.allVocabularies?.length || 0;
+            
+            // 确认是否覆盖
+            if (!confirm(`从云端下载数据将覆盖当前数据，确定要继续吗？\n\n下载时间: ${downloadTime}\n单词数量: ${wordCount}`)) {
+                return;
+            }
+            
+            // 加载数据
+            allDecks = allData.allDecks || [];
+            allVocabularies = allData.allVocabularies || [];
+            wrongWords = allData.wrongWords || [];
+            uploadHistory = allData.uploadHistory || [];
+            settings = allData.settings || { practiceCount: 30 };
+            practiceStats = allData.practiceStats || { total: 0, correct: 0, wrong: 0 };
+            
+            saveData();
+            loadSettings();
+            initAllSelectors();
+            showWordList();
+            showWrongList();
+            renderDeckCards();
+            updateDeckStatistics();
+            renderUploadHistory();
+            
+            // 保存同步时间
+            localStorage.setItem('lastSyncTime', new Date().toISOString());
+            
+            downloadStatus.innerHTML = `✅ 下载成功！<br>共加载 ${wordCount} 个单词<br>${wrongWords.length} 个错题`;
+            updateSyncStatus();
+            
+            alert(`数据同步完成！
+    - ${allDecks.length} 个词库
+    - ${wordCount} 个单词
+    - ${wrongWords.length} 个错题
+    已成功加载到当前设备！`);
+            
+        } catch (error) {
+            console.error('下载失败:', error);
+            if (error.message.includes('404') || error.message.includes('Not Found')) {
+                downloadStatus.innerHTML = `❌ 下载失败: 未找到同步文件<br>请先在另一设备上传数据`;
+                // 清除无效的gistId
+                githubConfig.gistId = '';
+                localStorage.setItem('githubConfig', JSON.stringify(githubConfig));
+                updateSyncStatus();
+            } else {
+                downloadStatus.innerHTML = `❌ 下载失败: ${error.message}`;
+            }
+        }
+    }
+
+    // 查找现有的Gist（通过文件名）
+    async function findExistingGist(filename) {
+        try {
+            // 获取用户的所有Gists
+            const gists = await listUserGists();
+            
+            // 查找包含指定文件名的Gist
+            for (const gist of gists) {
+                if (gist.files && gist.files[filename]) {
+                    return gist;
+                }
+                // 也检查文件名包含"japanese_vocab"的
+                for (const fileFilename in gist.files) {
+                    if (fileFilename.includes('japanese_vocab')) {
+                        return gist;
                     }
                 }
-                
-                if (!dataFile || !dataFile.content) {
-                    throw new Error('未找到单词数据文件');
+            }
+            return null;
+        } catch (error) {
+            console.error('查找Gist失败:', error);
+            return null;
+        }
+    }
+
+    // GitHub API 辅助函数
+    async function createGist(filename, content) {
+        const response = await fetch('https://api.github.com/gists', {
+            method: 'POST',
+            headers: {
+                'Authorization': `token ${githubConfig.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                description: '日语单词工具数据备份',
+                public: false,
+                files: {
+                    [filename]: {
+                        content: content
+                    }
+                }
+            })
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || '创建Gist失败');
+        }
+        
+        const data = await response.json();
+        return data.id;
+    }
+
+    async function updateGist(gistId, filename, content) {
+        const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `token ${githubConfig.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                description: `日语单词工具数据备份 - 更新于 ${new Date().toLocaleString()}`,
+                files: {
+                    [filename]: {
+                        content: content
+                    }
+                }
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('更新Gist失败');
+        }
+        
+        return await response.json();
+    }
+
+    async function getGist(gistId) {
+        const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+            headers: {
+                'Authorization': `token ${githubConfig.token}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`获取Gist失败: ${response.status}`);
+        }
+        
+        return await response.json();
+    }
+
+    async function listUserGists() {
+        const response = await fetch(`https://api.github.com/gists`, {
+            headers: {
+                'Authorization': `token ${githubConfig.token}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('获取Gist列表失败');
+        }
+        
+        return await response.json();
+    }
+    
+    // ==================== 初始化所有下拉选择器 ====================
+    function initAllSelectors() {
+        fillBookSelect();
+        fillUnitSelect();
+        fillAddWordSelectors();
+        fillImportSelectors();
+        fillDeleteSelectors();
+        fillEditSelectors();
+        renderUploadHistory();
+    }
+    
+    function fillBookSelect() {
+        const bookSelect = document.getElementById('bookSelect');
+        bookSelect.innerHTML = '<option value="">请选择书本</option>';
+        const books = allDecks.filter(deck => deck.type === 'book');
+        books.forEach(book => {
+            const option = document.createElement('option');
+            option.value = book.id;
+            option.textContent = book.name;
+            bookSelect.appendChild(option);
+        });
+    }
+    
+    function fillUnitSelect(bookId = null) {
+        const unitSelect = document.getElementById('unitSelect');
+        unitSelect.innerHTML = '<option value="">请选择单元</option>';
+        
+        let units = [];
+        if (bookId) {
+            units = allDecks.filter(deck => deck.type === 'unit' && deck.parentId == bookId);
+        } else {
+            units = allDecks.filter(deck => deck.type === 'unit');
+        }
+        
+        units.forEach(unit => {
+            const option = document.createElement('option');
+            option.value = unit.id;
+            option.textContent = unit.name;
+            unitSelect.appendChild(option);
+        });
+    }
+    
+    function fillAddWordSelectors() {
+        const bookSelect = document.getElementById('addWordBookSelect');
+        const unitSelect = document.getElementById('addWordUnitSelect');
+        
+        bookSelect.innerHTML = '<option value="">请选择书本</option>';
+        unitSelect.innerHTML = '<option value="">请选择单元</option>';
+        
+        const books = allDecks.filter(deck => deck.type === 'book');
+        books.forEach(book => {
+            const option = document.createElement('option');
+            option.value = book.id;
+            option.textContent = book.name;
+            bookSelect.appendChild(option);
+        });
+        
+        // 当书本改变时，更新单元选择
+        bookSelect.onchange = function() {
+            const selectedBookId = this.value;
+            fillUnitSelectorsByBook(selectedBookId, unitSelect);
+        };
+    }
+    
+    function fillImportSelectors() {
+        const bookSelect = document.getElementById('importBookSelect');
+        const unitSelect = document.getElementById('importUnitSelect');
+        
+        bookSelect.innerHTML = '<option value="">请选择书本</option>';
+        unitSelect.innerHTML = '<option value="">请选择单元</option>';
+        
+        const books = allDecks.filter(deck => deck.type === 'book');
+        books.forEach(book => {
+            const option = document.createElement('option');
+            option.value = book.id;
+            option.textContent = book.name;
+            bookSelect.appendChild(option);
+        });
+        
+        bookSelect.onchange = function() {
+            const selectedBookId = this.value;
+            fillUnitSelectorsByBook(selectedBookId, unitSelect);
+        };
+    }
+    
+    function fillDeleteSelectors() {
+        const deleteBookSelect = document.getElementById('deleteBookSelect');
+        const deleteUnitSelect = document.getElementById('deleteUnitSelect');
+        
+        deleteBookSelect.innerHTML = '<option value="">请选择书本</option>';
+        deleteUnitSelect.innerHTML = '<option value="">请选择单元</option>';
+        
+        const books = allDecks.filter(deck => deck.type === 'book');
+        books.forEach(book => {
+            const option = document.createElement('option');
+            option.value = book.id;
+            option.textContent = book.name;
+            deleteBookSelect.appendChild(option);
+        });
+        
+        deleteBookSelect.onchange = function() {
+            const selectedBookId = this.value;
+            const units = allDecks.filter(deck => deck.type === 'unit' && deck.parentId == selectedBookId);
+            deleteUnitSelect.innerHTML = '<option value="">请选择单元</option>';
+            units.forEach(unit => {
+                const option = document.createElement('option');
+                option.value = unit.id;
+                option.textContent = unit.name;
+                deleteUnitSelect.appendChild(option);
+            });
+        };
+    }
+    
+    function fillEditSelectors() {
+        const editBookSelect = document.getElementById('editBookSelect');
+        const editUnitSelect = document.getElementById('editUnitSelect');
+        
+        editBookSelect.innerHTML = '<option value="">请选择书本</option>';
+        editUnitSelect.innerHTML = '<option value="">请选择单元</option>';
+        
+        const books = allDecks.filter(deck => deck.type === 'book');
+        books.forEach(book => {
+            const option = document.createElement('option');
+            option.value = book.id;
+            option.textContent = book.name;
+            editBookSelect.appendChild(option);
+        });
+        
+        editBookSelect.onchange = function() {
+            const selectedBookId = this.value;
+            fillUnitSelectorsByBook(selectedBookId, editUnitSelect);
+        };
+    }
+    
+    function fillUnitSelectorsByBook(bookId, unitSelectElement) {
+        unitSelectElement.innerHTML = '<option value="">请选择单元</option>';
+        if (!bookId) return;
+        
+        const units = allDecks.filter(deck => deck.type === 'unit' && deck.parentId == bookId);
+        units.forEach(unit => {
+            const option = document.createElement('option');
+            option.value = unit.id;
+            option.textContent = unit.name;
+            unitSelectElement.appendChild(option);
+        });
+    }
+    
+    // ==================== 页面切换 ====================
+    function showPage(pageId) {
+        document.querySelectorAll('.page').forEach(page => {
+            page.classList.remove('active');
+        });
+        document.querySelectorAll('.tab button').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        // 获取事件目标（被点击的按钮）
+        let target = event.target;
+        // 确保我们找到的是按钮元素
+        while (target && !target.classList.contains('tab')) {
+            if (target.tagName === 'BUTTON') {
+                target.classList.add('active');
+                break;
+            }
+            target = target.parentElement;
+        }
+        
+        document.getElementById(pageId).classList.add('active');
+        
+        if (pageId === 'manage') {
+            showWordList();
+            initAllSelectors();
+        } else if (pageId === 'wrong') {
+            showWrongList();
+        } else if (pageId === 'decks') {
+            renderDeckCards();
+            updateDeckStatistics();
+            renderUploadHistory();
+        } else if (pageId === 'sync') {
+            updateSyncStatus();
+        }
+        
+        if (pageId === 'practice' && practiceWords.length > 0) {
+            setTimeout(() => {
+                document.getElementById('answer').focus();
+            }, 100);
+        }
+    }
+    
+    // ==================== 练习功能 ====================
+    function onPracticeModeChange() {
+        const mode = document.getElementById('practiceMode').value;
+        const deckSelector = document.getElementById('deckSelectorContainer');
+        
+        if (mode === 'wrong' || mode === 'all') {
+            deckSelector.style.display = 'none';
+        } else {
+            deckSelector.style.display = 'block';
+            const unitWrapper = document.getElementById('unitSelectorWrapper');
+            unitWrapper.style.display = mode === 'unit' ? 'block' : 'none';
+        }
+    }
+    
+    function onBookSelectChange() {
+        const bookId = document.getElementById('bookSelect').value;
+        fillUnitSelect(bookId);
+    }
+    
+    function startPractice() {
+        const mode = document.getElementById('practiceMode').value;
+        let candidateWords = [];
+        
+        // 重置错题练习模式状态
+        isWrongPracticeMode = false;
+        document.getElementById('wrongRemovalOption').style.display = 'none';
+        
+        if (mode === 'wrong') {
+            // 错题练习模式
+            isWrongPracticeMode = true;
+            candidateWords = wrongWords.map(wrongItem => {
+                return allVocabularies.find(w => 
+                    w.chinese === wrongItem.chinese && w.japanese === wrongItem.japanese);
+            }).filter(Boolean);
+            
+            if (candidateWords.length === 0) {
+                alert('暂无错题，请先进行练习并答错一些单词。');
+                return;
+            }
+        } else if (mode === 'all') {
+            candidateWords = [...allVocabularies];
+        } else {
+            const bookId = document.getElementById('bookSelect').value;
+            if (!bookId) {
+                alert('请先选择一本书。');
+                return;
+            }
+            
+            const book = allDecks.find(d => d.id == bookId);
+            if (!book) return;
+            
+            if (mode === 'unit') {
+                const unitId = document.getElementById('unitSelect').value;
+                if (!unitId) {
+                    alert('请选择一个单元。');
+                    return;
                 }
                 
-                // 解析数据
-                const cloudData = JSON.parse(dataFile.content);
+                const unit = allDecks.find(d => d.id == unitId);
+                if (!unit) return;
                 
-                // 检测冲突
-                const localData = {
-                    allDecks: allDecks,
-                    allVocabularies: allVocabularies,
-                    wrongWords: wrongWords,
-                    uploadHistory: uploadHistory,
-                    settings: settings,
-                    practiceStats: practiceStats
+                candidateWords = allVocabularies.filter(word => 
+                    word.deckId == unitId);
+            } else { // mode === 'review' - 汇总练习
+                const unitIds = allDecks
+                    .filter(d => d.type === 'unit' && d.parentId == bookId)
+                    .map(u => u.id);
+                
+                if (unitIds.length === 0) {
+                    alert('该书本下没有找到单元，请先添加单元或检查数据。');
+                    return;
+                }
+                
+                candidateWords = allVocabularies.filter(word => 
+                    unitIds.includes(word.deckId));
+                
+                if (candidateWords.length === 0) {
+                    const allUnitWords = [];
+                    unitIds.forEach(unitId => {
+                        const unitWords = allVocabularies.filter(word => word.deckId == unitId);
+                        allUnitWords.push(...unitWords);
+                    });
+                    candidateWords = allUnitWords;
+                }
+            }
+        }
+        
+        if (candidateWords.length === 0) {
+            alert('当前筛选条件下没有找到单词，请调整选择或添加单词。');
+            return;
+        }
+        
+        practiceWords = [...candidateWords];
+        for (let i = practiceWords.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [practiceWords[i], practiceWords[j]] = [practiceWords[j], practiceWords[i]];
+        }
+        
+        // 获取练习数量
+        let count = settings.practiceCount;
+        if (count > 0 && practiceWords.length > count) {
+            practiceWords = practiceWords.slice(0, count);
+        }
+        
+        practiceStats = { total: practiceWords.length, correct: 0, wrong: 0 };
+        currentIndex = 0;
+        isAnswerChecked = false;
+        
+        showQuestion();
+        updateProgressDisplay();
+        updatePracticeStats();
+        
+        setTimeout(() => {
+            document.getElementById('answer').focus();
+        }, 300);
+    }
+    
+    function showQuestion() {
+        if (practiceWords.length === 0) {
+            document.getElementById('question').textContent = '请先开始练习';
+            clearAnswer();
+            return;
+        }
+        
+        const word = practiceWords[currentIndex];
+        document.getElementById('question').textContent = word.chinese;
+        document.getElementById('question').className = 'word';
+        clearAnswer();
+        
+        // 如果是错题练习模式，隐藏移除选项
+        document.getElementById('wrongRemovalOption').style.display = 'none';
+        
+        isAnswerChecked = false;
+        updateProgressDisplay();
+        
+        setTimeout(() => {
+            const answerInput = document.getElementById('answer');
+            answerInput.focus();
+            if (isMobile) answerInput.click();
+        }, 200);
+    }
+    
+    function clearAnswer() {
+        document.getElementById('answer').value = '';
+        document.getElementById('result').innerHTML = '';
+        document.getElementById('currentAnswerText').textContent = '';
+    }
+    
+    function checkAnswer() {
+        const answer = document.getElementById('answer').value.trim();
+        const word = practiceWords[currentIndex];
+        
+        if (!answer) {
+            document.getElementById('result').innerHTML = '<span style="color:orange">请输入答案</span>';
+            return;
+        }
+        
+        isAnswerChecked = true;
+        
+        if (answer === word.japanese) {
+            showResult('✓ 正确！', 'correct', 'correct');
+            practiceStats.correct++;
+            
+            // 如果是错题练习模式
+            if (isWrongPracticeMode) {
+                // 显示移除选项
+                document.getElementById('wrongRemovalOption').style.display = 'block';
+                
+                // 找到当前单词在错题库中的索引
+                currentWrongWordIndex = wrongWords.findIndex(w => 
+                    w.chinese === word.chinese && w.japanese === word.japanese);
+            } else {
+                // 非错题练习模式，正常添加错题（如果之前是错的）
+                // 这里不处理，因为正确的单词不会添加到错题库
+            }
+        } else {
+            showResult(`✗ 错误 | 正确答案：${word.japanese}`, 'wrong', 'wrong');
+            practiceStats.wrong++;
+            addToWrong(word);
+        }
+        
+        document.getElementById('currentAnswerText').textContent = answer;
+        updatePracticeStats();
+        saveData();
+        
+        if (isMobile) {
+            setTimeout(() => document.getElementById('answer').select(), 100);
+        }
+    }
+    
+    // 从错题库移除当前单词
+    function removeCurrentWordFromWrong() {
+        if (currentWrongWordIndex !== null && currentWrongWordIndex >= 0) {
+            wrongWords.splice(currentWrongWordIndex, 1);
+            saveData();
+            document.getElementById('wrongRemovalOption').style.display = 'none';
+            document.getElementById('result').innerHTML += ' <span style="color:#4CAF50">(已从错题库移除)</span>';
+            
+            // 从当前练习列表中移除这个单词，避免重复练习
+            practiceWords.splice(currentIndex, 1);
+            if (practiceWords.length === 0) {
+                // 如果没有更多单词，结束练习
+                const correctRate = Math.round((practiceStats.correct / practiceStats.total) * 100);
+                alert(`错题练习完成！\n正确率：${correctRate}%\n正确：${practiceStats.correct}个\n错误：${practiceStats.wrong}个`);
+                currentIndex = 0;
+                showQuestion();
+            } else {
+                // 如果还有单词，显示下一个
+                if (currentIndex >= practiceWords.length) {
+                    currentIndex = practiceWords.length - 1;
+                }
+                showQuestion();
+            }
+        }
+    }
+    
+    // 保留在错题库
+    function keepCurrentWordInWrong() {
+        document.getElementById('wrongRemovalOption').style.display = 'none';
+        document.getElementById('result').innerHTML += ' <span style="color:#666">(保留在错题库)</span>';
+    }
+    
+    function showResult(message, resultClass, wordClass) {
+        const resultDiv = document.getElementById('result');
+        const questionDiv = document.getElementById('question');
+        
+        resultDiv.innerHTML = message;
+        resultDiv.className = `result ${resultClass}`;
+        questionDiv.className = `word ${wordClass}`;
+    }
+    
+    function nextWord() {
+        if (!isAnswerChecked) {
+            checkAnswer();
+            return;
+        }
+        
+        currentIndex++;
+        if (currentIndex >= practiceWords.length) {
+            const correctRate = Math.round((practiceStats.correct / practiceStats.total) * 100);
+            alert(`练习完成！\n正确率：${correctRate}%\n正确：${practiceStats.correct}个\n错误：${practiceStats.wrong}个`);
+            currentIndex = 0;
+        }
+        showQuestion();
+        updateProgressDisplay();
+    }
+    
+    function addToWrong(word) {
+        const existingIndex = wrongWords.findIndex(w => 
+            w.chinese === word.chinese && w.japanese === word.japanese);
+        
+        if (existingIndex >= 0) {
+            wrongWords[existingIndex].wrongCount += 1;
+            wrongWords[existingIndex].lastWrong = Date.now();
+        } else {
+            wrongWords.push({
+                chinese: word.chinese,
+                japanese: word.japanese,
+                wrongCount: 1,
+                lastWrong: Date.now()
+            });
+        }
+        
+        wrongWords.sort((a, b) => b.wrongCount - a.wrongCount);
+        saveData();
+    }
+    
+    // ==================== 词库管理功能 ====================
+    function createNewBook() {
+        currentDeckAction = 'create';
+        currentDeckId = null;
+        document.getElementById('createDeckTitle').textContent = '新建书本';
+        document.getElementById('parentBookGroup').style.display = 'none';
+        document.getElementById('newDeckName').value = '';
+        document.getElementById('saveDeckButton').textContent = '创建';
+        document.getElementById('createDeckOverlay').style.display = 'block';
+        document.getElementById('createDeckForm').style.display = 'block';
+    }
+    
+    function createNewUnit() {
+        currentDeckAction = 'create';
+        currentDeckId = null;
+        const parentBookSelect = document.getElementById('parentBookSelect');
+        parentBookSelect.innerHTML = '<option value="">请选择所属书本</option>';
+        
+        const books = allDecks.filter(deck => deck.type === 'book');
+        books.forEach(book => {
+            const option = document.createElement('option');
+            option.value = book.id;
+            option.textContent = book.name;
+            parentBookSelect.appendChild(option);
+        });
+        
+        document.getElementById('createDeckTitle').textContent = '新建单元';
+        document.getElementById('parentBookGroup').style.display = 'block';
+        document.getElementById('newDeckName').value = '';
+        document.getElementById('saveDeckButton').textContent = '创建';
+        document.getElementById('createDeckOverlay').style.display = 'block';
+        document.getElementById('createDeckForm').style.display = 'block';
+    }
+    
+    function createNewDeckForImport() {
+        currentDeckAction = 'create';
+        currentDeckId = null;
+        const parentBookSelect = document.getElementById('parentBookSelect');
+        parentBookSelect.innerHTML = '<option value="">请选择所属书本</option>';
+        
+        const books = allDecks.filter(deck => deck.type === 'book');
+        books.forEach(book => {
+            const option = document.createElement('option');
+            option.value = book.id;
+            option.textContent = book.name;
+            parentBookSelect.appendChild(option);
+        });
+        
+        // 自动选择当前导入选择器中选择的书本
+        const selectedBookId = document.getElementById('importBookSelect').value;
+        if (selectedBookId) {
+            parentBookSelect.value = selectedBookId;
+        }
+        
+        document.getElementById('createDeckTitle').textContent = '新建单元';
+        document.getElementById('parentBookGroup').style.display = 'block';
+        document.getElementById('newDeckName').value = '';
+        document.getElementById('saveDeckButton').textContent = '创建';
+        document.getElementById('createDeckOverlay').style.display = 'block';
+        document.getElementById('createDeckForm').style.display = 'block';
+    }
+    
+    function saveNewDeck() {
+        const name = document.getElementById('newDeckName').value.trim();
+        if (!name) {
+            alert('请输入词库名称');
+            return;
+        }
+        
+        if (currentDeckAction === 'edit' && currentDeckId) {
+            // 编辑现有词库
+            const deck = allDecks.find(d => d.id == currentDeckId);
+            if (!deck) {
+                alert('词库不存在');
+                return;
+            }
+            
+            // 更新名称
+            deck.name = name;
+            
+            saveData();
+            initAllSelectors();
+            renderDeckCards();
+            updateDeckStatistics();
+            closeCreateDeckForm();
+            alert(`词库"${name}"修改成功！`);
+        } else {
+            // 新建
+            const title = document.getElementById('createDeckTitle').textContent;
+            const isBook = title === '新建书本';
+            
+            let newDeck;
+            if (isBook) {
+                newDeck = {
+                    id: generateId(),
+                    name: name,
+                    type: 'book',
+                    createdAt: new Date().toISOString()
                 };
-                
-                const conflictInfo = detectConflicts(localData, cloudData);
-                
-                if (conflictInfo.hasConflict && syncState.localChanges) {
-                    // 显示冲突解决对话框
-                    showConflictDialog(conflictInfo, localData, cloudData, filename, null, gistId);
-                    downloadStatus.innerHTML = '发现数据冲突，请选择解决方案';
+            } else {
+                const parentBookId = document.getElementById('parentBookSelect').value;
+                if (!parentBookId) {
+                    alert('请选择所属书本');
                     return;
                 }
                 
-                // 显示下载信息
-                const downloadTime = new Date(cloudData.exportDate).toLocaleString();
-                const wordCount = cloudData.allVocabularies?.length || 0;
-                
-                // 确认是否覆盖
-                if (!confirm(`从云端下载数据将覆盖当前数据，确定要继续吗？\n\n下载时间: ${downloadTime}\n单词数量: ${wordCount}`)) {
+                const parentBook = allDecks.find(d => d.id == parentBookId);
+                if (!parentBook) {
+                    alert('所选书本不存在');
                     return;
                 }
                 
-                // 加载数据
-                allDecks = cloudData.allDecks || [];
-                allVocabularies = cloudData.allVocabularies || [];
-                wrongWords = cloudData.wrongWords || [];
-                uploadHistory = cloudData.uploadHistory || [];
-                settings = cloudData.settings || { practiceCount: 30 };
-                practiceStats = cloudData.practiceStats || { total: 0, correct: 0, wrong: 0 };
+                newDeck = {
+                    id: generateId(),
+                    name: name,
+                    type: 'unit',
+                    parentId: parentBookId,
+                    parentName: parentBook.name,
+                    createdAt: new Date().toISOString()
+                };
+            }
+            
+            allDecks.push(newDeck);
+            saveData();
+            initAllSelectors();
+            renderDeckCards();
+            updateDeckStatistics();
+            closeCreateDeckForm();
+            alert(`词库"${name}"创建成功！`);
+        }
+    }
+    
+    function closeCreateDeckForm() {
+        document.getElementById('createDeckOverlay').style.display = 'none';
+        document.getElementById('createDeckForm').style.display = 'none';
+        currentDeckAction = 'create';
+        currentDeckId = null;
+    }
+    
+    function deleteSelectedBook() {
+        const bookId = document.getElementById('deleteBookSelect').value;
+        if (!bookId) {
+            alert('请选择要删除的书本');
+            return;
+        }
+        
+        const book = allDecks.find(d => d.id == bookId);
+        if (!book) {
+            alert('所选书本不存在');
+            return;
+        }
+        
+        // 检查是否有关联的单元
+        const relatedUnits = allDecks.filter(d => d.type === 'unit' && d.parentId == bookId);
+        const relatedWords = allVocabularies.filter(word => {
+            const unit = allDecks.find(d => d.id == word.deckId);
+            return unit && unit.parentId == bookId;
+        });
+        
+        let message = `确定要删除书本"${book.name}"吗？\n`;
+        if (relatedUnits.length > 0) {
+            message += `这将同时删除其下的 ${relatedUnits.length} 个单元\n`;
+        }
+        if (relatedWords.length > 0) {
+            message += `以及 ${relatedWords.length} 个单词\n`;
+        }
+        
+        if (!confirm(message + '\n此操作不可撤销！')) {
+            return;
+        }
+        
+        // 删除关联的单词
+        allVocabularies = allVocabularies.filter(word => {
+            const unit = allDecks.find(d => d.id == word.deckId);
+            return !unit || unit.parentId != bookId;
+        });
+        
+        // 删除关联的单元
+        allDecks = allDecks.filter(d => !(d.type === 'unit' && d.parentId == bookId));
+        
+        // 删除书本本身
+        allDecks = allDecks.filter(d => d.id != bookId);
+        
+        saveData();
+        initAllSelectors();
+        renderDeckCards();
+        updateDeckStatistics();
+        alert(`书本"${book.name}"已删除`);
+    }
+    
+    function deleteSelectedUnit() {
+        const unitId = document.getElementById('deleteUnitSelect').value;
+        if (!unitId) {
+            alert('请选择要删除的单元');
+            return;
+        }
+        
+        const unit = allDecks.find(d => d.id == unitId);
+        if (!unit) {
+            alert('所选单元不存在');
+            return;
+        }
+        
+        const relatedWords = allVocabularies.filter(word => word.deckId == unitId);
+        
+        let message = `确定要删除单元"${unit.name}"吗？\n`;
+        if (relatedWords.length > 0) {
+            message += `这将同时删除其中的 ${relatedWords.length} 个单词\n`;
+        }
+        
+        if (!confirm(message + '\n此操作不可撤销！')) {
+            return;
+        }
+        
+        // 删除关联的单词
+        allVocabularies = allVocabularies.filter(word => word.deckId != unitId);
+        
+        // 删除单元本身
+        allDecks = allDecks.filter(d => d.id != unitId);
+        
+        saveData();
+        initAllSelectors();
+        renderDeckCards();
+        updateDeckStatistics();
+        alert(`单元"${unit.name}"已删除`);
+    }
+    
+    function renderDeckCards() {
+        // 渲染书本卡片
+        const bookList = document.getElementById('bookList');
+        const books = allDecks.filter(deck => deck.type === 'book');
+        
+        bookList.innerHTML = '';
+        books.forEach(book => {
+            const relatedUnits = allDecks.filter(d => d.type === 'unit' && d.parentId == book.id);
+            const wordCount = allVocabularies.filter(word => {
+                const unit = allDecks.find(d => d.id == word.deckId);
+                return unit && unit.parentId == book.id;
+            }).length;
+            
+            const card = document.createElement('div');
+            card.className = 'deck-card';
+            card.innerHTML = `
+                <h4>${book.name}</h4>
+                <div class="deck-stats">
+                    <div>单元数: ${relatedUnits.length}</div>
+                    <div>单词数: ${wordCount}</div>
+                    <div>创建: ${new Date(book.createdAt).toLocaleDateString()}</div>
+                </div>
+                <div class="deck-actions">
+                    <button class="btn-view" onclick="viewBookWords('${book.id}')">查看单词</button>
+                    <button class="btn-edit" onclick="editBook('${book.id}')">编辑</button>
+                    <button class="btn-delete" onclick="deleteDeck('${book.id}')">删除</button>
+                </div>
+            `;
+            bookList.appendChild(card);
+        });
+        
+        // 渲染单元卡片
+        const unitList = document.getElementById('unitList');
+        const units = allDecks.filter(deck => deck.type === 'unit');
+        
+        unitList.innerHTML = '';
+        units.forEach(unit => {
+            const wordCount = allVocabularies.filter(word => word.deckId == unit.id).length;
+            const parentBook = allDecks.find(d => d.id == unit.parentId);
+            
+            const card = document.createElement('div');
+            card.className = 'deck-card';
+            card.innerHTML = `
+                <h4>${unit.name}</h4>
+                <div class="deck-stats">
+                    <div>所属书本: ${parentBook ? parentBook.name : '未知'}</div>
+                    <div>单词数: ${wordCount}</div>
+                    <div>创建: ${new Date(unit.createdAt).toLocaleDateString()}</div>
+                </div>
+                <div class="deck-actions">
+                    <button class="btn-view" onclick="viewUnitWords('${unit.id}')">查看单词</button>
+                    <button class="btn-edit" onclick="editDeck('${unit.id}')">编辑</button>
+                    <button class="btn-delete" onclick="deleteDeck('${unit.id}')">删除</button>
+                </div>
+            `;
+            unitList.appendChild(card);
+        });
+    }
+    
+    function deleteDeck(deckId) {
+        const deck = allDecks.find(d => d.id == deckId);
+        if (!deck) return;
+        
+        let message = `确定要删除"${deck.name}"吗？`;
+        let isUnit = deck.type === 'unit';
+        
+        if (isUnit) {
+            const wordCount = allVocabularies.filter(word => word.deckId == deckId).length;
+            if (wordCount > 0) {
+                message += `\n这将同时删除其中的 ${wordCount} 个单词`;
+            }
+        } else {
+            const relatedUnits = allDecks.filter(d => d.type === 'unit' && d.parentId == deckId);
+            const relatedWords = allVocabularies.filter(word => {
+                const unit = allDecks.find(d => d.id == word.deckId);
+                return unit && unit.parentId == deckId;
+            });
+            
+            if (relatedUnits.length > 0) {
+                message += `\n这将同时删除其下的 ${relatedUnits.length} 个单元`;
+            }
+            if (relatedWords.length > 0) {
+                message += `\n以及 ${relatedWords.length} 个单词`;
+            }
+        }
+        
+        if (!confirm(message + '\n此操作不可撤销！')) {
+            return;
+        }
+        
+        if (isUnit) {
+            allVocabularies = allVocabularies.filter(word => word.deckId != deckId);
+        } else {
+            // 删除书本及其关联内容
+            const unitIds = allDecks
+                .filter(d => d.type === 'unit' && d.parentId == deckId)
+                .map(u => u.id);
+            
+            allVocabularies = allVocabularies.filter(word => !unitIds.includes(word.deckId));
+            allDecks = allDecks.filter(d => !(d.type === 'unit' && d.parentId == deckId));
+        }
+        
+        allDecks = allDecks.filter(d => d.id != deckId);
+        saveData();
+        initAllSelectors();
+        renderDeckCards();
+        updateDeckStatistics();
+        alert(`"${deck.name}"已删除`);
+    }
+    
+    function editBook(bookId) {
+        const deck = allDecks.find(d => d.id == bookId);
+        if (!deck) return;
+        
+        currentDeckAction = 'edit';
+        currentDeckId = bookId;
+        document.getElementById('createDeckTitle').textContent = '编辑书本';
+        document.getElementById('parentBookGroup').style.display = 'none';
+        document.getElementById('newDeckName').value = deck.name;
+        document.getElementById('saveDeckButton').textContent = '保存修改';
+        document.getElementById('createDeckOverlay').style.display = 'block';
+        document.getElementById('createDeckForm').style.display = 'block';
+    }
+    
+    function editDeck(deckId) {
+        const deck = allDecks.find(d => d.id == deckId);
+        if (!deck) return;
+        
+        if (deck.type === 'unit') {
+            currentDeckAction = 'edit';
+            currentDeckId = deckId;
+            const parentBookSelect = document.getElementById('parentBookSelect');
+            parentBookSelect.innerHTML = '<option value="">请选择所属书本</option>';
+            
+            const books = allDecks.filter(d => d.type === 'book');
+            books.forEach(book => {
+                const option = document.createElement('option');
+                option.value = book.id;
+                option.textContent = book.name;
+                if (book.id == deck.parentId) option.selected = true;
+                parentBookSelect.appendChild(option);
+            });
+            
+            document.getElementById('createDeckTitle').textContent = '编辑单元';
+            document.getElementById('parentBookGroup').style.display = 'block';
+            document.getElementById('newDeckName').value = deck.name;
+            document.getElementById('saveDeckButton').textContent = '保存修改';
+            document.getElementById('createDeckOverlay').style.display = 'block';
+            document.getElementById('createDeckForm').style.display = 'block';
+        } else {
+            editBook(deckId);
+        }
+    }
+    
+    function viewBookWords(bookId) {
+        const book = allDecks.find(d => d.id == bookId);
+        const units = allDecks.filter(d => d.type === 'unit' && d.parentId == bookId);
+        const unitIds = units.map(u => u.id);
+        const words = allVocabularies.filter(word => unitIds.includes(word.deckId));
+        
+        if (words.length === 0) {
+            alert(`书本"${book.name}"中还没有单词`);
+            return;
+        }
+        
+        // 显示单词列表
+        showWordList(words, `书本"${book.name}"的单词 (${words.length}个)`);
+        // 切换到管理页面
+        showPage('manage');
+    }
+    
+    function viewUnitWords(unitId) {
+        const unit = allDecks.find(d => d.id == unitId);
+        const words = allVocabularies.filter(word => word.deckId == unitId);
+        
+        if (words.length === 0) {
+            alert(`单元"${unit.name}"中还没有单词`);
+            return;
+        }
+        
+        // 显示单词列表
+        showWordList(words, `单元"${unit.name}"的单词 (${words.length}个)`);
+        // 切换到管理页面
+        showPage('manage');
+    }
+    
+    // ==================== 单词管理功能 ====================
+    function addWord() {
+        const chinese = document.getElementById('newChinese').value.trim();
+        const japanese = document.getElementById('newJapanese').value.trim();
+        const bookId = document.getElementById('addWordBookSelect').value;
+        const unitId = document.getElementById('addWordUnitSelect').value;
+        
+        if (!chinese || !japanese) {
+            alert('请输入完整的信息');
+            return;
+        }
+        
+        if (!unitId) {
+            alert('请选择单词要添加到的单元');
+            return;
+        }
+        
+        const unit = allDecks.find(d => d.id == unitId);
+        const book = allDecks.find(d => d.id == unit.parentId);
+        
+        allVocabularies.push({ 
+            id: generateId(),
+            chinese, 
+            japanese,
+            deckId: unitId,
+            book: book ? book.name : '',
+            unit: unit.name,
+            createdAt: new Date().toISOString()
+        });
+        
+        saveData();
+        document.getElementById('newChinese').value = '';
+        document.getElementById('newJapanese').value = '';
+        showWordList();
+        updateCounts();
+        alert('单词添加成功！');
+    }
+    
+    function importFromExcel() {
+        const text = document.getElementById('importData').value.trim();
+        const bookId = document.getElementById('importBookSelect').value;
+        const unitId = document.getElementById('importUnitSelect').value;
+        
+        if (!text) {
+            alert('请粘贴Excel数据');
+            return;
+        }
+        
+        if (!unitId) {
+            alert('请选择单词要导入到的单元');
+            return;
+        }
+        
+        const unit = allDecks.find(d => d.id == unitId);
+        const book = allDecks.find(d => d.id == unit.parentId);
+        
+        const lines = text.split('\n');
+        let imported = 0;
+        let skipped = 0;
+        
+        lines.forEach(line => {
+            const parts = line.trim().split(/\s+/);
+            if (parts.length >= 2) {
+                const chinese = parts[0].trim();
+                const japanese = parts[1].trim();
+                if (chinese && japanese) {
+                    const exists = allVocabularies.some(w => 
+                        w.chinese === chinese && w.japanese === japanese);
+                    if (!exists) {
+                        allVocabularies.push({ 
+                            id: generateId(),
+                            chinese, 
+                            japanese,
+                            deckId: unitId,
+                            book: book ? book.name : '',
+                            unit: unit.name,
+                            createdAt: new Date().toISOString()
+                        });
+                        imported++;
+                    } else {
+                        skipped++;
+                    }
+                }
+            }
+        });
+        
+        // 记录上传历史
+        uploadHistory.push({
+            type: 'import',
+            book: book ? book.name : '',
+            unit: unit.name,
+            count: imported,
+            date: new Date().toISOString()
+        });
+        
+        saveData();
+        showWordList();
+        updateCounts();
+        document.getElementById('importData').value = '';
+        alert(`成功导入 ${imported} 个单词到"${unit.name}"${skipped > 0 ? `，跳过 ${skipped} 个重复单词` : ''}`);
+    }
+    
+    // 新增：搜索单词功能
+    function searchWords() {
+        const searchText = document.getElementById('searchWord').value.trim().toLowerCase();
+        
+        if (!searchText) {
+            isSearchActive = false;
+            showWordList();
+            document.getElementById('searchResultInfo').innerHTML = '';
+            return;
+        }
+        
+        searchResults = allVocabularies.filter(word => 
+            word.chinese.toLowerCase().includes(searchText) || 
+            word.japanese.toLowerCase().includes(searchText)
+        );
+        
+        isSearchActive = true;
+        
+        if (searchResults.length === 0) {
+            document.getElementById('wordList').innerHTML = '<p>没有找到匹配的单词</p>';
+            document.getElementById('searchResultInfo').innerHTML = `搜索"${searchText}"，找到0个结果`;
+        } else {
+            showWordList(searchResults, `搜索"${searchText}"的结果 (${searchResults.length}个)`);
+            document.getElementById('searchResultInfo').innerHTML = `搜索"${searchText}"，找到${searchResults.length}个结果`;
+        }
+    }
+    
+    // 新增：清除搜索
+    function clearSearch() {
+        document.getElementById('searchWord').value = '';
+        isSearchActive = false;
+        showWordList();
+        document.getElementById('searchResultInfo').innerHTML = '';
+    }
+    
+    function showWordList(filteredWords = null, title = '所有单词') {
+        const words = filteredWords || allVocabularies;
+        const listDiv = document.getElementById('wordList');
+        
+        if (words.length === 0) {
+            listDiv.innerHTML = `<p>${title} - 暂无单词</p>`;
+            return;
+        }
+        
+        let html = `<h4>${title} (${words.length})</h4>`;
+        html += '<table style="width:100%; border-collapse:collapse;">';
+        html += '<tr style="background:#4a6fa5;color:white;"><th>书本</th><th>单元</th><th>中文</th><th>日语假名</th><th>操作</th></tr>';
+        
+        words.forEach((word, index) => {
+            let originalIndex;
+            if (isSearchActive && filteredWords) {
+                // 如果是搜索模式，找到原始索引
+                originalIndex = allVocabularies.findIndex(w => w.id === word.id);
+            } else {
+                originalIndex = index;
+            }
+            
+            const wrongItem = wrongWords.find(w => 
+                w.chinese === word.chinese && w.japanese === word.japanese);
+            const wrongCount = wrongItem ? wrongItem.wrongCount : 0;
+            
+            html += `
+                <tr style="border-bottom:1px solid #ddd;">
+                    <td style="padding:10px;">${word.book || '未分类'}</td>
+                    <td style="padding:10px;">${word.unit || '未分类'}</td>
+                    <td style="padding:10px;">${word.chinese}</td>
+                    <td style="padding:10px;">${word.japanese}</td>
+                    <td style="padding:10px;">
+                        ${wrongCount > 0 ? `<span class="wrong-count" title="错误${wrongCount}次">${wrongCount}</span>` : ''}
+                        <button onclick="editWord(${originalIndex})" style="padding:5px 10px;background:#ff9800;color:white;margin-right:5px;">编辑</button>
+                        <button onclick="deleteWord(${originalIndex})" style="padding:5px 10px;background:red;color:white;">删除</button>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += '</table>';
+        listDiv.innerHTML = html;
+    }
+    
+    function editWord(index) {
+        const word = allVocabularies[index];
+        document.getElementById('editChinese').value = word.chinese;
+        document.getElementById('editJapanese').value = word.japanese;
+        
+        // 填充编辑表单的选择器
+        fillEditSelectors();
+        
+        // 设置当前值
+        const unit = allDecks.find(d => d.name === word.unit && d.type === 'unit');
+        if (unit) {
+            const book = allDecks.find(d => d.id == unit.parentId);
+            if (book) {
+                document.getElementById('editBookSelect').value = book.id;
+                fillUnitSelectorsByBook(book.id, document.getElementById('editUnitSelect'));
+                document.getElementById('editUnitSelect').value = unit.id;
+            }
+        }
+        
+        // 存储正在编辑的单词索引
+        window.editingWordIndex = index;
+        
+        // 显示编辑表单
+        document.getElementById('editOverlay').style.display = 'block';
+        document.getElementById('editForm').style.display = 'block';
+    }
+    
+    function saveEditedWord() {
+        const index = window.editingWordIndex;
+        if (index === undefined) return;
+        
+        const chinese = document.getElementById('editChinese').value.trim();
+        const japanese = document.getElementById('editJapanese').value.trim();
+        const unitId = document.getElementById('editUnitSelect').value;
+        
+        if (!chinese || !japanese) {
+            alert('请输入完整的信息');
+            return;
+        }
+        
+        if (!unitId) {
+            alert('请选择单词所属的单元');
+            return;
+        }
+        
+        const unit = allDecks.find(d => d.id == unitId);
+        const book = allDecks.find(d => d.id == unit.parentId);
+        
+        allVocabularies[index] = {
+            ...allVocabularies[index],
+            chinese,
+            japanese,
+            deckId: unitId,
+            book: book ? book.name : '',
+            unit: unit.name
+        };
+        
+        saveData();
+        showWordList();
+        closeEditForm();
+        alert('单词修改成功！');
+    }
+    
+    function closeEditForm() {
+        document.getElementById('editOverlay').style.display = 'none';
+        document.getElementById('editForm').style.display = 'none';
+        window.editingWordIndex = undefined;
+    }
+    
+    function deleteWord(index) {
+        if (confirm('确定要删除这个单词吗？')) {
+            const word = allVocabularies[index];
+            const wrongIndex = wrongWords.findIndex(w => 
+                w.chinese === word.chinese && w.japanese === word.japanese);
+            if (wrongIndex >= 0) {
+                wrongWords.splice(wrongIndex, 1);
+            }
+            allVocabularies.splice(index, 1);
+            saveData();
+            showWordList();
+            updateCounts();
+        }
+    }
+    
+    // ==================== 上传记录功能 ====================
+    function renderUploadHistory() {
+        const historyDiv = document.getElementById('uploadHistory');
+        if (uploadHistory.length === 0) {
+            historyDiv.innerHTML = '<p>暂无上传记录</p>';
+            return;
+        }
+        
+        let html = '';
+        uploadHistory.forEach((record, index) => {
+            const date = new Date(record.date).toLocaleString();
+            html += `
+                <div class="upload-item">
+                    <div>
+                        <strong>${record.type === 'import' ? '导入' : '迁移'}</strong>
+                        ${record.book ? `到 ${record.book}` : ''}
+                        ${record.unit ? ` - ${record.unit}` : ''}
+                        <br>
+                        <small>${date} | ${record.count}个单词</small>
+                    </div>
+                    <button onclick="deleteUploadRecord(${index})" style="padding:5px 10px;background:red;color:white;font-size:12px;">删除</button>
+                </div>
+            `;
+        });
+        
+        historyDiv.innerHTML = html;
+    }
+    
+    function deleteUploadRecord(index) {
+        if (confirm('确定要删除这条上传记录吗？')) {
+            uploadHistory.splice(index, 1);
+            saveData();
+            renderUploadHistory();
+        }
+    }
+    
+    // ==================== 统计和更新功能 ====================
+    function updateCounts() {
+        document.getElementById('wordCount').textContent = allVocabularies.length;
+        document.getElementById('totalWordCount').textContent = allVocabularies.length;
+        document.getElementById('deckCount').textContent = allDecks.filter(d => d.type === 'book').length;
+    }
+    
+    function updateDeckStatistics() {
+        const statsDiv = document.getElementById('deckStatistics');
+        const books = allDecks.filter(d => d.type === 'book');
+        const units = allDecks.filter(d => d.type === 'unit');
+        
+        let html = `
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                <div style="background: #e3f2fd; padding: 10px; border-radius: 5px;">
+                    <div style="font-size: 20px; font-weight: bold;">${books.length}</div>
+                    <div>书本数量</div>
+                </div>
+                <div style="background: #e8f5e8; padding: 10px; border-radius: 5px;">
+                    <div style="font-size: 20px; font-weight: bold;">${units.length}</div>
+                    <div>单元数量</div>
+                </div>
+                <div style="background: #fff3cd; padding: 10px; border-radius: 5px;">
+                    <div style="font-size: 20px; font-weight: bold;">${allVocabularies.length}</div>
+                    <div>单词总数</div>
+                </div>
+                <div style="background: #ffebee; padding: 10px; border-radius: 5px;">
+                    <div style="font-size: 20px; font-weight: bold;">${wrongWords.length}</div>
+                    <div>错题数量</div>
+                </div>
+            </div>
+        `;
+        
+        // 添加书本详情
+        if (books.length > 0) {
+            html += '<h4 style="margin-top: 20px;">书本详情：</h4>';
+            books.forEach(book => {
+                const relatedUnits = allDecks.filter(d => d.type === 'unit' && d.parentId == book.id);
+                const wordCount = allVocabularies.filter(word => {
+                    const unit = allDecks.find(d => d.id == word.deckId);
+                    return unit && unit.parentId == book.id;
+                }).length;
                 
-                // 更新同步时间
-                syncState.lastSyncTime = gistData.updated_at;
-                syncState.localChanges = false;
+                html += `
+                    <div style="margin: 5px 0; padding: 5px; background: #f5f5f5; border-radius: 3px;">
+                        <strong>${book.name}</strong>: ${relatedUnits.length}个单元, ${wordCount}个单词
+                    </div>
+                `;
+            });
+        }
+        
+        statsDiv.innerHTML = html;
+    }
+    
+    function updateProgressDisplay() {
+        if (practiceWords.length === 0) {
+            document.getElementById('currentProgress').textContent = '0';
+            document.getElementById('totalPractice').textContent = '0';
+            document.getElementById('progressFill').style.width = '0%';
+            return;
+        }
+        const progress = currentIndex + 1;
+        const total = practiceWords.length;
+        const percent = Math.round((progress / total) * 100);
+        document.getElementById('currentProgress').textContent = progress;
+        document.getElementById('totalPractice').textContent = total;
+        document.getElementById('progressFill').style.width = percent + '%';
+    }
+    
+    function updatePracticeStats() {
+        const total = practiceStats.total;
+        if (total === 0) {
+            document.getElementById('correctRate').textContent = '0%';
+            return;
+        }
+        const answered = practiceStats.correct + practiceStats.wrong;
+        const correctRate = Math.round((practiceStats.correct / answered) * 100) || 0;
+        document.getElementById('correctRate').textContent = correctRate + '%';
+    }
+    
+    // ==================== 错题功能 ====================
+    function showWrongList() {
+        const listDiv = document.getElementById('wrongList');
+        if (wrongWords.length === 0) {
+            listDiv.innerHTML = '<p>暂无错题</p>';
+            return;
+        }
+        
+        wrongWords.sort((a, b) => b.wrongCount - a.wrongCount);
+        let html = '<table style="width:100%; border-collapse:collapse;">';
+        html += '<tr style="background:#ff9800;color:white;"><th>错误次数</th><th>中文</th><th>日语假名</th><th>操作</th></tr>';
+        
+        wrongWords.forEach((wrongItem, index) => {
+            const lastWrong = new Date(wrongItem.lastWrong).toLocaleDateString();
+            html += `
+                <tr style="border-bottom:1px solid #ddd;">
+                    <td style="padding:10px; text-align:center;">
+                        <span class="wrong-count">${wrongItem.wrongCount}</span>
+                        <div style="font-size:12px; color:#666;">上次:${lastWrong}</div>
+                    </td>
+                    <td style="padding:10px;">${wrongItem.chinese}</td>
+                    <td style="padding:10px;">${wrongItem.japanese}</td>
+                    <td style="padding:10px;">
+                        <button onclick="removeWrong(${index})" style="padding:5px 10px;">删除</button>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += '</table>';
+        listDiv.innerHTML = html;
+    }
+    
+    function removeWrong(index) {
+        if (confirm('确定要从错题集删除吗？')) {
+            wrongWords.splice(index, 1);
+            saveData();
+            showWrongList();
+        }
+    }
+    
+    function clearWrong() {
+        if (confirm('确定要清空错题集吗？')) {
+            wrongWords = [];
+            saveData();
+            showWrongList();
+        }
+    }
+    
+    function practiceWrong() {
+        document.getElementById('practiceMode').value = 'wrong';
+        onPracticeModeChange();
+        showPage('practice');
+    }
+    
+    // ==================== 其他功能 ====================
+    function handleSubmit(event) {
+        event.preventDefault();
+        handleFormSubmit();
+        return false;
+    }
+    
+    function handleFormSubmit() {
+        if (!isAnswerChecked) {
+            checkAnswer();
+        } else {
+            nextWord();
+        }
+    }
+    
+    function handleInputBlur() {
+        if (isMobile && !isAnswerChecked && document.getElementById('answer').value.trim()) {
+            setTimeout(() => {
+                if (!isAnswerChecked) {
+                    checkAnswer();
+                }
+            }, 200);
+        }
+    }
+    
+    function loadSettings() {
+        if (localStorage.getItem('japaneseSettings')) {
+            settings = JSON.parse(localStorage.getItem('japaneseSettings'));
+            const practiceCountSelect = document.getElementById('practiceCount');
+            
+            // 检查是否是自定义值
+            const count = settings.practiceCount;
+            const isCustomValue = ![10, 20, 30, 50, 100, 0].includes(count);
+            
+            if (isCustomValue && count > 0) {
+                practiceCountSelect.value = 'custom';
+                document.getElementById('customPracticeCount').value = count;
+                document.getElementById('customCountContainer').style.display = 'block';
+            } else {
+                practiceCountSelect.value = count.toString();
+            }
+        }
+    }
+    
+    // 新增：保存自定义练习数量
+    function saveCustomCount() {
+        const customCount = parseInt(document.getElementById('customPracticeCount').value);
+        
+        if (isNaN(customCount) || customCount < 1 || customCount > 999) {
+            alert('请输入1-999之间的有效数字');
+            return;
+        }
+        
+        settings.practiceCount = customCount;
+        localStorage.setItem('japaneseSettings', JSON.stringify(settings));
+        
+        document.getElementById('customCountContainer').style.display = 'none';
+        document.getElementById('practiceCount').value = customCount.toString();
+        
+        alert(`已保存自定义练习数量：${customCount}个单词`);
+    }
+    
+    function saveSettings() {
+        const practiceCountSelect = document.getElementById('practiceCount');
+        const selectedValue = practiceCountSelect.value;
+        
+        if (selectedValue === 'custom') {
+            document.getElementById('customCountContainer').style.display = 'block';
+        } else {
+            settings.practiceCount = parseInt(selectedValue);
+            localStorage.setItem('japaneseSettings', JSON.stringify(settings));
+        }
+    }
+    
+    function exportData() {
+        const data = {
+            allDecks: allDecks,
+            allVocabularies: allVocabularies,
+            wrongWords: wrongWords,
+            uploadHistory: uploadHistory,
+            settings: settings,
+            exportDate: new Date().toISOString()
+        };
+        
+        const dataStr = JSON.stringify(data, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `日语单词备份_${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        alert('数据已导出为JSON文件，请将此文件发送到手机');
+    }
+    
+    function importData() {
+        const fileInput = document.getElementById('fileInput');
+        const file = fileInput.files[0];
+        if (!file) {
+            alert('请选择文件');
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                allDecks = data.allDecks || [];
+                allVocabularies = data.allVocabularies || [];
+                wrongWords = data.wrongWords || [];
+                uploadHistory = data.uploadHistory || [];
+                settings = data.settings || { practiceCount: 30 };
                 
                 saveData();
                 loadSettings();
@@ -1134,1803 +2630,42 @@
                 updateDeckStatistics();
                 renderUploadHistory();
                 
-                downloadStatus.innerHTML = `✅ 下载成功！<br>共加载 ${wordCount} 个单词<br>${wrongWords.length} 个错题`;
-                updateSyncStatus();
-                
-                alert(`数据同步完成！
-        - ${allDecks.length} 个词库
-        - ${wordCount} 个单词
-        - ${wrongWords.length} 个错题
-        已成功加载到当前设备！`);
-                
-            } catch (error) {
-                console.error('下载失败:', error);
-                if (error.message.includes('404') || error.message.includes('Not Found')) {
-                    downloadStatus.innerHTML = `❌ 下载失败: 未找到同步文件<br>请先在另一设备上传数据`;
-                    // 清除无效的gistId
-                    githubConfig.gistId = '';
-                    localStorage.setItem('githubConfig', JSON.stringify(githubConfig));
-                    updateSyncStatus();
-                } else {
-                    downloadStatus.innerHTML = `❌ 下载失败: ${error.message}`;
-                }
-            }
-        }
-
-        // 检测数据冲突
-        function detectConflicts(localData, cloudData) {
-            const localVocabCount = localData.allVocabularies?.length || 0;
-            const cloudVocabCount = cloudData.allVocabularies?.length || 0;
-            
-            // 简单的冲突检测：比较单词数量和最近修改时间
-            const localLastUpdate = localData.exportDate || syncState.lastSyncTime;
-            const cloudLastUpdate = cloudData.exportDate;
-            
-            // 检查是否有不同的单词
-            let differentWords = 0;
-            if (localVocabCount > 0 && cloudVocabCount > 0) {
-                const localWordSet = new Set(localData.allVocabularies.map(w => `${w.chinese}|${w.japanese}|${w.deckId}`));
-                const cloudWordSet = new Set(cloudData.allVocabularies.map(w => `${w.chinese}|${w.japanese}|${w.deckId}`));
-                
-                // 找出不同的单词
-                for (const word of localData.allVocabularies) {
-                    const key = `${word.chinese}|${word.japanese}|${word.deckId}`;
-                    if (!cloudWordSet.has(key)) {
-                        differentWords++;
-                    }
-                }
-            }
-            
-            return {
-                hasConflict: differentWords > 0 || localVocabCount !== cloudVocabCount,
-                localVocabCount,
-                cloudVocabCount,
-                differentWords,
-                localLastUpdate,
-                cloudLastUpdate
-            };
-        }
-
-        // 显示冲突解决对话框
-        function showConflictDialog(conflictInfo, localData, cloudData, filename, dataStr, gistId) {
-            document.getElementById('conflictOverlay').style.display = 'block';
-            document.getElementById('conflictDialog').style.display = 'block';
-            
-            // 显示数据信息
-            document.getElementById('cloudDataInfo').innerHTML = `
-                <p>单词数量: ${conflictInfo.cloudVocabCount}</p>
-                <p>最后更新: ${new Date(conflictInfo.cloudLastUpdate).toLocaleString()}</p>
-            `;
-            
-            document.getElementById('localDataInfo').innerHTML = `
-                <p>单词数量: ${conflictInfo.localVocabCount}</p>
-                <p>最后更新: ${new Date(conflictInfo.localLastUpdate).toLocaleString()}</p>
-            `;
-            
-            document.getElementById('mergeDataInfo').innerHTML = `
-                <p>合并后单词数量: ${conflictInfo.localVocabCount + conflictInfo.differentWords}</p>
-                <p>不会丢失任何单词</p>
-            `;
-            
-            // 显示同步历史
-            const localHistory = localData.uploadHistory || [];
-            const cloudHistory = cloudData.uploadHistory || [];
-            
-            document.getElementById('localSyncHistory').innerHTML = localHistory.length > 0 ? 
-                `最近操作: ${localHistory[localHistory.length-1].type} (${new Date(localHistory[localHistory.length-1].date).toLocaleDateString()})` : 
-                '无历史记录';
-            
-            document.getElementById('cloudSyncHistory').innerHTML = cloudHistory.length > 0 ? 
-                `最近操作: ${cloudHistory[cloudHistory.length-1].type} (${new Date(cloudHistory[cloudHistory.length-1].date).toLocaleDateString()})` : 
-                '无历史记录';
-            
-            // 存储冲突解决参数
-            window.conflictResolution = {
-                conflictInfo,
-                localData,
-                cloudData,
-                filename,
-                dataStr,
-                gistId,
-                selectedChoice: 'merge' // 默认选择合并
-            };
-            
-            // 默认选择合并选项
-            selectConflictChoice('merge');
-        }
-
-        // 选择冲突解决方案
-        function selectConflictChoice(choice) {
-            window.conflictResolution.selectedChoice = choice;
-            
-            // 更新UI
-            document.getElementById('cloudChoice').classList.remove('selected');
-            document.getElementById('localChoice').classList.remove('selected');
-            document.getElementById('mergeChoice').classList.remove('selected');
-            
-            document.getElementById(choice + 'Choice').classList.add('selected');
-        }
-
-        // 解决冲突
-        async function resolveConflict() {
-            const resolution = window.conflictResolution;
-            if (!resolution) return;
-            
-            const choice = resolution.selectedChoice;
-            const uploadStatus = document.getElementById('uploadStatus');
-            
-            try {
-                let finalData;
-                
-                if (choice === 'cloud') {
-                    // 使用云端数据
-                    finalData = resolution.cloudData;
-                    uploadStatus.innerHTML = '正在使用云端数据...';
-                } else if (choice === 'local') {
-                    // 使用本地数据
-                    finalData = resolution.localData;
-                    uploadStatus.innerHTML = '正在使用本地数据...';
-                } else {
-                    // 合并数据
-                    finalData = mergeData(resolution.localData, resolution.cloudData);
-                    uploadStatus.innerHTML = '正在合并数据...';
-                }
-                
-                // 添加导出时间
-                finalData.exportDate = new Date().toISOString();
-                finalData.lastSyncTime = new Date().toISOString();
-                
-                // 保存到本地
-                allDecks = finalData.allDecks || [];
-                allVocabularies = finalData.allVocabularies || [];
-                wrongWords = finalData.wrongWords || [];
-                uploadHistory = finalData.uploadHistory || [];
-                settings = finalData.settings || { practiceCount: 30 };
-                practiceStats = finalData.practiceStats || { total: 0, correct: 0, wrong: 0 };
-                
-                // 更新同步时间
-                syncState.lastSyncTime = finalData.lastSyncTime;
-                syncState.localChanges = false;
-                
-                saveData();
-                initAllSelectors();
-                showWordList();
-                renderDeckCards();
-                updateDeckStatistics();
-                
-                // 上传到云端
-                const dataStr = JSON.stringify(finalData, null, 2);
-                
-                if (resolution.gistId) {
-                    await updateGist(resolution.gistId, resolution.filename, dataStr);
-                    uploadStatus.innerHTML = `✅ 冲突解决完成！数据已同步到云端<br>选择方案: ${choice === 'cloud' ? '云端' : choice === 'local' ? '本地' : '合并'}`;
-                } else {
-                    const gistId = await createGist(resolution.filename, dataStr);
-                    githubConfig.gistId = gistId;
-                    localStorage.setItem('githubConfig', JSON.stringify(githubConfig));
-                    uploadStatus.innerHTML = `✅ 冲突解决完成！创建了新的云端备份<br>选择方案: ${choice === 'cloud' ? '云端' : choice === 'local' ? '本地' : '合并'}`;
-                }
-                
-                // 关闭对话框
-                cancelConflictResolution();
-                updateSyncStatus();
-                
-            } catch (error) {
-                console.error('冲突解决失败:', error);
-                uploadStatus.innerHTML = `❌ 冲突解决失败: ${error.message}`;
-            }
-        }
-
-        // 合并数据
-        function mergeData(localData, cloudData) {
-            // 合并词库
-            const mergedDecks = [...(localData.allDecks || [])];
-            const cloudDecks = cloudData.allDecks || [];
-            
-            for (const cloudDeck of cloudDecks) {
-                const existingDeck = mergedDecks.find(d => d.id === cloudDeck.id);
-                if (!existingDeck) {
-                    mergedDecks.push(cloudDeck);
-                }
-            }
-            
-            // 合并单词
-            const mergedVocabularies = [...(localData.allVocabularies || [])];
-            const cloudVocabularies = cloudData.allVocabularies || [];
-            
-            for (const cloudWord of cloudVocabularies) {
-                const existingWord = mergedVocabularies.find(w => 
-                    w.chinese === cloudWord.chinese && 
-                    w.japanese === cloudWord.japanese &&
-                    w.deckId === cloudWord.deckId
-                );
-                if (!existingWord) {
-                    mergedVocabularies.push(cloudWord);
-                }
-            }
-            
-            // 合并错题
-            const mergedWrongWords = [...(localData.wrongWords || [])];
-            const cloudWrongWords = cloudData.wrongWords || [];
-            
-            for (const cloudWrong of cloudWrongWords) {
-                const existingWrong = mergedWrongWords.find(w => 
-                    w.chinese === cloudWrong.chinese && 
-                    w.japanese === cloudWrong.japanese
-                );
-                if (!existingWrong) {
-                    mergedWrongWords.push(cloudWrong);
-                }
-            }
-            
-            // 合并上传历史
-            const mergedHistory = [...(localData.uploadHistory || []), ...(cloudData.uploadHistory || [])];
-            // 按时间排序
-            mergedHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
-            
-            return {
-                allDecks: mergedDecks,
-                allVocabularies: mergedVocabularies,
-                wrongWords: mergedWrongWords,
-                uploadHistory: mergedHistory.slice(0, 50), // 保留最近50条记录
-                settings: localData.settings || cloudData.settings || { practiceCount: 30 },
-                practiceStats: {
-                    total: (localData.practiceStats?.total || 0) + (cloudData.practiceStats?.total || 0),
-                    correct: (localData.practiceStats?.correct || 0) + (cloudData.practiceStats?.correct || 0),
-                    wrong: (localData.practiceStats?.wrong || 0) + (cloudData.practiceStats?.wrong || 0)
-                }
-            };
-        }
-
-        // 取消冲突解决
-        function cancelConflictResolution() {
-            document.getElementById('conflictOverlay').style.display = 'none';
-            document.getElementById('conflictDialog').style.display = 'none';
-            window.conflictResolution = null;
-        }
-
-        // 查找现有的Gist（通过文件名）
-        async function findExistingGist(filename) {
-            try {
-                // 获取用户的所有Gists
-                const gists = await listUserGists();
-                
-                // 查找包含指定文件名的Gist
-                for (const gist of gists) {
-                    if (gist.files && gist.files[filename]) {
-                        return gist;
-                    }
-                    // 也检查文件名包含"japanese_vocab"的
-                    for (const fileFilename in gist.files) {
-                        if (fileFilename.includes('japanese_vocab')) {
-                            return gist;
-                        }
-                    }
-                }
-                return null;
-            } catch (error) {
-                console.error('查找Gist失败:', error);
-                return null;
-            }
-        }
-
-        // GitHub API 辅助函数
-        async function createGist(filename, content) {
-            const response = await fetch('https://api.github.com/gists', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `token ${githubConfig.token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    description: '日语单词工具数据备份',
-                    public: false,
-                    files: {
-                        [filename]: {
-                            content: content
-                        }
-                    }
-                })
-            });
-            
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || '创建Gist失败');
-            }
-            
-            const data = await response.json();
-            return data.id;
-        }
-
-        async function updateGist(gistId, filename, content) {
-            const response = await fetch(`https://api.github.com/gists/${gistId}`, {
-                method: 'PATCH',
-                headers: {
-                    'Authorization': `token ${githubConfig.token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    description: `日语单词工具数据备份 - 更新于 ${new Date().toLocaleString()}`,
-                    files: {
-                        [filename]: {
-                            content: content
-                        }
-                    }
-                })
-            });
-            
-            if (!response.ok) {
-                throw new Error('更新Gist失败');
-            }
-            
-            return await response.json();
-        }
-
-        async function getGist(gistId) {
-            const response = await fetch(`https://api.github.com/gists/${gistId}`, {
-                headers: {
-                    'Authorization': `token ${githubConfig.token}`
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error(`获取Gist失败: ${response.status}`);
-            }
-            
-            return await response.json();
-        }
-
-        async function listUserGists() {
-            const response = await fetch(`https://api.github.com/gists`, {
-                headers: {
-                    'Authorization': `token ${githubConfig.token}`
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error('获取Gist列表失败');
-            }
-            
-            return await response.json();
-        }
-        
-        // ==================== 搜索功能 ====================
-        function searchWords() {
-            const searchInput = document.getElementById('searchWordInput');
-            const keyword = searchInput.value.trim().toLowerCase();
-            
-            if (!keyword) {
-                showWordList();
-                return;
-            }
-            
-            // 搜索中文或日语假名包含关键词的单词
-            const filteredWords = allVocabularies.filter(word => 
-                word.chinese.toLowerCase().includes(keyword) || 
-                word.japanese.toLowerCase().includes(keyword)
-            );
-            
-            showWordList(filteredWords, `搜索结果 (${filteredWords.length}个)`);
-        }
-        
-        function clearSearch() {
-            document.getElementById('searchWordInput').value = '';
-            showWordList();
-        }
-        
-        // ==================== 初始化所有下拉选择器 ====================
-        function initAllSelectors() {
-            fillBookSelect();
-            fillUnitSelect();
-            fillAddWordSelectors();
-            fillImportSelectors();
-            fillDeleteSelectors();
-            fillEditSelectors();
-            renderUploadHistory();
-        }
-        
-        function fillBookSelect() {
-            const bookSelect = document.getElementById('bookSelect');
-            bookSelect.innerHTML = '<option value="">请选择书本</option>';
-            const books = allDecks.filter(deck => deck.type === 'book');
-            books.forEach(book => {
-                const option = document.createElement('option');
-                option.value = book.id;
-                option.textContent = book.name;
-                bookSelect.appendChild(option);
-            });
-        }
-        
-        function fillUnitSelect(bookId = null) {
-            const unitSelect = document.getElementById('unitSelect');
-            unitSelect.innerHTML = '<option value="">请选择单元</option>';
-            
-            let units = [];
-            if (bookId) {
-                units = allDecks.filter(deck => deck.type === 'unit' && deck.parentId == bookId);
-            } else {
-                units = allDecks.filter(deck => deck.type === 'unit');
-            }
-            
-            units.forEach(unit => {
-                const option = document.createElement('option');
-                option.value = unit.id;
-                option.textContent = unit.name;
-                unitSelect.appendChild(option);
-            });
-        }
-        
-        function fillAddWordSelectors() {
-            const bookSelect = document.getElementById('addWordBookSelect');
-            const unitSelect = document.getElementById('addWordUnitSelect');
-            
-            bookSelect.innerHTML = '<option value="">请选择书本</option>';
-            unitSelect.innerHTML = '<option value="">请选择单元</option>';
-            
-            const books = allDecks.filter(deck => deck.type === 'book');
-            books.forEach(book => {
-                const option = document.createElement('option');
-                option.value = book.id;
-                option.textContent = book.name;
-                bookSelect.appendChild(option);
-            });
-            
-            // 当书本改变时，更新单元选择
-            bookSelect.onchange = function() {
-                const selectedBookId = this.value;
-                fillUnitSelectorsByBook(selectedBookId, unitSelect);
-            };
-        }
-        
-        function fillImportSelectors() {
-            const bookSelect = document.getElementById('importBookSelect');
-            const unitSelect = document.getElementById('importUnitSelect');
-            
-            bookSelect.innerHTML = '<option value="">请选择书本</option>';
-            unitSelect.innerHTML = '<option value="">请选择单元</option>';
-            
-            const books = allDecks.filter(deck => deck.type === 'book');
-            books.forEach(book => {
-                const option = document.createElement('option');
-                option.value = book.id;
-                option.textContent = book.name;
-                bookSelect.appendChild(option);
-            });
-            
-            bookSelect.onchange = function() {
-                const selectedBookId = this.value;
-                fillUnitSelectorsByBook(selectedBookId, unitSelect);
-            };
-        }
-        
-        function fillDeleteSelectors() {
-            const deleteBookSelect = document.getElementById('deleteBookSelect');
-            const deleteUnitSelect = document.getElementById('deleteUnitSelect');
-            
-            deleteBookSelect.innerHTML = '<option value="">请选择书本</option>';
-            deleteUnitSelect.innerHTML = '<option value="">请选择单元</option>';
-            
-            const books = allDecks.filter(deck => deck.type === 'book');
-            books.forEach(book => {
-                const option = document.createElement('option');
-                option.value = book.id;
-                option.textContent = book.name;
-                deleteBookSelect.appendChild(option);
-            });
-            
-            deleteBookSelect.onchange = function() {
-                const selectedBookId = this.value;
-                const units = allDecks.filter(deck => deck.type === 'unit' && deck.parentId == selectedBookId);
-                deleteUnitSelect.innerHTML = '<option value="">请选择单元</option>';
-                units.forEach(unit => {
-                    const option = document.createElement('option');
-                    option.value = unit.id;
-                    option.textContent = unit.name;
-                    deleteUnitSelect.appendChild(option);
-                });
-            };
-        }
-        
-        function fillEditSelectors() {
-            const editBookSelect = document.getElementById('editBookSelect');
-            const editUnitSelect = document.getElementById('editUnitSelect');
-            
-            editBookSelect.innerHTML = '<option value="">请选择书本</option>';
-            editUnitSelect.innerHTML = '<option value="">请选择单元</option>';
-            
-            const books = allDecks.filter(deck => deck.type === 'book');
-            books.forEach(book => {
-                const option = document.createElement('option');
-                option.value = book.id;
-                option.textContent = book.name;
-                editBookSelect.appendChild(option);
-            });
-            
-            editBookSelect.onchange = function() {
-                const selectedBookId = this.value;
-                fillUnitSelectorsByBook(selectedBookId, editUnitSelect);
-            };
-        }
-        
-        function fillUnitSelectorsByBook(bookId, unitSelectElement) {
-            unitSelectElement.innerHTML = '<option value="">请选择单元</option>';
-            if (!bookId) return;
-            
-            const units = allDecks.filter(deck => deck.type === 'unit' && deck.parentId == bookId);
-            units.forEach(unit => {
-                const option = document.createElement('option');
-                option.value = unit.id;
-                option.textContent = unit.name;
-                unitSelectElement.appendChild(option);
-            });
-        }
-        
-        // ==================== 页面切换 ====================
-        function showPage(pageId) {
-            document.querySelectorAll('.page').forEach(page => {
-                page.classList.remove('active');
-            });
-            document.querySelectorAll('.tab button').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            // 获取事件目标（被点击的按钮）
-            let target = event.target;
-            // 确保我们找到的是按钮元素
-            while (target && !target.classList.contains('tab')) {
-                if (target.tagName === 'BUTTON') {
-                    target.classList.add('active');
-                    break;
-                }
-                target = target.parentElement;
-            }
-            
-            document.getElementById(pageId).classList.add('active');
-            
-            if (pageId === 'manage') {
-                showWordList();
-                initAllSelectors();
-            } else if (pageId === 'wrong') {
-                showWrongList();
-            } else if (pageId === 'decks') {
-                renderDeckCards();
-                updateDeckStatistics();
-                renderUploadHistory();
-            } else if (pageId === 'sync') {
-                updateSyncStatus();
-            }
-            
-            if (pageId === 'practice' && practiceWords.length > 0) {
-                setTimeout(() => {
-                    document.getElementById('answer').focus();
-                }, 100);
-            }
-        }
-        
-        // ==================== 练习功能 ====================
-        function onPracticeModeChange() {
-            const mode = document.getElementById('practiceMode').value;
-            const deckSelector = document.getElementById('deckSelectorContainer');
-            
-            if (mode === 'wrong' || mode === 'all') {
-                deckSelector.style.display = 'none';
-            } else {
-                deckSelector.style.display = 'block';
-                const unitWrapper = document.getElementById('unitSelectorWrapper');
-                unitWrapper.style.display = mode === 'unit' ? 'block' : 'none';
-            }
-        }
-        
-        function onBookSelectChange() {
-            const bookId = document.getElementById('bookSelect').value;
-            fillUnitSelect(bookId);
-        }
-        
-        function startPractice() {
-            const mode = document.getElementById('practiceMode').value;
-            let candidateWords = [];
-            
-            // 重置错题练习模式状态
-            isWrongPracticeMode = false;
-            document.getElementById('wrongRemovalOption').style.display = 'none';
-            
-            if (mode === 'wrong') {
-                // 错题练习模式
-                isWrongPracticeMode = true;
-                candidateWords = wrongWords.map(wrongItem => {
-                    return allVocabularies.find(w => 
-                        w.chinese === wrongItem.chinese && w.japanese === wrongItem.japanese);
-                }).filter(Boolean);
-                
-                if (candidateWords.length === 0) {
-                    alert('暂无错题，请先进行练习并答错一些单词。');
-                    return;
-                }
-            } else if (mode === 'all') {
-                candidateWords = [...allVocabularies];
-            } else {
-                const bookId = document.getElementById('bookSelect').value;
-                if (!bookId) {
-                    alert('请先选择一本书。');
-                    return;
-                }
-                
-                const book = allDecks.find(d => d.id == bookId);
-                if (!book) return;
-                
-                if (mode === 'unit') {
-                    const unitId = document.getElementById('unitSelect').value;
-                    if (!unitId) {
-                        alert('请选择一个单元。');
-                        return;
-                    }
-                    
-                    const unit = allDecks.find(d => d.id == unitId);
-                    if (!unit) return;
-                    
-                    candidateWords = allVocabularies.filter(word => 
-                        word.deckId == unitId);
-                } else { // mode === 'review' - 汇总练习
-                    const unitIds = allDecks
-                        .filter(d => d.type === 'unit' && d.parentId == bookId)
-                        .map(u => u.id);
-                    
-                    if (unitIds.length === 0) {
-                        alert('该书本下没有找到单元，请先添加单元或检查数据。');
-                        return;
-                    }
-                    
-                    candidateWords = allVocabularies.filter(word => 
-                        unitIds.includes(word.deckId));
-                    
-                    if (candidateWords.length === 0) {
-                        const allUnitWords = [];
-                        unitIds.forEach(unitId => {
-                            const unitWords = allVocabularies.filter(word => word.deckId == unitId);
-                            allUnitWords.push(...unitWords);
-                        });
-                        candidateWords = allUnitWords;
-                    }
-                }
-            }
-            
-            if (candidateWords.length === 0) {
-                alert('当前筛选条件下没有找到单词，请调整选择或添加单词。');
-                return;
-            }
-            
-            practiceWords = [...candidateWords];
-            for (let i = practiceWords.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [practiceWords[i], practiceWords[j]] = [practiceWords[j], practiceWords[i]];
-            }
-            
-            // 获取练习数量设置
-            let count = parseInt(document.getElementById('practiceCount').value);
-            if (isNaN(count) || count < 0) {
-                count = 30; // 默认值
-            }
-            
-            if (count > 0 && practiceWords.length > count) {
-                practiceWords = practiceWords.slice(0, count);
-            }
-            
-            practiceStats = { total: practiceWords.length, correct: 0, wrong: 0 };
-            currentIndex = 0;
-            isAnswerChecked = false;
-            
-            showQuestion();
-            updateProgressDisplay();
-            updatePracticeStats();
-            
-            setTimeout(() => {
-                document.getElementById('answer').focus();
-            }, 300);
-        }
-        
-        function showQuestion() {
-            if (practiceWords.length === 0) {
-                document.getElementById('question').textContent = '请先开始练习';
-                clearAnswer();
-                return;
-            }
-            
-            const word = practiceWords[currentIndex];
-            document.getElementById('question').textContent = word.chinese;
-            document.getElementById('question').className = 'word';
-            clearAnswer();
-            
-            // 如果是错题练习模式，隐藏移除选项
-            document.getElementById('wrongRemovalOption').style.display = 'none';
-            
-            isAnswerChecked = false;
-            updateProgressDisplay();
-            
-            setTimeout(() => {
-                const answerInput = document.getElementById('answer');
-                answerInput.focus();
-                if (isMobile) answerInput.click();
-            }, 200);
-        }
-        
-        function clearAnswer() {
-            document.getElementById('answer').value = '';
-            document.getElementById('result').innerHTML = '';
-            document.getElementById('currentAnswerText').textContent = '';
-        }
-        
-        function checkAnswer() {
-            const answer = document.getElementById('answer').value.trim();
-            const word = practiceWords[currentIndex];
-            
-            if (!answer) {
-                document.getElementById('result').innerHTML = '<span style="color:orange">请输入答案</span>';
-                return;
-            }
-            
-            isAnswerChecked = true;
-            
-            if (answer === word.japanese) {
-                showResult('✓ 正确！', 'correct', 'correct');
-                practiceStats.correct++;
-                
-                // 如果是错题练习模式
-                if (isWrongPracticeMode) {
-                    // 显示移除选项
-                    document.getElementById('wrongRemovalOption').style.display = 'block';
-                    
-                    // 找到当前单词在错题库中的索引
-                    currentWrongWordIndex = wrongWords.findIndex(w => 
-                        w.chinese === word.chinese && w.japanese === word.japanese);
-                } else {
-                    // 非错题练习模式，正常添加错题（如果之前是错的）
-                    // 这里不处理，因为正确的单词不会添加到错题库
-                }
-            } else {
-                showResult(`✗ 错误 | 正确答案：${word.japanese}`, 'wrong', 'wrong');
-                practiceStats.wrong++;
-                addToWrong(word);
-            }
-            
-            document.getElementById('currentAnswerText').textContent = answer;
-            updatePracticeStats();
-            saveData();
-            
-            if (isMobile) {
-                setTimeout(() => document.getElementById('answer').select(), 100);
-            }
-        }
-        
-        // 从错题库移除当前单词
-        function removeCurrentWordFromWrong() {
-            if (currentWrongWordIndex !== null && currentWrongWordIndex >= 0) {
-                wrongWords.splice(currentWrongWordIndex, 1);
-                saveData();
-                document.getElementById('wrongRemovalOption').style.display = 'none';
-                document.getElementById('result').innerHTML += ' <span style="color:#4CAF50">(已从错题库移除)</span>';
-                
-                // 从当前练习列表中移除这个单词，避免重复练习
-                practiceWords.splice(currentIndex, 1);
-                if (practiceWords.length === 0) {
-                    // 如果没有更多单词，结束练习
-                    const correctRate = Math.round((practiceStats.correct / practiceStats.total) * 100);
-                    alert(`错题练习完成！\n正确率：${correctRate}%\n正确：${practiceStats.correct}个\n错误：${practiceStats.wrong}个`);
-                    currentIndex = 0;
-                    showQuestion();
-                } else {
-                    // 如果还有单词，显示下一个
-                    if (currentIndex >= practiceWords.length) {
-                        currentIndex = practiceWords.length - 1;
-                    }
-                    showQuestion();
-                }
-            }
-        }
-        
-        // 保留在错题库
-        function keepCurrentWordInWrong() {
-            document.getElementById('wrongRemovalOption').style.display = 'none';
-            document.getElementById('result').innerHTML += ' <span style="color:#666">(保留在错题库)</span>';
-        }
-        
-        function showResult(message, resultClass, wordClass) {
-            const resultDiv = document.getElementById('result');
-            const questionDiv = document.getElementById('question');
-            
-            resultDiv.innerHTML = message;
-            resultDiv.className = `result ${resultClass}`;
-            questionDiv.className = `word ${wordClass}`;
-        }
-        
-        function nextWord() {
-            if (!isAnswerChecked) {
-                checkAnswer();
-                return;
-            }
-            
-            currentIndex++;
-            if (currentIndex >= practiceWords.length) {
-                const correctRate = Math.round((practiceStats.correct / practiceStats.total) * 100);
-                alert(`练习完成！\n正确率：${correctRate}%\n正确：${practiceStats.correct}个\n错误：${practiceStats.wrong}个`);
-                currentIndex = 0;
-            }
-            showQuestion();
-            updateProgressDisplay();
-        }
-        
-        function resetPractice() {
-            if (practiceWords.length === 0) {
-                startPractice();
-                return;
-            }
-            if (confirm('重新开始当前练习？')) {
-                currentIndex = 0;
-                practiceStats = { total: practiceWords.length, correct: 0, wrong: 0 };
-                isAnswerChecked = false;
-                showQuestion();
-                updatePracticeStats();
-                updateProgressDisplay();
-                document.getElementById('wrongRemovalOption').style.display = 'none';
-            }
-        }
-        
-        function markWrong() {
-            const word = practiceWords[currentIndex];
-            addToWrong(word);
-            const resultDiv = document.getElementById('result');
-            resultDiv.innerHTML += ' <span style="color:#ff9800">(已添加到错题集)</span>';
-            document.getElementById('question').className = 'word wrong';
-        }
-        
-        function addToWrong(word) {
-            const existingIndex = wrongWords.findIndex(w => 
-                w.chinese === word.chinese && w.japanese === word.japanese);
-            
-            if (existingIndex >= 0) {
-                wrongWords[existingIndex].wrongCount += 1;
-                wrongWords[existingIndex].lastWrong = Date.now();
-            } else {
-                wrongWords.push({
-                    chinese: word.chinese,
-                    japanese: word.japanese,
-                    wrongCount: 1,
-                    lastWrong: Date.now()
-                });
-            }
-            
-            wrongWords.sort((a, b) => b.wrongCount - a.wrongCount);
-            saveData();
-        }
-        
-        // ==================== 词库管理功能 ====================
-        function createNewBook() {
-            currentDeckAction = 'create';
-            currentDeckId = null;
-            document.getElementById('createDeckTitle').textContent = '新建书本';
-            document.getElementById('parentBookGroup').style.display = 'none';
-            document.getElementById('newDeckName').value = '';
-            document.getElementById('saveDeckButton').textContent = '创建';
-            document.getElementById('createDeckOverlay').style.display = 'block';
-            document.getElementById('createDeckForm').style.display = 'block';
-        }
-        
-        function createNewUnit() {
-            currentDeckAction = 'create';
-            currentDeckId = null;
-            const parentBookSelect = document.getElementById('parentBookSelect');
-            parentBookSelect.innerHTML = '<option value="">请选择所属书本</option>';
-            
-            const books = allDecks.filter(deck => deck.type === 'book');
-            books.forEach(book => {
-                const option = document.createElement('option');
-                option.value = book.id;
-                option.textContent = book.name;
-                parentBookSelect.appendChild(option);
-            });
-            
-            document.getElementById('createDeckTitle').textContent = '新建单元';
-            document.getElementById('parentBookGroup').style.display = 'block';
-            document.getElementById('newDeckName').value = '';
-            document.getElementById('saveDeckButton').textContent = '创建';
-            document.getElementById('createDeckOverlay').style.display = 'block';
-            document.getElementById('createDeckForm').style.display = 'block';
-        }
-        
-        function createNewDeckForImport() {
-            currentDeckAction = 'create';
-            currentDeckId = null;
-            const parentBookSelect = document.getElementById('parentBookSelect');
-            parentBookSelect.innerHTML = '<option value="">请选择所属书本</option>';
-            
-            const books = allDecks.filter(deck => deck.type === 'book');
-            books.forEach(book => {
-                const option = document.createElement('option');
-                option.value = book.id;
-                option.textContent = book.name;
-                parentBookSelect.appendChild(option);
-            });
-            
-            // 自动选择当前导入选择器中选择的书本
-            const selectedBookId = document.getElementById('importBookSelect').value;
-            if (selectedBookId) {
-                parentBookSelect.value = selectedBookId;
-            }
-            
-            document.getElementById('createDeckTitle').textContent = '新建单元';
-            document.getElementById('parentBookGroup').style.display = 'block';
-            document.getElementById('newDeckName').value = '';
-            document.getElementById('saveDeckButton').textContent = '创建';
-            document.getElementById('createDeckOverlay').style.display = 'block';
-            document.getElementById('createDeckForm').style.display = 'block';
-        }
-        
-        function saveNewDeck() {
-            const name = document.getElementById('newDeckName').value.trim();
-            if (!name) {
-                alert('请输入词库名称');
-                return;
-            }
-            
-            if (currentDeckAction === 'edit' && currentDeckId) {
-                // 编辑现有词库
-                const deck = allDecks.find(d => d.id == currentDeckId);
-                if (!deck) {
-                    alert('词库不存在');
-                    return;
-                }
-                
-                // 更新名称
-                deck.name = name;
-                
-                saveData();
-                initAllSelectors();
-                renderDeckCards();
-                updateDeckStatistics();
-                closeCreateDeckForm();
-                alert(`词库"${name}"修改成功！`);
-            } else {
-                // 新建
-                const title = document.getElementById('createDeckTitle').textContent;
-                const isBook = title === '新建书本';
-                
-                let newDeck;
-                if (isBook) {
-                    newDeck = {
-                        id: generateId(),
-                        name: name,
-                        type: 'book',
-                        createdAt: new Date().toISOString()
-                    };
-                } else {
-                    const parentBookId = document.getElementById('parentBookSelect').value;
-                    if (!parentBookId) {
-                        alert('请选择所属书本');
-                        return;
-                    }
-                    
-                    const parentBook = allDecks.find(d => d.id == parentBookId);
-                    if (!parentBook) {
-                        alert('所选书本不存在');
-                        return;
-                    }
-                    
-                    newDeck = {
-                        id: generateId(),
-                        name: name,
-                        type: 'unit',
-                        parentId: parentBookId,
-                        parentName: parentBook.name,
-                        createdAt: new Date().toISOString()
-                    };
-                }
-                
-                allDecks.push(newDeck);
-                saveData();
-                initAllSelectors();
-                renderDeckCards();
-                updateDeckStatistics();
-                closeCreateDeckForm();
-                alert(`词库"${name}"创建成功！`);
-            }
-        }
-        
-        function closeCreateDeckForm() {
-            document.getElementById('createDeckOverlay').style.display = 'none';
-            document.getElementById('createDeckForm').style.display = 'none';
-            currentDeckAction = 'create';
-            currentDeckId = null;
-        }
-        
-        function deleteSelectedBook() {
-            const bookId = document.getElementById('deleteBookSelect').value;
-            if (!bookId) {
-                alert('请选择要删除的书本');
-                return;
-            }
-            
-            const book = allDecks.find(d => d.id == bookId);
-            if (!book) {
-                alert('所选书本不存在');
-                return;
-            }
-            
-            // 检查是否有关联的单元
-            const relatedUnits = allDecks.filter(d => d.type === 'unit' && d.parentId == bookId);
-            const relatedWords = allVocabularies.filter(word => {
-                const unit = allDecks.find(d => d.id == word.deckId);
-                return unit && unit.parentId == bookId;
-            });
-            
-            let message = `确定要删除书本"${book.name}"吗？\n`;
-            if (relatedUnits.length > 0) {
-                message += `这将同时删除其下的 ${relatedUnits.length} 个单元\n`;
-            }
-            if (relatedWords.length > 0) {
-                message += `以及 ${relatedWords.length} 个单词\n`;
-            }
-            
-            if (!confirm(message + '\n此操作不可撤销！')) {
-                return;
-            }
-            
-            // 删除关联的单词
-            allVocabularies = allVocabularies.filter(word => {
-                const unit = allDecks.find(d => d.id == word.deckId);
-                return !unit || unit.parentId != bookId;
-            });
-            
-            // 删除关联的单元
-            allDecks = allDecks.filter(d => !(d.type === 'unit' && d.parentId == bookId));
-            
-            // 删除书本本身
-            allDecks = allDecks.filter(d => d.id != bookId);
-            
-            saveData();
-            initAllSelectors();
-            renderDeckCards();
-            updateDeckStatistics();
-            alert(`书本"${book.name}"已删除`);
-        }
-        
-        function deleteSelectedUnit() {
-            const unitId = document.getElementById('deleteUnitSelect').value;
-            if (!unitId) {
-                alert('请选择要删除的单元');
-                return;
-            }
-            
-            const unit = allDecks.find(d => d.id == unitId);
-            if (!unit) {
-                alert('所选单元不存在');
-                return;
-            }
-            
-            const relatedWords = allVocabularies.filter(word => word.deckId == unitId);
-            
-            let message = `确定要删除单元"${unit.name}"吗？\n`;
-            if (relatedWords.length > 0) {
-                message += `这将同时删除其中的 ${relatedWords.length} 个单词\n`;
-            }
-            
-            if (!confirm(message + '\n此操作不可撤销！')) {
-                return;
-            }
-            
-            // 删除关联的单词
-            allVocabularies = allVocabularies.filter(word => word.deckId != unitId);
-            
-            // 删除单元本身
-            allDecks = allDecks.filter(d => d.id != unitId);
-            
-            saveData();
-            initAllSelectors();
-            renderDeckCards();
-            updateDeckStatistics();
-            alert(`单元"${unit.name}"已删除`);
-        }
-        
-        function renderDeckCards() {
-            // 渲染书本卡片
-            const bookList = document.getElementById('bookList');
-            const books = allDecks.filter(deck => deck.type === 'book');
-            
-            bookList.innerHTML = '';
-            books.forEach(book => {
-                const relatedUnits = allDecks.filter(d => d.type === 'unit' && d.parentId == book.id);
-                const wordCount = allVocabularies.filter(word => {
-                    const unit = allDecks.find(d => d.id == word.deckId);
-                    return unit && unit.parentId == book.id;
-                }).length;
-                
-                const card = document.createElement('div');
-                card.className = 'deck-card';
-                card.innerHTML = `
-                    <h4>${book.name}</h4>
-                    <div class="deck-stats">
-                        <div>单元数: ${relatedUnits.length}</div>
-                        <div>单词数: ${wordCount}</div>
-                        <div>创建: ${new Date(book.createdAt).toLocaleDateString()}</div>
-                    </div>
-                    <div class="deck-actions">
-                        <button class="btn-view" onclick="viewBookWords('${book.id}')">查看单词</button>
-                        <button class="btn-edit" onclick="editBook('${book.id}')">编辑</button>
-                        <button class="btn-delete" onclick="deleteDeck('${book.id}')">删除</button>
-                    </div>
-                `;
-                bookList.appendChild(card);
-            });
-            
-            // 渲染单元卡片
-            const unitList = document.getElementById('unitList');
-            const units = allDecks.filter(deck => deck.type === 'unit');
-            
-            unitList.innerHTML = '';
-            units.forEach(unit => {
-                const wordCount = allVocabularies.filter(word => word.deckId == unit.id).length;
-                const parentBook = allDecks.find(d => d.id == unit.parentId);
-                
-                const card = document.createElement('div');
-                card.className = 'deck-card';
-                card.innerHTML = `
-                    <h4>${unit.name}</h4>
-                    <div class="deck-stats">
-                        <div>所属书本: ${parentBook ? parentBook.name : '未知'}</div>
-                        <div>单词数: ${wordCount}</div>
-                        <div>创建: ${new Date(unit.createdAt).toLocaleDateString()}</div>
-                    </div>
-                    <div class="deck-actions">
-                        <button class="btn-view" onclick="viewUnitWords('${unit.id}')">查看单词</button>
-                        <button class="btn-edit" onclick="editDeck('${unit.id}')">编辑</button>
-                        <button class="btn-delete" onclick="deleteDeck('${unit.id}')">删除</button>
-                    </div>
-                `;
-                unitList.appendChild(card);
-            });
-        }
-        
-        function deleteDeck(deckId) {
-            const deck = allDecks.find(d => d.id == deckId);
-            if (!deck) return;
-            
-            let message = `确定要删除"${deck.name}"吗？`;
-            let isUnit = deck.type === 'unit';
-            
-            if (isUnit) {
-                const wordCount = allVocabularies.filter(word => word.deckId == deckId).length;
-                if (wordCount > 0) {
-                    message += `\n这将同时删除其中的 ${wordCount} 个单词`;
-                }
-            } else {
-                const relatedUnits = allDecks.filter(d => d.type === 'unit' && d.parentId == deckId);
-                const relatedWords = allVocabularies.filter(word => {
-                    const unit = allDecks.find(d => d.id == word.deckId);
-                    return unit && unit.parentId == deckId;
-                });
-                
-                if (relatedUnits.length > 0) {
-                    message += `\n这将同时删除其下的 ${relatedUnits.length} 个单元`;
-                }
-                if (relatedWords.length > 0) {
-                    message += `\n以及 ${relatedWords.length} 个单词`;
-                }
-            }
-            
-            if (!confirm(message + '\n此操作不可撤销！')) {
-                return;
-            }
-            
-            if (isUnit) {
-                allVocabularies = allVocabularies.filter(word => word.deckId != deckId);
-            } else {
-                // 删除书本及其关联内容
-                const unitIds = allDecks
-                    .filter(d => d.type === 'unit' && d.parentId == deckId)
-                    .map(u => u.id);
-                
-                allVocabularies = allVocabularies.filter(word => !unitIds.includes(word.deckId));
-                allDecks = allDecks.filter(d => !(d.type === 'unit' && d.parentId == deckId));
-            }
-            
-            allDecks = allDecks.filter(d => d.id != deckId);
-            saveData();
-            initAllSelectors();
-            renderDeckCards();
-            updateDeckStatistics();
-            alert(`"${deck.name}"已删除`);
-        }
-        
-        function editBook(bookId) {
-            const deck = allDecks.find(d => d.id == bookId);
-            if (!deck) return;
-            
-            currentDeckAction = 'edit';
-            currentDeckId = bookId;
-            document.getElementById('createDeckTitle').textContent = '编辑书本';
-            document.getElementById('parentBookGroup').style.display = 'none';
-            document.getElementById('newDeckName').value = deck.name;
-            document.getElementById('saveDeckButton').textContent = '保存修改';
-            document.getElementById('createDeckOverlay').style.display = 'block';
-            document.getElementById('createDeckForm').style.display = 'block';
-        }
-        
-        function editDeck(deckId) {
-            const deck = allDecks.find(d => d.id == deckId);
-            if (!deck) return;
-            
-            if (deck.type === 'unit') {
-                currentDeckAction = 'edit';
-                currentDeckId = deckId;
-                const parentBookSelect = document.getElementById('parentBookSelect');
-                parentBookSelect.innerHTML = '<option value="">请选择所属书本</option>';
-                
-                const books = allDecks.filter(d => d.type === 'book');
-                books.forEach(book => {
-                    const option = document.createElement('option');
-                    option.value = book.id;
-                    option.textContent = book.name;
-                    if (book.id == deck.parentId) option.selected = true;
-                    parentBookSelect.appendChild(option);
-                });
-                
-                document.getElementById('createDeckTitle').textContent = '编辑单元';
-                document.getElementById('parentBookGroup').style.display = 'block';
-                document.getElementById('newDeckName').value = deck.name;
-                document.getElementById('saveDeckButton').textContent = '保存修改';
-                document.getElementById('createDeckOverlay').style.display = 'block';
-                document.getElementById('createDeckForm').style.display = 'block';
-            } else {
-                editBook(deckId);
-            }
-        }
-        
-        function viewBookWords(bookId) {
-            const book = allDecks.find(d => d.id == bookId);
-            const units = allDecks.filter(d => d.type === 'unit' && d.parentId == bookId);
-            const unitIds = units.map(u => u.id);
-            const words = allVocabularies.filter(word => unitIds.includes(word.deckId));
-            
-            if (words.length === 0) {
-                alert(`书本"${book.name}"中还没有单词`);
-                return;
-            }
-            
-            // 显示单词列表
-            showWordList(words, `书本"${book.name}"的单词 (${words.length}个)`);
-            // 切换到管理页面
-            showPage('manage');
-        }
-        
-        function viewUnitWords(unitId) {
-            const unit = allDecks.find(d => d.id == unitId);
-            const words = allVocabularies.filter(word => word.deckId == unitId);
-            
-            if (words.length === 0) {
-                alert(`单元"${unit.name}"中还没有单词`);
-                return;
-            }
-            
-            // 显示单词列表
-            showWordList(words, `单元"${unit.name}"的单词 (${words.length}个)`);
-            // 切换到管理页面
-            showPage('manage');
-        }
-        
-        // ==================== 单词管理功能 ====================
-        function addWord() {
-            const chinese = document.getElementById('newChinese').value.trim();
-            const japanese = document.getElementById('newJapanese').value.trim();
-            const bookId = document.getElementById('addWordBookSelect').value;
-            const unitId = document.getElementById('addWordUnitSelect').value;
-            
-            if (!chinese || !japanese) {
-                alert('请输入完整的信息');
-                return;
-            }
-            
-            if (!unitId) {
-                alert('请选择单词要添加到的单元');
-                return;
-            }
-            
-            const unit = allDecks.find(d => d.id == unitId);
-            const book = allDecks.find(d => d.id == unit.parentId);
-            
-            allVocabularies.push({ 
-                id: generateId(),
-                chinese, 
-                japanese,
-                deckId: unitId,
-                book: book ? book.name : '',
-                unit: unit.name,
-                createdAt: new Date().toISOString()
-            });
-            
-            saveData();
-            document.getElementById('newChinese').value = '';
-            document.getElementById('newJapanese').value = '';
-            showWordList();
-            updateCounts();
-            alert('单词添加成功！');
-        }
-        
-        function importFromExcel() {
-            const text = document.getElementById('importData').value.trim();
-            const bookId = document.getElementById('importBookSelect').value;
-            const unitId = document.getElementById('importUnitSelect').value;
-            
-            if (!text) {
-                alert('请粘贴Excel数据');
-                return;
-            }
-            
-            if (!unitId) {
-                alert('请选择单词要导入到的单元');
-                return;
-            }
-            
-            const unit = allDecks.find(d => d.id == unitId);
-            const book = allDecks.find(d => d.id == unit.parentId);
-            
-            const lines = text.split('\n');
-            let imported = 0;
-            let skipped = 0;
-            
-            lines.forEach(line => {
-                const parts = line.trim().split(/\s+/);
-                if (parts.length >= 2) {
-                    const chinese = parts[0].trim();
-                    const japanese = parts[1].trim();
-                    if (chinese && japanese) {
-                        const exists = allVocabularies.some(w => 
-                            w.chinese === chinese && w.japanese === japanese);
-                        if (!exists) {
-                            allVocabularies.push({ 
-                                id: generateId(),
-                                chinese, 
-                                japanese,
-                                deckId: unitId,
-                                book: book ? book.name : '',
-                                unit: unit.name,
-                                createdAt: new Date().toISOString()
-                            });
-                            imported++;
-                        } else {
-                            skipped++;
-                        }
-                    }
-                }
-            });
-            
-            // 记录上传历史
-            uploadHistory.push({
-                type: 'import',
-                book: book ? book.name : '',
-                unit: unit.name,
-                count: imported,
-                date: new Date().toISOString()
-            });
-            
-            saveData();
-            showWordList();
-            updateCounts();
-            document.getElementById('importData').value = '';
-            alert(`成功导入 ${imported} 个单词到"${unit.name}"${skipped > 0 ? `，跳过 ${skipped} 个重复单词` : ''}`);
-        }
-        
-        function showWordList(filteredWords = null, title = '所有单词') {
-            const words = filteredWords || allVocabularies;
-            const listDiv = document.getElementById('wordList');
-            
-            if (words.length === 0) {
-                listDiv.innerHTML = `<p>${title} - 暂无单词</p>`;
-                return;
-            }
-            
-            let html = `<h4>${title} (${words.length})</h4>`;
-            html += '<table style="width:100%; border-collapse:collapse;">';
-            html += '<tr style="background:#4a6fa5;color:white;"><th>书本</th><th>单元</th><th>中文</th><th>日语假名</th><th>操作</th></tr>';
-            
-            words.forEach((word, index) => {
-                const originalIndex = allVocabularies.findIndex(w => w.id === word.id);
-                const wrongItem = wrongWords.find(w => 
-                    w.chinese === word.chinese && w.japanese === word.japanese);
-                const wrongCount = wrongItem ? wrongItem.wrongCount : 0;
-                
-                html += `
-                    <tr style="border-bottom:1px solid #ddd;">
-                        <td style="padding:10px;">${word.book || '未分类'}</td>
-                        <td style="padding:10px;">${word.unit || '未分类'}</td>
-                        <td style="padding:10px;">${word.chinese}</td>
-                        <td style="padding:10px;">${word.japanese}</td>
-                        <td style="padding:10px;">
-                            ${wrongCount > 0 ? `<span class="wrong-count" title="错误${wrongCount}次">${wrongCount}</span>` : ''}
-                            <button onclick="editWord(${originalIndex})" style="padding:5px 10px;background:#ff9800;color:white;margin-right:5px;">编辑</button>
-                            <button onclick="deleteWord(${originalIndex})" style="padding:5px 10px;background:red;color:white;">删除</button>
-                        </td>
-                    </tr>
-                `;
-            });
-            
-            html += '</table>';
-            listDiv.innerHTML = html;
-        }
-        
-        function editWord(index) {
-            const word = allVocabularies[index];
-            document.getElementById('editChinese').value = word.chinese;
-            document.getElementById('editJapanese').value = word.japanese;
-            
-            // 填充编辑表单的选择器
-            fillEditSelectors();
-            
-            // 设置当前值
-            const unit = allDecks.find(d => d.name === word.unit && d.type === 'unit');
-            if (unit) {
-                const book = allDecks.find(d => d.id == unit.parentId);
-                if (book) {
-                    document.getElementById('editBookSelect').value = book.id;
-                    fillUnitSelectorsByBook(book.id, document.getElementById('editUnitSelect'));
-                    document.getElementById('editUnitSelect').value = unit.id;
-                }
-            }
-            
-            // 存储正在编辑的单词索引
-            window.editingWordIndex = index;
-            
-            // 显示编辑表单
-            document.getElementById('editOverlay').style.display = 'block';
-            document.getElementById('editForm').style.display = 'block';
-        }
-        
-        function saveEditedWord() {
-            const index = window.editingWordIndex;
-            if (index === undefined) return;
-            
-            const chinese = document.getElementById('editChinese').value.trim();
-            const japanese = document.getElementById('editJapanese').value.trim();
-            const unitId = document.getElementById('editUnitSelect').value;
-            
-            if (!chinese || !japanese) {
-                alert('请输入完整的信息');
-                return;
-            }
-            
-            if (!unitId) {
-                alert('请选择单词所属的单元');
-                return;
-            }
-            
-            const unit = allDecks.find(d => d.id == unitId);
-            const book = allDecks.find(d => d.id == unit.parentId);
-            
-            allVocabularies[index] = {
-                ...allVocabularies[index],
-                chinese,
-                japanese,
-                deckId: unitId,
-                book: book ? book.name : '',
-                unit: unit.name
-            };
-            
-            saveData();
-            showWordList();
-            closeEditForm();
-            alert('单词修改成功！');
-        }
-        
-        function closeEditForm() {
-            document.getElementById('editOverlay').style.display = 'none';
-            document.getElementById('editForm').style.display = 'none';
-            window.editingWordIndex = undefined;
-        }
-        
-        function deleteWord(index) {
-            if (confirm('确定要删除这个单词吗？')) {
-                const word = allVocabularies[index];
-                const wrongIndex = wrongWords.findIndex(w => 
-                    w.chinese === word.chinese && w.japanese === word.japanese);
-                if (wrongIndex >= 0) {
-                    wrongWords.splice(wrongIndex, 1);
-                }
-                allVocabularies.splice(index, 1);
-                saveData();
-                showWordList();
-                updateCounts();
-            }
-        }
-        
-        // ==================== 上传记录功能 ====================
-        function renderUploadHistory() {
-            const historyDiv = document.getElementById('uploadHistory');
-            if (uploadHistory.length === 0) {
-                historyDiv.innerHTML = '<p>暂无上传记录</p>';
-                return;
-            }
-            
-            let html = '';
-            uploadHistory.forEach((record, index) => {
-                const date = new Date(record.date).toLocaleString();
-                html += `
-                    <div class="upload-item">
-                        <div>
-                            <strong>${record.type === 'import' ? '导入' : '迁移'}</strong>
-                            ${record.book ? `到 ${record.book}` : ''}
-                            ${record.unit ? ` - ${record.unit}` : ''}
-                            <br>
-                            <small>${date} | ${record.count}个单词</small>
-                        </div>
-                        <button onclick="deleteUploadRecord(${index})" style="padding:5px 10px;background:red;color:white;font-size:12px;">删除</button>
-                    </div>
-                `;
-            });
-            
-            historyDiv.innerHTML = html;
-        }
-        
-        function deleteUploadRecord(index) {
-            if (confirm('确定要删除这条上传记录吗？')) {
-                uploadHistory.splice(index, 1);
-                saveData();
-                renderUploadHistory();
-            }
-        }
-        
-        // ==================== 统计和更新功能 ====================
-        function updateCounts() {
-            document.getElementById('wordCount').textContent = allVocabularies.length;
-            document.getElementById('totalWordCount').textContent = allVocabularies.length;
-            document.getElementById('deckCount').textContent = allDecks.filter(d => d.type === 'book').length;
-        }
-        
-        function updateDeckStatistics() {
-            const statsDiv = document.getElementById('deckStatistics');
-            const books = allDecks.filter(d => d.type === 'book');
-            const units = allDecks.filter(d => d.type === 'unit');
-            
-            let html = `
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
-                    <div style="background: #e3f2fd; padding: 10px; border-radius: 5px;">
-                        <div style="font-size: 20px; font-weight: bold;">${books.length}</div>
-                        <div>书本数量</div>
-                    </div>
-                    <div style="background: #e8f5e8; padding: 10px; border-radius: 5px;">
-                        <div style="font-size: 20px; font-weight: bold;">${units.length}</div>
-                        <div>单元数量</div>
-                    </div>
-                    <div style="background: #fff3cd; padding: 10px; border-radius: 5px;">
-                        <div style="font-size: 20px; font-weight: bold;">${allVocabularies.length}</div>
-                        <div>单词总数</div>
-                    </div>
-                    <div style="background: #ffebee; padding: 10px; border-radius: 5px;">
-                        <div style="font-size: 20px; font-weight: bold;">${wrongWords.length}</div>
-                        <div>错题数量</div>
-                    </div>
-                </div>
-            `;
-            
-            // 添加书本详情
-            if (books.length > 0) {
-                html += '<h4 style="margin-top: 20px;">书本详情：</h4>';
-                books.forEach(book => {
-                    const relatedUnits = allDecks.filter(d => d.type === 'unit' && d.parentId == book.id);
-                    const wordCount = allVocabularies.filter(word => {
-                        const unit = allDecks.find(d => d.id == word.deckId);
-                        return unit && unit.parentId == book.id;
-                    }).length;
-                    
-                    html += `
-                        <div style="margin: 5px 0; padding: 5px; background: #f5f5f5; border-radius: 3px;">
-                            <strong>${book.name}</strong>: ${relatedUnits.length}个单元, ${wordCount}个单词
-                        </div>
-                    `;
-                });
-            }
-            
-            statsDiv.innerHTML = html;
-        }
-        
-        function updateProgressDisplay() {
-            if (practiceWords.length === 0) {
-                document.getElementById('currentProgress').textContent = '0';
-                document.getElementById('totalPractice').textContent = '0';
-                document.getElementById('progressFill').style.width = '0%';
-                return;
-            }
-            const progress = currentIndex + 1;
-            const total = practiceWords.length;
-            const percent = Math.round((progress / total) * 100);
-            document.getElementById('currentProgress').textContent = progress;
-            document.getElementById('totalPractice').textContent = total;
-            document.getElementById('progressFill').style.width = percent + '%';
-        }
-        
-        function updatePracticeStats() {
-            const total = practiceStats.total;
-            if (total === 0) {
-                document.getElementById('correctRate').textContent = '0%';
-                return;
-            }
-            const answered = practiceStats.correct + practiceStats.wrong;
-            const correctRate = Math.round((practiceStats.correct / answered) * 100) || 0;
-            document.getElementById('correctRate').textContent = correctRate + '%';
-        }
-        
-        // ==================== 错题功能 ====================
-        function showWrongList() {
-            const listDiv = document.getElementById('wrongList');
-            if (wrongWords.length === 0) {
-                listDiv.innerHTML = '<p>暂无错题</p>';
-                return;
-            }
-            
-            wrongWords.sort((a, b) => b.wrongCount - a.wrongCount);
-            let html = '<table style="width:100%; border-collapse:collapse;">';
-            html += '<tr style="background:#ff9800;color:white;"><th>错误次数</th><th>中文</th><th>日语假名</th><th>操作</th></tr>';
-            
-            wrongWords.forEach((wrongItem, index) => {
-                const lastWrong = new Date(wrongItem.lastWrong).toLocaleDateString();
-                html += `
-                    <tr style="border-bottom:1px solid #ddd;">
-                        <td style="padding:10px; text-align:center;">
-                            <span class="wrong-count">${wrongItem.wrongCount}</span>
-                            <div style="font-size:12px; color:#666;">上次:${lastWrong}</div>
-                        </td>
-                        <td style="padding:10px;">${wrongItem.chinese}</td>
-                        <td style="padding:10px;">${wrongItem.japanese}</td>
-                        <td style="padding:10px;">
-                            <button onclick="removeWrong(${index})" style="padding:5px 10px;">删除</button>
-                        </td>
-                    </tr>
-                `;
-            });
-            
-            html += '</table>';
-            listDiv.innerHTML = html;
-        }
-        
-        function removeWrong(index) {
-            if (confirm('确定要从错题集删除吗？')) {
-                wrongWords.splice(index, 1);
-                saveData();
-                showWrongList();
-            }
-        }
-        
-        function clearWrong() {
-            if (confirm('确定要清空错题集吗？')) {
+                alert(`成功导入数据：
+    - ${allDecks.length} 个词库
+    - ${allVocabularies.length} 个单词
+    - ${wrongWords.length} 个错题`);
+            } catch(error) {
+                alert('文件格式错误，请选择正确的备份文件');
+            }
+        };
+        reader.readAsText(file);
+    }
+    
+    function clearAllData() {
+        if (confirm('⚠️ 警告：这将删除所有数据！\n\n确定要继续吗？')) {
+            if (confirm('最后确认：真的要删除所有单词和记录吗？')) {
+                allVocabularies = [];
+                allDecks = [];
                 wrongWords = [];
+                uploadHistory = [];
+                practiceStats = { total: 0, correct: 0, wrong: 0 };
+                practiceWords = [];
+                currentIndex = 0;
+                githubConfig = { username: '', token: '', gistId: '' };
+                
                 saveData();
+                localStorage.removeItem('githubConfig');
+                showWordList();
                 showWrongList();
+                renderDeckCards();
+                updateDeckStatistics();
+                renderUploadHistory();
+                updateSyncStatus();
+                
+                alert('所有数据已清空');
             }
         }
-        
-        function practiceWrong() {
-            document.getElementById('practiceMode').value = 'wrong';
-            onPracticeModeChange();
-            showPage('practice');
-        }
-        
-        // ==================== 其他功能 ====================
-        function handleSubmit(event) {
-            event.preventDefault();
-            handleFormSubmit();
-            return false;
-        }
-        
-        function handleFormSubmit() {
-            if (!isAnswerChecked) {
-                checkAnswer();
-            } else {
-                nextWord();
-            }
-        }
-        
-        function handleInputBlur() {
-            if (isMobile && !isAnswerChecked && document.getElementById('answer').value.trim()) {
-                setTimeout(() => {
-                    if (!isAnswerChecked) {
-                        checkAnswer();
-                    }
-                }, 200);
-            }
-        }
-        
-        function loadSettings() {
-            if (localStorage.getItem('japaneseSettings')) {
-                settings = JSON.parse(localStorage.getItem('japaneseSettings'));
-                document.getElementById('practiceCount').value = settings.practiceCount || 30;
-            }
-        }
-        
-        function saveSettings() {
-            settings.practiceCount = parseInt(document.getElementById('practiceCount').value) || 30;
-            localStorage.setItem('japaneseSettings', JSON.stringify(settings));
-        }
-        
-        function exportData() {
-            const data = {
-                allDecks: allDecks,
-                allVocabularies: allVocabularies,
-                wrongWords: wrongWords,
-                uploadHistory: uploadHistory,
-                settings: settings,
-                exportDate: new Date().toISOString()
-            };
-            
-            const dataStr = JSON.stringify(data, null, 2);
-            const blob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `日语单词备份_${new Date().toISOString().slice(0,10)}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            alert('数据已导出为JSON文件，请将此文件发送到手机');
-        }
-        
-        function importData() {
-            const fileInput = document.getElementById('fileInput');
-            const file = fileInput.files[0];
-            if (!file) {
-                alert('请选择文件');
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    allDecks = data.allDecks || [];
-                    allVocabularies = data.allVocabularies || [];
-                    wrongWords = data.wrongWords || [];
-                    uploadHistory = data.uploadHistory || [];
-                    settings = data.settings || { practiceCount: 30 };
-                    
-                    saveData();
-                    loadSettings();
-                    initAllSelectors();
-                    showWordList();
-                    showWrongList();
-                    renderDeckCards();
-                    updateDeckStatistics();
-                    renderUploadHistory();
-                    
-                    alert(`成功导入数据：
-        - ${allDecks.length} 个词库
-        - ${allVocabularies.length} 个单词
-        - ${wrongWords.length} 个错题`);
-                } catch(error) {
-                    alert('文件格式错误，请选择正确的备份文件');
-                }
-            };
-            reader.readAsText(file);
-        }
-        
-        function clearAllData() {
-            if (confirm('⚠️ 警告：这将删除所有数据！\n\n确定要继续吗？')) {
-                if (confirm('最后确认：真的要删除所有单词和记录吗？')) {
-                    allVocabularies = [];
-                    allDecks = [];
-                    wrongWords = [];
-                    uploadHistory = [];
-                    practiceStats = { total: 0, correct: 0, wrong: 0 };
-                    practiceWords = [];
-                    currentIndex = 0;
-                    githubConfig = { username: '', token: '', gistId: '' };
-                    
-                    saveData();
-                    localStorage.removeItem('githubConfig');
-                    showWordList();
-                    showWrongList();
-                    renderDeckCards();
-                    updateDeckStatistics();
-                    renderUploadHistory();
-                    updateSyncStatus();
-                    
-                    alert('所有数据已清空');
-                }
-            }
-        }
-    </script>
+    }
+</script>
 </body>
 </html>

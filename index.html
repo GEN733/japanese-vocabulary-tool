@@ -6,7 +6,7 @@
     <title>日语单词 · 舒适同步版</title>
     <style>
         * { box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
-        body { background: #f4f7fb; margin: 0; padding: 12px; max-width: 800px; margin: 0 auto; }
+        body { background: #f4f7fb; margin: 0; padding: 12px; max-width: 800px; margin: 0 auto; position: relative; }
         h1 { font-size: 1.7rem; margin: 0 0 10px; color: #1e3c5c; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .tab-bar { display: flex; flex-wrap: wrap; gap: 5px; background: white; border-radius: 40px; padding: 6px; margin-bottom: 18px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
         .tab-btn { flex: 1 0 auto; background: none; border: none; padding: 10px 8px; font-size: 0.95rem; border-radius: 30px; color: #4a5f73; font-weight: 500; transition: 0.2s; }
@@ -43,9 +43,18 @@
         .word-table td { padding: 12px; border-bottom: 1px solid #e2eaf3; }
         .wrong-count-badge { background: #d9534f; color: white; border-radius: 40px; padding: 3px 10px; font-size: 0.8rem; margin-left: 6px; }
         .btn-sm { padding: 6px 14px; font-size: 0.85rem; margin: 2px; }
+        /* 返回顶部按钮 */
+        #backToTop {
+            position: fixed; bottom: 20px; right: 20px; background: #1e3c5c; color: white; width: 50px; height: 50px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2); cursor: pointer; border: none; z-index: 999;
+        }
     </style>
 </head>
 <body>
+    <!-- 返回顶部按钮 -->
+    <button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
 <h1>📗 日语单词 · 舒适同步版</h1>
 <div class="tab-bar">
     <button class="tab-btn active" onclick="showPage('practice')">练习</button>
@@ -120,7 +129,7 @@
     </div>
 </div>
 
-<!-- 管理页面 -->
+<!-- 管理页面 (增加折叠按钮) -->
 <div id="manage" class="page">
     <h3>🔍 搜索/管理单词</h3>
     <div class="search-box flex-row">
@@ -128,7 +137,17 @@
         <button onclick="searchWords()" style="flex:1;">搜索</button>
         <button onclick="clearSearch()" style="flex:1;">重置</button>
     </div>
-    <div id="wordManagementList"></div>
+
+    <!-- 折叠控制按钮 -->
+    <div class="flex-row" style="justify-content: space-between; margin: 10px 0;">
+        <button id="toggleWordListBtn" onclick="toggleWordList()" style="flex:1;">📋 折叠列表</button>
+    </div>
+
+    <!-- 单词列表容器，可折叠 -->
+    <div id="wordListContainer">
+        <div id="wordManagementList"></div>
+    </div>
+
     <hr>
     <h4>➕ 添加单词</h4>
     <select id="addWordBook"><option value="">选择书本</option></select>
@@ -138,7 +157,7 @@
     <button onclick="addSingleWord()" class="primary">添加</button>
     <hr>
     <h4>📎 批量导入 (从Excel复制两列)</h4>
-    <select id="importBook"><option value="">选择目标书本</option></select>
+    <select id="importBook" onchange="updateImportUnits()"><option value="">选择目标书本</option></select>
     <select id="importUnit"><option value="">选择目标单元</option></select>
     <textarea id="importText" placeholder="中文   日语&#10;你好 こんにちは&#10;谢谢 ありがとう" rows="6"></textarea>
     <button onclick="importWords()">导入</button>
@@ -150,7 +169,7 @@
     <button class="danger" style="margin-top:20px;" onclick="resetAllData()">⚠️ 清空所有数据</button>
 </div>
 
-<!-- 词库页面 (改进：新建单元直观选择) -->
+<!-- 词库页面 -->
 <div id="decks" class="page">
     <h3>📚 书本 & 单元管理</h3>
     <div id="bookList"></div>
@@ -159,7 +178,7 @@
     <h4>📖 单元列表</h4>
     <div id="unitList"></div>
 
-    <!-- 新增单元的内联创建区（不再需要复制ID） -->
+    <!-- 新增单元的内联创建区 -->
     <div style="margin:20px 0; background:#f2f6fc; border-radius:24px; padding:16px;">
         <div style="font-weight:600; margin-bottom:10px;">➕ 快速创建单元</div>
         <div class="flex-row">
@@ -220,6 +239,9 @@
     // GitHub 配置
     let githubConfig = { username: '', token: '', gistId: '' };
 
+    // 折叠状态
+    let wordListVisible = true;
+
     // ---------- 初始化加载 ----------
     function loadFromStorage() {
         try {
@@ -259,6 +281,8 @@
         });
         // 如果有父级联动
         if (document.getElementById('unitSelect')) loadUnitsForBook();
+        // 导入单元的联动在单独函数中处理
+        updateImportUnits();
     }
 
     // 根据选中的书本加载单元
@@ -269,6 +293,16 @@
         if (!bookId) { unitSel.innerHTML = '<option value="">先选书本</option>'; return; }
         const units = allDecks.filter(d => d.type === 'unit' && d.parentId == bookId);
         unitSel.innerHTML = '<option value="">选择单元</option>' + units.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+    };
+
+    // 更新导入单元下拉框 (根据importBook)
+    window.updateImportUnits = function() {
+        const bookId = document.getElementById('importBook').value;
+        const unitSel = document.getElementById('importUnit');
+        if (!unitSel) return;
+        if (!bookId) { unitSel.innerHTML = '<option value="">先选书本</option>'; return; }
+        const units = allDecks.filter(d => d.type === 'unit' && d.parentId == bookId);
+        unitSel.innerHTML = '<option value="">选择目标单元</option>' + units.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
     };
 
     // 页面切换
@@ -548,13 +582,13 @@
         startPractice();
     };
 
-    // ---------- 新增：回车流畅交互 ----------
+    // 回车流畅交互
     function setupEnterHandler() {
         const input = document.getElementById('answerInput');
         if (!input) return;
         input.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
-                e.preventDefault(); // 阻止任何表单提交
+                e.preventDefault();
                 if (!answerChecked) {
                     checkAnswer();
                 } else {
@@ -563,6 +597,20 @@
             }
         });
     }
+
+    // 折叠单词列表
+    window.toggleWordList = function() {
+        const container = document.getElementById('wordListContainer');
+        const btn = document.getElementById('toggleWordListBtn');
+        if (wordListVisible) {
+            container.style.display = 'none';
+            btn.innerText = '📋 展开列表';
+        } else {
+            container.style.display = 'block';
+            btn.innerText = '📋 折叠列表';
+        }
+        wordListVisible = !wordListVisible;
+    };
 
     // 同步功能 -------------------------------------------------
     function fillGithubConfigToUI() {
@@ -706,7 +754,7 @@
     renderWrongList();
     fillGithubConfigToUI();
     updateModeUI();
-    setupEnterHandler(); // 设置回车监听
+    setupEnterHandler();
 })();
 </script>
 </body>

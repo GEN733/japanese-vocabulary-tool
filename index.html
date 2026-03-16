@@ -53,7 +53,7 @@
 <body>
     <button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
 
-<h1>📗 日语单词 · 终极修复版</h1>
+<h1>📗 日语单词 · 可靠同步版（ID修复）</h1>
 <div class="tab-bar">
     <button class="tab-btn active" onclick="showPage('practice')">练习</button>
     <button class="tab-btn" onclick="showPage('wrong')">错题</button>
@@ -505,7 +505,7 @@
     };
     window.clearAllWrong = function() { if(confirm('清空所有错题？')) { wrongWords = []; saveAll(); renderWrongList(); } };
 
-    // 练习核心
+    // ---------- 练习核心 ----------
     window.startPractice = function() {
         const mode = document.getElementById('practiceMode').value;
         let candidates = [];
@@ -517,22 +517,23 @@
         } else if (mode === 'unit') {
             const unitId = document.getElementById('unitSelect').value;
             if (!unitId) { alert('请选择单元'); return; }
-            candidates = allVocabularies.filter(v => v.deckId == unitId);
+            // 统一转换为字符串比较
+            candidates = allVocabularies.filter(v => String(v.deckId) === String(unitId));
         } else if (mode === 'review') {
             const bookId = document.getElementById('bookSelect').value;
             if (!bookId) { alert('请选择书本'); return; }
-            const unitIds = allDecks.filter(d => d.type==='unit' && d.parentId==bookId).map(d=>d.id);
+            const unitIds = allDecks.filter(d => d.type==='unit' && String(d.parentId) === String(bookId)).map(d => String(d.id));
             if (unitIds.length === 0) {
                 alert('该书本下没有任何单元，请先创建单元并添加单词。');
                 return;
             }
             // 详细统计每个单元的单词数
             let unitWordCounts = unitIds.map(id => {
-                const unit = allDecks.find(d => d.id == id);
-                const count = allVocabularies.filter(v => v.deckId == id).length;
+                const unit = allDecks.find(d => String(d.id) === id);
+                const count = allVocabularies.filter(v => String(v.deckId) === id).length;
                 return { unitName: unit ? unit.name : '未知', count };
             });
-            candidates = allVocabularies.filter(v => unitIds.includes(v.deckId));
+            candidates = allVocabularies.filter(v => unitIds.includes(String(v.deckId)));
             if (candidates.length === 0) {
                 let msg = `书本下共有 ${unitIds.length} 个单元，但单词数为0：\n`;
                 unitWordCounts.forEach(u => msg += `- ${u.unitName} : ${u.count} 个单词\n`);
@@ -540,7 +541,7 @@
                 if (confirm(msg + ' 点击确定执行名称修复，取消返回')) {
                     repairWordsByName(); // 调用修复
                     // 重新尝试获取候选
-                    candidates = allVocabularies.filter(v => unitIds.includes(v.deckId));
+                    candidates = allVocabularies.filter(v => unitIds.includes(String(v.deckId)));
                 } else {
                     return;
                 }
@@ -666,22 +667,22 @@
         wordListVisible = !wordListVisible;
     };
 
-    // ---------- 新增：根据名称修复关联 ----------
+    // ---------- 新增：根据名称修复关联（同样使用字符串比较） ----------
     window.repairWordsByName = function() {
         let fixedCount = 0;
-        const unitMap = {}; // 加速查找： bookName_unitName -> unitId
+        const unitMap = {}; // bookName_unitName -> unitId (字符串)
         allDecks.filter(d => d.type === 'unit').forEach(u => {
             const book = allDecks.find(b => b.id == u.parentId);
             if (book) {
                 const key = book.name + '|' + u.name;
-                unitMap[key] = u.id;
+                unitMap[key] = String(u.id);
             }
         });
         allVocabularies.forEach(w => {
             if (w.book && w.unit) {
                 const key = w.book + '|' + w.unit;
                 const targetUnitId = unitMap[key];
-                if (targetUnitId && w.deckId != targetUnitId) {
+                if (targetUnitId && String(w.deckId) !== targetUnitId) {
                     w.deckId = targetUnitId;
                     fixedCount++;
                 }
@@ -704,7 +705,7 @@
         const unitIds = allDecks.filter(u => u.parentId == book.id).map(u => u.id);
         const unitWordCounts = unitIds.map(id => {
             const unit = allDecks.find(d => d.id == id);
-            const count = allVocabularies.filter(v => v.deckId == id).length;
+            const count = allVocabularies.filter(v => String(v.deckId) === String(id)).length;
             return { unitName: unit ? unit.name : '未知', count, unitId: id };
         });
         let msg = `📚 书本 "${bookName}" 诊断：\n`;

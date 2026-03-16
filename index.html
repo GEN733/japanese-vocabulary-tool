@@ -87,7 +87,8 @@
         <input type="number" id="customCountInput" min="1" max="999" placeholder="输入数量" value="30">
         <button onclick="applyCustomCount()" class="primary">应用</button>
     </div>
-    <div id="bookUnitSelector" style="margin:15px 0">
+    <!-- 书本/单元选择区域，单元选择会根据模式动态隐藏/显示 -->
+    <div id="bookUnitSelector" style="margin:15px 0;">
         <select id="bookSelect" style="width:48%; display:inline-block; margin-right:4%;" onchange="loadUnitsForBook()"><option value="">选择书本</option></select>
         <select id="unitSelect" style="width:48%; display:inline-block;"><option value="">选择单元</option></select>
     </div>
@@ -474,7 +475,7 @@
     };
     window.clearAllWrong = function() { if(confirm('清空所有错题？')) { wrongWords = []; saveAll(); renderWrongList(); } };
 
-    // 练习核心
+    // ---------- 练习核心 ----------
     window.startPractice = function() {
         const mode = document.getElementById('practiceMode').value;
         let candidates = [];
@@ -483,19 +484,20 @@
             candidates = wrongWords.map(ww => allVocabularies.find(v => v.chinese===ww.chinese && v.japanese===ww.japanese)).filter(Boolean);
         } else if (mode === 'all') {
             candidates = allVocabularies.slice();
-        } else {
+        } else if (mode === 'unit') {
             const unitId = document.getElementById('unitSelect').value;
-            if (!unitId && mode==='unit') { alert('请选择单元'); return; }
-            if (mode === 'unit') {
-                candidates = allVocabularies.filter(v => v.deckId == unitId);
-            } else if (mode === 'review') {
-                const bookId = document.getElementById('bookSelect').value;
-                if (!bookId) { alert('选择书本'); return; }
-                const unitIds = allDecks.filter(d => d.type==='unit' && d.parentId==bookId).map(d=>d.id);
-                candidates = allVocabularies.filter(v => unitIds.includes(v.deckId));
-            }
+            if (!unitId) { alert('请选择单元'); return; }
+            candidates = allVocabularies.filter(v => v.deckId == unitId);
+        } else if (mode === 'review') {
+            const bookId = document.getElementById('bookSelect').value;
+            if (!bookId) { alert('请选择书本'); return; }
+            const unitIds = allDecks.filter(d => d.type==='unit' && d.parentId==bookId).map(d=>d.id);
+            candidates = allVocabularies.filter(v => unitIds.includes(v.deckId));
         }
-        if (!candidates.length) { alert('没有单词可练习'); return; }
+        if (!candidates.length) {
+            alert('所选范围内没有单词，请先添加单词。');
+            return;
+        }
         // 打乱
         for (let i=candidates.length-1; i>0; i--) {
             const j = Math.floor(Math.random()*(i+1)); [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
@@ -610,6 +612,29 @@
             btn.innerText = '📋 折叠列表';
         }
         wordListVisible = !wordListVisible;
+    };
+
+    // ---------- 新增：模式切换时动态显示/隐藏单元选择 ----------
+    window.updateModeUI = function() {
+        const mode = document.getElementById('practiceMode').value;
+        const bookUnitDiv = document.getElementById('bookUnitSelector');
+        const bookSelect = document.getElementById('bookSelect');
+        const unitSelect = document.getElementById('unitSelect');
+
+        if (mode === 'unit' || mode === 'review') {
+            bookUnitDiv.style.display = 'block';
+            if (mode === 'review') {
+                // 书本汇总模式：隐藏单元选择，书本宽度100%
+                unitSelect.style.display = 'none';
+                bookSelect.style.width = '100%';
+            } else {
+                // 单元练习模式：两者都显示
+                unitSelect.style.display = 'inline-block';
+                bookSelect.style.width = '48%';
+            }
+        } else {
+            bookUnitDiv.style.display = 'none';
+        }
     };
 
     // 同步功能 -------------------------------------------------
@@ -732,10 +757,6 @@
     };
 
     // 辅助
-    window.updateModeUI = function() {
-        const mode = document.getElementById('practiceMode').value;
-        document.getElementById('bookUnitSelector').style.display = (mode==='unit'||mode==='review') ? 'block' : 'none';
-    };
     window.changePracticeCount = function() {
         const sel = document.getElementById('practiceCountSelect');
         if (sel.value === 'custom') document.getElementById('customCountRow').style.display = 'flex';
@@ -753,7 +774,7 @@
     renderWordList(allVocabularies);
     renderWrongList();
     fillGithubConfigToUI();
-    updateModeUI();
+    updateModeUI();  // 初始设置UI
     setupEnterHandler();
 })();
 </script>

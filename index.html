@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>日语单词 · 可靠同步版</title>
+    <title>日语单词 · 舒适同步版</title>
     <style>
         * { box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
         body { background: #f4f7fb; margin: 0; padding: 12px; max-width: 800px; margin: 0 auto; }
@@ -46,7 +46,7 @@
     </style>
 </head>
 <body>
-<h1>📗 日语单词 · 可靠同步版</h1>
+<h1>📗 日语单词 · 舒适同步版</h1>
 <div class="tab-bar">
     <button class="tab-btn active" onclick="showPage('practice')">练习</button>
     <button class="tab-btn" onclick="showPage('wrong')">错题</button>
@@ -150,16 +150,27 @@
     <button class="danger" style="margin-top:20px;" onclick="resetAllData()">⚠️ 清空所有数据</button>
 </div>
 
-<!-- 词库页面 -->
+<!-- 词库页面 (改进：新建单元直观选择) -->
 <div id="decks" class="page">
     <h3>📚 书本 & 单元管理</h3>
     <div id="bookList"></div>
     <div style="margin:20px 0 10px;"><button onclick="createNewBook()" class="primary">+ 新建书本</button></div>
+
+    <h4>📖 单元列表</h4>
     <div id="unitList"></div>
-    <div style="margin:20px 0;"><button onclick="createNewUnit()" class="primary">+ 新建单元</button></div>
+
+    <!-- 新增单元的内联创建区（不再需要复制ID） -->
+    <div style="margin:20px 0; background:#f2f6fc; border-radius:24px; padding:16px;">
+        <div style="font-weight:600; margin-bottom:10px;">➕ 快速创建单元</div>
+        <div class="flex-row">
+            <select id="newUnitBookSelect" style="flex:2;"><option value="">选择所属书本</option></select>
+            <input type="text" id="newUnitName" placeholder="单元名称" style="flex:2;">
+            <button onclick="addNewUnit()" class="primary" style="flex:1;">添加单元</button>
+        </div>
+    </div>
 </div>
 
-<!-- 同步页面 (可靠手动Gist ID) -->
+<!-- 同步页面 -->
 <div id="sync" class="page">
     <h3>☁️ GitHub 同步 (固定Gist)</h3>
     <div class="sync-step">
@@ -193,11 +204,10 @@
 (function() {
     // ---------- 数据结构 ----------
     let allDecks = [];                 // { id, name, type('book'/'unit'), parentId, createdAt }
-    let allVocabularies = [];          // { id, chinese, japanese, deckId, bookName?, unitName? }
+    let allVocabularies = [];          // { id, chinese, japanese, deckId }
     let wrongWords = [];               // { chinese, japanese, wrongCount, lastWrong }
     let settings = { practiceCount: 30 };
-    // 兼容旧版导入字段，但内部简化
-    let uploadHistory = [];             // 保留用于兼容，不重点使用
+    let uploadHistory = [];             // 兼容保留
 
     // 练习状态
     let practiceWords = [];
@@ -205,7 +215,7 @@
     let stats = { total:0, correct:0, wrong:0 };
     let answerChecked = false;
     let isWrongPracticeMode = false;
-    let currentWrongWordIndex = -1;     // 用于移除选项
+    let currentWrongWordIndex = -1;
 
     // GitHub 配置
     let githubConfig = { username: '', token: '', gistId: '' };
@@ -221,7 +231,6 @@
             const savedGithub = localStorage.getItem('jp_github');
             if (savedGithub) githubConfig = JSON.parse(savedGithub);
         } catch (e) { console.warn('加载失败', e); }
-        // 确保每个单词有id (旧数据兼容)
         allVocabularies = allVocabularies.map(w => ({ id: w.id || Date.now()+Math.random(), ...w }));
     }
     function saveAll() {
@@ -237,18 +246,18 @@
     // ---------- 通用UI更新 ----------
     function updateUIStats() {
         document.getElementById('wrongCount').innerText = `(${wrongWords.length})`;
-        // 管理页书本选择器填充
         fillAllSelects();
     }
     function fillAllSelects() {
         const books = allDecks.filter(d => d.type === 'book');
-        const bookSelects = ['bookSelect','addWordBook','importBook','editBookSelect']; // editBookSelect可能在管理编辑模态，先忽略
-        bookSelects.forEach(id => {
+        // 填充各个书本选择器
+        const bookSelectIds = ['bookSelect','addWordBook','importBook','newUnitBookSelect'];
+        bookSelectIds.forEach(id => {
             const sel = document.getElementById(id);
             if (!sel) return;
             sel.innerHTML = '<option value="">选择书本</option>' + books.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
         });
-        // 如果有父级联动，单独处理单元
+        // 如果有父级联动
         if (document.getElementById('unitSelect')) loadUnitsForBook();
     }
 
@@ -329,14 +338,16 @@
         allDecks.push({ id: Date.now()+Math.random(), name: name.trim(), type: 'book', createdAt: new Date().toISOString() });
         saveAll(); renderDecks(); fillAllSelects();
     };
-    window.createNewUnit = function() {
-        const books = allDecks.filter(d => d.type === 'book');
-        if (books.length===0) { alert('请先创建书本'); return; }
-        const bookId = prompt('输入所属书本ID (从下面复制)', books[0].id);
-        const name = prompt('输入单元名称');
-        if (!name || !bookId) return;
-        allDecks.push({ id: Date.now()+Math.random(), name: name.trim(), type: 'unit', parentId: bookId, createdAt: new Date().toISOString() });
+
+    // 新增单元（改进：直接从下拉框取书本ID）
+    window.addNewUnit = function() {
+        const bookId = document.getElementById('newUnitBookSelect').value;
+        const name = document.getElementById('newUnitName').value.trim();
+        if (!bookId) { alert('请选择所属书本'); return; }
+        if (!name) { alert('请输入单元名称'); return; }
+        allDecks.push({ id: Date.now()+Math.random(), name: name, type: 'unit', parentId: bookId, createdAt: new Date().toISOString() });
         saveAll(); renderDecks(); fillAllSelects();
+        document.getElementById('newUnitName').value = ''; // 清空
     };
 
     // 单词管理渲染
@@ -367,7 +378,7 @@
     window.deleteWord = function(id) {
         if (!confirm('删除该单词？')) return;
         allVocabularies = allVocabularies.filter(w => w.id != id);
-        wrongWords = wrongWords.filter(w => !(allVocabularies.some(v => v.chinese===w.chinese && v.japanese===w.japanese) )); // 简单清理
+        wrongWords = wrongWords.filter(w => !(allVocabularies.some(v => v.chinese===w.chinese && v.japanese===w.japanese) ));
         saveAll(); renderWordList(allVocabularies);
     };
     window.editWord = function(id) {
@@ -388,7 +399,6 @@
         const chinese = document.getElementById('addChinese').value.trim();
         const japanese = document.getElementById('addJapanese').value.trim();
         if (!chinese || !japanese) return;
-        const unit = allDecks.find(d => d.id == unitId);
         allVocabularies.push({ id: Date.now()+Math.random(), chinese, japanese, deckId: unitId });
         saveAll(); document.getElementById('addChinese').value=''; document.getElementById('addJapanese').value='';
         renderWordList(allVocabularies);
@@ -499,8 +509,6 @@
             stats.correct++;
             if (isWrongPracticeMode && currentWrongWordIndex>=0) {
                 document.getElementById('wrongRemoveOption').style.display = 'block';
-            } else {
-                // 如果之前是错题但现在对了，可选移除，但让用户手动处理
             }
         } else {
             document.getElementById('resultMessage').className = 'result-badge wrong';
@@ -522,7 +530,7 @@
         if (currentIndex+1 < practiceWords.length) { currentIndex++; showQuestion(); }
         else {
             alert(`练习完成！正确:${stats.correct} 错误:${stats.wrong}`);
-            practiceWords = []; showQuestion(); 
+            practiceWords = []; showQuestion();
         }
     };
     window.removeCurrentFromWrong = function() {
@@ -539,6 +547,22 @@
         showPage('practice');
         startPractice();
     };
+
+    // ---------- 新增：回车流畅交互 ----------
+    function setupEnterHandler() {
+        const input = document.getElementById('answerInput');
+        if (!input) return;
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // 阻止任何表单提交
+                if (!answerChecked) {
+                    checkAnswer();
+                } else {
+                    nextWord();
+                }
+            }
+        });
+    }
 
     // 同步功能 -------------------------------------------------
     function fillGithubConfigToUI() {
@@ -682,6 +706,7 @@
     renderWrongList();
     fillGithubConfigToUI();
     updateModeUI();
+    setupEnterHandler(); // 设置回车监听
 })();
 </script>
 </body>

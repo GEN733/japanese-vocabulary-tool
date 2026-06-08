@@ -423,7 +423,7 @@
     window.deleteWord = function(id) {
         if (!confirm('删除该单词？')) return;
         allVocabularies = allVocabularies.filter(w => w.id != id);
-        wrongWords = wrongWords.filter(w => !(allVocabularies.some(v => v.chinese===w.chinese && v.japanese===w.japanese) ));
+        wrongWords = wrongWords.filter(w => (allVocabularies.some(v => v.chinese===w.chinese && v.japanese===w.japanese) ));
         saveAll(); renderWordList(allVocabularies);
     };
     window.editWord = function(id) {

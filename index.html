@@ -942,7 +942,19 @@
                         document.getElementById('resultMessage').className = kanaOk ? 'result-badge correct' : 'result-badge wrong';
                         document.getElementById('resultMessage').innerText = kanaOk ? '✓ 正确' : `✗ 错误 正确答案: ${word.japanese}`;
                         kanaOk ? stats.correct++ : stats.wrong++;
-                        if (!kanaOk) addToWrong(word, false);
+                        if (!kanaOk) {
+                            addToWrong(word, false);
+                        } else {
+                            // 答对时检查普通错题集中是否有该词，显示移除按钮
+                            const idx = wrongWords.findIndex(w => w.chinese === word.chinese && w.japanese === word.japanese);
+                            if (idx >= 0 && !isVerbMode) {
+                                // 注意：在普通错题练习模式下才显示移除，其他普通模式（单元、书本、全部）不显示
+                                if (document.getElementById('practiceMode').value === 'wrong') {
+                                    document.getElementById('wrongRemoveOption').style.display = 'block';
+                                    window.currentWrongWordIndex = idx;
+                                }
+                            }
+                        }
                         answerState = 'completed';
                         updateProgress();
                         scrollToElement(document.getElementById('resultMessage'));
@@ -956,6 +968,14 @@
                         document.getElementById('resultMessage').innerText = `✓ 正确！「${word.japanese}」${word.wordType}（${word.particle}）`;
                         stats.correct++;
                         removeFromVerbWrongIfExists(word);
+                        // 如果是动词错题练习模式，显示移除按钮
+                        if (document.getElementById('practiceMode').value === 'verbWrong') {
+                            const idx = verbWrongWords.findIndex(w => w.chinese === word.chinese && w.japanese === word.japanese);
+                            if (idx >= 0) {
+                                document.getElementById('wrongRemoveOption').style.display = 'block';
+                                window.currentWrongWordIndex = idx;
+                            }
+                        }
                     } else {
                         let msg = '✗ 错误';
                         if (!currentKanaCorrect) msg += ` 假名: ${word.japanese}`;
@@ -966,7 +986,7 @@
                         addToWrong(word, true);
                     }
                     answerState = 'completed';
-                    // 注意：这里不再隐藏短句，保留以便对照
+                    // 短句保持显示，不隐藏
                     document.getElementById('answerInput').placeholder = '输入日语假名';
                     updateProgress();
                     scrollToElement(document.getElementById('resultMessage'));
@@ -993,13 +1013,22 @@
                 else { alert(`练习完成！正确:${stats.correct} 错误:${stats.wrong}`); practiceWords = []; showQuestion(); }
             };
 
-            window.removeCurrentFromWrong = () => {
+            window.removeCurrentFromWrong = function() {
                 const word = practiceWords[currentIndex];
-                const list = isVerbMode ? verbWrongWords : wrongWords;
-                const idx = list.findIndex(w => w.chinese === word.chinese && w.japanese === word.japanese);
-                if (idx >= 0) { list.splice(idx, 1); saveAll(); document.getElementById('wrongRemoveOption').style.display = 'none'; document.getElementById('resultMessage').innerHTML += ' (已移除)'; }
+                if (isVerbMode) {
+                    const idx = verbWrongWords.findIndex(w => w.chinese === word.chinese && w.japanese === word.japanese);
+                    if (idx >= 0) { verbWrongWords.splice(idx, 1); saveAll(); }
+                } else {
+                    const idx = wrongWords.findIndex(w => w.chinese === word.chinese && w.japanese === word.japanese);
+                    if (idx >= 0) { wrongWords.splice(idx, 1); saveAll(); }
+                }
+                document.getElementById('wrongRemoveOption').style.display = 'none';
+                document.getElementById('resultMessage').innerHTML += ' (已从错题移除)';
             };
-            window.keepInWrong = () => { document.getElementById('wrongRemoveOption').style.display = 'none'; };
+
+            window.keepInWrong = function() {
+                document.getElementById('wrongRemoveOption').style.display = 'none';
+            };
 
             document.getElementById('answerInput').addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>日语单词 · 全功能编辑版</title>
+    <title>日语单词 · 手机优化版</title>
     <style>
         * {
             box-sizing: border-box;
@@ -18,7 +18,6 @@
             position: relative;
             overscroll-behavior: none;
             -webkit-overflow-scrolling: touch;
-            padding-bottom: 30px;
         }
         h1 {
             font-size: 1.7rem;
@@ -70,6 +69,10 @@
         }
         .page.active {
             display: block;
+        }
+        /* 练习页面额外底部空间，避免被固定输入区遮挡 */
+        #practice {
+            padding-bottom: 130px;
         }
         button {
             background: #eef3f9;
@@ -339,12 +342,30 @@
             font-size: 0.9rem;
             color: #5f738c;
         }
+
+        /* 固定输入区（手机优化） */
+        #fixedInputArea {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            padding: 10px 12px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            z-index: 100;
+            border-radius: 24px 24px 0 0;
+        }
+        #fixedInputArea .flex-row {
+            margin-top: 0;
+        }
     </style>
 </head>
 <body>
     <button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
 
-    <h1>📗 日语单词 · 全功能编辑</h1>
+    <h1>📗 日语单词 · 手机优化</h1>
     <div class="tab-bar">
         <button class="tab-btn active" onclick="showPage('practice')">练习</button>
         <button class="tab-btn" onclick="showPage('wrong')">错题</button>
@@ -416,14 +437,20 @@
             <button class="btn-sm warning" onclick="removeCurrentFromWrong()">从错题集移除</button>
             <button class="btn-sm" onclick="keepInWrong()">保留</button>
         </div>
-        <form id="answerForm" onsubmit="return false;">
-            <input type="text" id="answerInput" placeholder="输入日语假名" autocomplete="off" autofocus>
-        </form>
-        <div class="flex-row" style="margin-top:15px;">
-            <button style="flex:1;" onclick="checkAnswer()">✓ 检查</button>
-            <button style="flex:1;" onclick="nextWord()" class="primary">➡ 下一题</button>
+
+        <!-- 固定输入区（手机优化） -->
+        <div id="fixedInputArea">
+            <form id="answerForm" onsubmit="return false;">
+                <input type="text" id="answerInput" placeholder="输入日语假名" autocomplete="off" autofocus>
+            </form>
+            <div class="flex-row">
+                <button style="flex:1;" onclick="checkAnswer()">✓ 检查</button>
+                <button style="flex:1;" onclick="nextWord()" class="primary">➡ 下一题</button>
+            </div>
         </div>
-        <div style="margin-top:20px;">
+
+        <!-- GitHub 同步按钮（放在可滚动区域底部） -->
+        <div style="margin-top:20px; padding-bottom: 10px;">
             <button onclick="uploadToGithub()" style="background:#2c5f8a;color:white;">📤 上传到GitHub</button>
             <button onclick="downloadFromGithub()" style="background:#d97706;color:white;">📥 从GitHub下载</button>
         </div>
@@ -536,7 +563,7 @@
 
     <script>
         (function() {
-            // 数据结构
+            // 数据结构（同前）
             let allDecks = [];
             let allVocabularies = [];
             let unitWrongWords = [];
@@ -575,13 +602,11 @@
             }
             function scrollToInput() {
                 const input = document.getElementById('answerInput');
-                if (input) { input.focus(); scrollToElement(input, 200); }
+                if (input) {
+                    input.focus();
+                    // 由于输入区是固定的，不需要滚动
+                }
             }
-
-            document.getElementById('answerInput').addEventListener('focus', () => {
-                document.body.style.position = 'relative';
-                setTimeout(() => window.scrollTo(0, 0), 100);
-            });
 
             // 存储
             function loadFromStorage() {
@@ -678,7 +703,7 @@
                 if (pid === 'sync') fillGithubConfigToUI();
             };
 
-            // 词库渲染
+            // 词库渲染（略，同前）
             function renderDecks() {
                 const bookDiv = document.getElementById('bookList');
                 const unitDiv = document.getElementById('unitList');
@@ -876,7 +901,7 @@
                 showPage('practice'); startPractice();
             };
 
-            // 练习核心（重点优化了自他动词判断的反馈）
+            // 练习核心（含自他动词判断详细反馈）
             window.startPractice = function() {
                 const mode = document.getElementById('practiceMode').value;
                 let candidates = [];
@@ -1009,7 +1034,6 @@
                     const particleOk = (ans === correctParticle);
                     const overallCorrect = currentKanaCorrect && particleOk;
 
-                    // 构建详细反馈
                     let kanaFeedback = currentKanaCorrect ? '假名: ✓' : `假名: ${word.japanese}`;
                     let particleFeedback = particleOk ? '助词: ✓' : `助词: ${ans} (应为 ${correctParticle || '无'})`;
 
@@ -1128,7 +1152,7 @@
                 else alert(`${name} 单元数：${allDecks.filter(u => u.parentId == book.id).length}`);
             };
 
-            // GitHub 同步
+            // GitHub 同步（略）
             function fillGithubConfigToUI() {
                 document.getElementById('githubUser').value = githubConfig.username || '';
                 document.getElementById('githubToken').value = githubConfig.token || '';

@@ -448,12 +448,6 @@
                 <button style="flex:1;" onclick="nextWord()" class="primary">➡ 下一题</button>
             </div>
         </div>
-
-        <!-- GitHub 同步按钮（放在可滚动区域底部） -->
-        <div style="margin-top:20px; padding-bottom: 10px;">
-            <button onclick="uploadToGithub()" style="background:#2c5f8a;color:white;">📤 上传到GitHub</button>
-            <button onclick="downloadFromGithub()" style="background:#d97706;color:white;">📥 从GitHub下载</button>
-        </div>
     </div>
 
     <!-- 错题页面 -->
@@ -602,10 +596,7 @@
             }
             function scrollToInput() {
                 const input = document.getElementById('answerInput');
-                if (input) {
-                    input.focus();
-                    // 由于输入区是固定的，不需要滚动
-                }
+                if (input) input.focus();
             }
 
             // 存储
@@ -703,7 +694,7 @@
                 if (pid === 'sync') fillGithubConfigToUI();
             };
 
-            // 词库渲染（略，同前）
+            // 词库渲染
             function renderDecks() {
                 const bookDiv = document.getElementById('bookList');
                 const unitDiv = document.getElementById('unitList');
@@ -766,7 +757,7 @@
                 btn.innerText = unitListVisible ? '折叠' : '展开';
             };
 
-            // 单词管理（增强编辑）
+            // 单词管理
             function renderWordList(words) {
                 const container = document.getElementById('wordManagementList');
                 if (!words.length) { container.innerHTML = '<p>暂无单词</p>'; return; }
@@ -901,7 +892,7 @@
                 showPage('practice'); startPractice();
             };
 
-            // 练习核心（含自他动词判断详细反馈）
+            // 练习核心
             window.startPractice = function() {
                 const mode = document.getElementById('practiceMode').value;
                 let candidates = [];
@@ -1152,7 +1143,7 @@
                 else alert(`${name} 单元数：${allDecks.filter(u => u.parentId == book.id).length}`);
             };
 
-            // GitHub 同步（略）
+            // GitHub 同步
             function fillGithubConfigToUI() {
                 document.getElementById('githubUser').value = githubConfig.username || '';
                 document.getElementById('githubToken').value = githubConfig.token || '';

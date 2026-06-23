@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>日语单词 · 拿下</title>
+    <title>日语单词 · 全功能编辑版</title>
     <style>
         * {
             box-sizing: border-box;
@@ -344,7 +344,7 @@
 <body>
     <button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
 
-    <h1>📗 日语单词 · 自他动词判断</h1>
+    <h1>📗 日语单词 · 全功能编辑</h1>
     <div class="tab-bar">
         <button class="tab-btn active" onclick="showPage('practice')">练习</button>
         <button class="tab-btn" onclick="showPage('wrong')">错题</button>
@@ -379,7 +379,6 @@
             <input type="number" id="customCountInput" min="1" max="999" placeholder="输入数量" value="30">
             <button onclick="applyCustomCount()" class="primary">应用</button>
         </div>
-
         <div id="bookUnitSelector" style="margin:15px 0;">
             <div id="unitSelectRow" style="display:none; margin-bottom:10px;">
                 <div class="section-title">🎯 按单元精确练习</div>
@@ -397,7 +396,6 @@
                 <div id="bookMultiSelect"></div>
             </div>
         </div>
-
         <button class="primary" style="width:100%;" onclick="startPractice()">▶ 开始练习</button>
 
         <div class="stats-grid">
@@ -448,9 +446,9 @@
         </div>
     </div>
 
-    <!-- 管理页面 -->
+    <!-- 管理页面（增强编辑） -->
     <div id="manage" class="page">
-        <h3>🔍 搜索/管理单词</h3>
+        <h3>🔍 搜索/管理单词（点“编辑”可修改全部字段）</h3>
         <div class="search-box flex-row">
             <input type="text" id="searchWordInput" placeholder="输入中文/日文" style="flex:3;">
             <button onclick="searchWords()" style="flex:1;">搜索</button>
@@ -538,15 +536,15 @@
 
     <script>
         (function() {
-            // ---------- 数据结构 ----------
+            // 数据结构
             let allDecks = [];
             let allVocabularies = [];
-            let unitWrongWords = [];   // 单元错题
-            let summaryWrongWords = []; // 汇总错题
-            let verbWrongWords = [];   // 动词错题
+            let unitWrongWords = [];
+            let summaryWrongWords = [];
+            let verbWrongWords = [];
             let settings = { practiceCount: 30 };
             let uploadHistory = [];
-            let currentWrongTab = 'unit'; // 'unit' | 'summary' | 'verb'
+            let currentWrongTab = 'unit';
 
             let practiceWords = [];
             let currentIndex = 0;
@@ -559,21 +557,18 @@
             let wordListVisible = true;
             let unitListVisible = true;
 
-            // 判断是否为动词
             function isVerb(wordType) {
                 if (!wordType) return false;
                 const lower = wordType.toLowerCase();
                 return lower.includes('自动') || lower.includes('他动') || lower.includes('自他');
             }
 
-            // 获取当前激活的错题列表
             function getCurrentWrongList() {
                 if (currentWrongTab === 'unit') return unitWrongWords;
                 if (currentWrongTab === 'summary') return summaryWrongWords;
                 return verbWrongWords;
             }
 
-            // 滚动辅助
             function scrollToElement(el, delay = 150) {
                 if (!el) return;
                 setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), delay);
@@ -588,7 +583,7 @@
                 setTimeout(() => window.scrollTo(0, 0), 100);
             });
 
-            // ---------- 存储 ----------
+            // 存储
             function loadFromStorage() {
                 try {
                     allDecks = JSON.parse(localStorage.getItem('jp_decks') || '[]');
@@ -746,21 +741,33 @@
                 btn.innerText = unitListVisible ? '折叠' : '展开';
             };
 
-            // 单词管理
+            // 单词管理（增强编辑）
             function renderWordList(words) {
                 const container = document.getElementById('wordManagementList');
                 if (!words.length) { container.innerHTML = '<p>暂无单词</p>'; return; }
-                let html = '<table class="word-table"><tr><th>中文</th><th>日文</th><th>词性</th><th>位置</th><th>操作</th></tr>';
+                let html = '<table class="word-table"><tr><th>中文</th><th>日文</th><th>词性</th><th>助词</th><th>短句</th><th>位置</th><th>操作</th></tr>';
                 words.forEach(w => {
                     const deck = allDecks.find(d => d.id == w.deckId);
                     const wrong = unitWrongWords.find(ww => ww.chinese === w.chinese && ww.japanese === w.japanese);
                     const badge = wrong ? `<span class="wrong-count-badge">${wrong.wrongCount}</span>` : '';
                     const wordTypeDisplay = w.wordType ? `<span class="verb-badge${w.wordType.includes('他') ? ' 他' : ''}">${w.wordType}</span>` : '-';
-                    html += `<tr><td>${w.chinese}${badge}</td><td>${w.japanese}</td><td>${wordTypeDisplay}</td><td>${deck?.name || '?'}</td>
-                        <td><button class="btn-sm" onclick="editWord('${w.id}')">编辑</button><button class="btn-sm danger" onclick="deleteWord('${w.id}')">删</button></td></tr>`;
+                    html += `<tr>
+                        <td>${w.chinese}${badge}</td>
+                        <td>${w.japanese}</td>
+                        <td>${wordTypeDisplay}</td>
+                        <td>${w.particle || '-'}</td>
+                        <td>${w.example || '-'}</td>
+                        <td>${deck?.name || '?'}</td>
+                        <td>
+                            <button class="btn-sm" onclick="editWord('${w.id}')">✏️ 编辑</button>
+                            <button class="btn-sm danger" onclick="deleteWord('${w.id}')">删</button>
+                        </td>
+                    </tr>`;
                 });
-                html += '</table>'; container.innerHTML = html;
+                html += '</table>';
+                container.innerHTML = html;
             }
+
             window.searchWords = () => {
                 const kw = document.getElementById('searchWordInput').value.trim().toLowerCase();
                 renderWordList(kw ? allVocabularies.filter(w => w.chinese.includes(kw) || w.japanese.toLowerCase().includes(kw)) : allVocabularies);
@@ -774,14 +781,34 @@
                 verbWrongWords = verbWrongWords.filter(w => allVocabularies.some(v => v.chinese === w.chinese && v.japanese === w.japanese));
                 saveAll(); renderWordList(allVocabularies);
             };
-            window.editWord = (id) => {
+
+            window.editWord = function(id) {
                 const word = allVocabularies.find(w => w.id == id);
                 if (!word) return;
-                const newChinese = prompt('中文', word.chinese); if (!newChinese) return;
-                const newJapanese = prompt('日语', word.japanese); if (!newJapanese) return;
-                word.chinese = newChinese.trim(); word.japanese = newJapanese.trim();
-                saveAll(); renderWordList(allVocabularies);
+
+                const fields = [
+                    { key: 'chinese', label: '中文', default: word.chinese },
+                    { key: 'japanese', label: '日语假名', default: word.japanese },
+                    { key: 'wordType', label: '词性 (如自动词/他动词/名词)', default: word.wordType || '' },
+                    { key: 'particle', label: '助词 (が/を/に 等)', default: word.particle || '' },
+                    { key: 'example', label: '短句 (用___表示助词位置)', default: word.example || '' }
+                ];
+
+                for (let f of fields) {
+                    const newVal = prompt(`修改${f.label}：`, f.default);
+                    if (newVal !== null) {
+                        word[f.key] = newVal.trim();
+                    }
+                }
+
+                saveAll();
+                renderWordList(allVocabularies);
+                if (practiceWords.length && currentIndex < practiceWords.length) {
+                    const currentWord = practiceWords[currentIndex];
+                    if (currentWord.id === id) showQuestion();
+                }
             };
+
             window.importWords = () => {
                 const unitId = document.getElementById('importUnit').value;
                 if (!unitId) { alert('选择目标单元'); return; }
@@ -816,7 +843,6 @@
                 document.getElementById('wrongTabVerb').classList.toggle('primary', tab === 'verb');
                 updateUIStats(); renderWrongList();
             };
-
             function renderWrongList() {
                 const cont = document.getElementById('wrongListContainer');
                 const list = getCurrentWrongList();
@@ -830,13 +856,10 @@
                 });
                 html += '</table>'; cont.innerHTML = html;
             }
-
             window.removeWrongItem = (idx) => {
                 const list = getCurrentWrongList();
-                list.splice(idx, 1);
-                saveAll(); renderWrongList();
+                list.splice(idx, 1); saveAll(); renderWrongList();
             };
-
             window.clearAllWrong = () => {
                 const name = currentWrongTab === 'unit' ? '单元错题' : (currentWrongTab === 'summary' ? '汇总错题' : '动词错题');
                 if (confirm(`清空${name}？`)) {
@@ -846,20 +869,14 @@
                     saveAll(); renderWrongList();
                 }
             };
-
             window.startPracticeFromWrong = (type) => {
-                if (type === 'unit') {
-                    document.getElementById('practiceMode').value = 'wrong';
-                } else if (type === 'summary') {
-                    document.getElementById('practiceMode').value = 'summaryWrong';
-                } else {
-                    document.getElementById('practiceMode').value = 'verbWrong';
-                }
-                showPage('practice');
-                startPractice();
+                if (type === 'unit') document.getElementById('practiceMode').value = 'wrong';
+                else if (type === 'summary') document.getElementById('practiceMode').value = 'summaryWrong';
+                else document.getElementById('practiceMode').value = 'verbWrong';
+                showPage('practice'); startPractice();
             };
 
-            // ---------- 练习核心 ----------
+            // 练习核心（重点优化了自他动词判断的反馈）
             window.startPractice = function() {
                 const mode = document.getElementById('practiceMode').value;
                 let candidates = [];
@@ -918,10 +935,7 @@
             };
 
             function showQuestion() {
-                if (!practiceWords.length) {
-                    document.getElementById('questionWord').innerHTML = '无单词';
-                    return;
-                }
+                if (!practiceWords.length) { document.getElementById('questionWord').innerHTML = '无单词'; return; }
                 const word = practiceWords[currentIndex];
                 let displayHtml = word.chinese;
                 if (!isVerbMode && word.wordType) {
@@ -954,7 +968,6 @@
                 const word = practiceWords[currentIndex];
                 const ans = document.getElementById('answerInput').value.trim();
                 if (!ans) return;
-
                 const mode = document.getElementById('practiceMode').value;
 
                 if (answerState === 'initial') {
@@ -975,25 +988,17 @@
                         document.getElementById('resultMessage').innerText = kanaOk ? '✓ 正确' : `✗ 错误 正确答案: ${word.japanese}`;
                         if (kanaOk) {
                             stats.correct++;
-                            // 检查是否在错题集中，显示移除按钮（仅错题练习模式下）
                             if (mode === 'wrong' || mode === 'summaryWrong') {
                                 const list = mode === 'wrong' ? unitWrongWords : summaryWrongWords;
-                                const idx = list.findIndex(w => w.chinese === word.chinese && w.japanese === word.japanese);
-                                if (idx >= 0) {
+                                if (list.some(w => w.chinese === word.chinese && w.japanese === word.japanese))
                                     document.getElementById('wrongRemoveOption').style.display = 'block';
-                                }
                             }
                         } else {
                             stats.wrong++;
-                            if (mode === 'review') {
-                                addToWrong(word, 'summary');
-                            } else if (mode === 'wrong') {
-                                addToWrong(word, 'unit');
-                            } else if (mode === 'summaryWrong') {
-                                addToWrong(word, 'summary');
-                            } else {
-                                addToWrong(word, 'unit');
-                            }
+                            if (mode === 'review') addToWrong(word, 'summary');
+                            else if (mode === 'wrong') addToWrong(word, 'unit');
+                            else if (mode === 'summaryWrong') addToWrong(word, 'summary');
+                            else addToWrong(word, 'unit');
                         }
                         answerState = 'completed';
                         updateProgress();
@@ -1003,26 +1008,26 @@
                     const correctParticle = word.particle || '';
                     const particleOk = (ans === correctParticle);
                     const overallCorrect = currentKanaCorrect && particleOk;
+
+                    // 构建详细反馈
+                    let kanaFeedback = currentKanaCorrect ? '假名: ✓' : `假名: ${word.japanese}`;
+                    let particleFeedback = particleOk ? '助词: ✓' : `助词: ${ans} (应为 ${correctParticle || '无'})`;
+
                     if (overallCorrect) {
                         document.getElementById('resultMessage').className = 'result-badge correct';
                         document.getElementById('resultMessage').innerText = `✓ 正确！「${word.japanese}」${word.wordType}（${word.particle}）`;
                         stats.correct++;
                         removeFromVerbWrongIfExists(word);
-                        if (mode === 'verbWrong') {
-                            const idx = verbWrongWords.findIndex(w => w.chinese === word.chinese && w.japanese === word.japanese);
-                            if (idx >= 0) {
-                                document.getElementById('wrongRemoveOption').style.display = 'block';
-                            }
-                        }
+                        if (mode === 'verbWrong' && verbWrongWords.some(w => w.chinese === word.chinese && w.japanese === word.japanese))
+                            document.getElementById('wrongRemoveOption').style.display = 'block';
                     } else {
-                        let msg = '✗ 错误';
-                        if (!currentKanaCorrect) msg += ` 假名: ${word.japanese}`;
-                        if (!particleOk) msg += ` 助词: ${word.particle || '无'}`;
+                        let msg = `✗ 错误 ${kanaFeedback} ${particleFeedback} (${word.wordType})`;
                         document.getElementById('resultMessage').className = 'result-badge wrong';
-                        document.getElementById('resultMessage').innerText = msg + ` (${word.wordType})`;
+                        document.getElementById('resultMessage').innerText = msg;
                         stats.wrong++;
                         addToWrong(word, 'verb');
                     }
+
                     answerState = 'completed';
                     document.getElementById('answerInput').placeholder = '输入日语假名';
                     updateProgress();
@@ -1037,21 +1042,14 @@
                 else list = verbWrongWords;
 
                 const existing = list.find(w => w.chinese === word.chinese && w.japanese === word.japanese);
-                if (existing) {
-                    existing.wrongCount = (existing.wrongCount || 1) + 1;
-                    existing.lastWrong = Date.now();
-                } else {
-                    list.push({ chinese: word.chinese, japanese: word.japanese, wrongCount: 1, lastWrong: Date.now() });
-                }
+                if (existing) { existing.wrongCount = (existing.wrongCount || 1) + 1; existing.lastWrong = Date.now(); }
+                else list.push({ chinese: word.chinese, japanese: word.japanese, wrongCount: 1, lastWrong: Date.now() });
                 saveAll();
             }
 
             function removeFromVerbWrongIfExists(word) {
                 const idx = verbWrongWords.findIndex(w => w.chinese === word.chinese && w.japanese === word.japanese);
-                if (idx >= 0) {
-                    verbWrongWords.splice(idx, 1);
-                    saveAll();
-                }
+                if (idx >= 0) { verbWrongWords.splice(idx, 1); saveAll(); }
             }
 
             window.nextWord = function() {
@@ -1077,7 +1075,6 @@
                 document.getElementById('wrongRemoveOption').style.display = 'none';
                 document.getElementById('resultMessage').innerHTML += ' (已移除)';
             };
-
             window.keepInWrong = () => { document.getElementById('wrongRemoveOption').style.display = 'none'; };
 
             document.getElementById('answerInput').addEventListener('keydown', function(e) {
@@ -1095,9 +1092,7 @@
                 const unitRow = document.getElementById('unitSelectRow');
                 const bookRow = document.getElementById('bookMultiRow');
                 const selectorDiv = document.getElementById('bookUnitSelector');
-                unitRow.style.display = 'none';
-                bookRow.style.display = 'none';
-                selectorDiv.style.display = 'none';
+                unitRow.style.display = 'none'; bookRow.style.display = 'none'; selectorDiv.style.display = 'none';
                 if (mode === 'unit') { selectorDiv.style.display = 'block'; unitRow.style.display = 'block'; }
                 else if (mode === 'review') { selectorDiv.style.display = 'block'; bookRow.style.display = 'block'; renderBookMultiSelect(); }
                 else if (mode === 'verbJudge') { selectorDiv.style.display = 'block'; unitRow.style.display = 'block'; bookRow.style.display = 'block'; renderBookMultiSelect(); }
@@ -1133,6 +1128,7 @@
                 else alert(`${name} 单元数：${allDecks.filter(u => u.parentId == book.id).length}`);
             };
 
+            // GitHub 同步
             function fillGithubConfigToUI() {
                 document.getElementById('githubUser').value = githubConfig.username || '';
                 document.getElementById('githubToken').value = githubConfig.token || '';
@@ -1155,8 +1151,13 @@
             window.createNewGist = async () => {
                 if (!githubConfig.username || !githubConfig.token) { alert('先保存用户名和Token'); return; }
                 try {
-                    const content = JSON.stringify({ allDecks, allVocabularies, unitWrongWords, summaryWrongWords, verbWrongWords, settings, uploadHistory, exportDate: new Date().toISOString() }, null, 2);
-                    const data = await githubRequest('https://api.github.com/gists', { method: 'POST', body: JSON.stringify({ description: '日语单词备份', public: false, files: { 'japanese_words_backup.json': { content } } }) });
+                    const content = JSON.stringify({
+                        allDecks, allVocabularies, unitWrongWords, summaryWrongWords, verbWrongWords,
+                        settings, uploadHistory, exportDate: new Date().toISOString()
+                    }, null, 2);
+                    const data = await githubRequest('https://api.github.com/gists', {
+                        method: 'POST', body: JSON.stringify({ description: '日语单词备份', public: false, files: { 'japanese_words_backup.json': { content } } })
+                    });
                     githubConfig.gistId = data.id; document.getElementById('gistIdInput').value = data.id; saveGithubConfig();
                     document.getElementById('syncMessage').innerHTML = `<span class="success-msg">✅ Gist创建成功 ID: ${data.id}</span>`;
                 } catch (e) { document.getElementById('syncMessage').innerHTML = `<span class="error-msg">创建失败: ${e.message}</span>`; }
@@ -1176,8 +1177,13 @@
                 if (!githubConfig.gistId) { alert('请填写Gist ID'); return; }
                 if (!githubConfig.token) { alert('请配置Token'); return; }
                 try {
-                    const content = JSON.stringify({ allDecks, allVocabularies, unitWrongWords, summaryWrongWords, verbWrongWords, settings, uploadHistory, exportDate: new Date().toISOString() }, null, 2);
-                    await githubRequest(`https://api.github.com/gists/${githubConfig.gistId}`, { method: 'PATCH', body: JSON.stringify({ files: { 'japanese_words_backup.json': { content } } }) });
+                    const content = JSON.stringify({
+                        allDecks, allVocabularies, unitWrongWords, summaryWrongWords, verbWrongWords,
+                        settings, uploadHistory, exportDate: new Date().toISOString()
+                    }, null, 2);
+                    await githubRequest(`https://api.github.com/gists/${githubConfig.gistId}`, {
+                        method: 'PATCH', body: JSON.stringify({ files: { 'japanese_words_backup.json': { content } } })
+                    });
                     document.getElementById('syncMessage').innerHTML = `<span class="success-msg">✅ 上传成功 (${new Date().toLocaleTimeString()})</span>`;
                 } catch (e) { document.getElementById('syncMessage').innerHTML = `<span class="error-msg">上传失败: ${e.message}</span>`; }
             };
@@ -1202,9 +1208,13 @@
                 } catch (e) { document.getElementById('syncMessage').innerHTML = `<span class="error-msg">下载失败: ${e.message}</span>`; }
             };
             window.exportBackup = () => {
-                const data = { allDecks, allVocabularies, unitWrongWords, summaryWrongWords, verbWrongWords, settings, uploadHistory, exportDate: new Date().toISOString() };
+                const data = {
+                    allDecks, allVocabularies, unitWrongWords, summaryWrongWords, verbWrongWords,
+                    settings, uploadHistory, exportDate: new Date().toISOString()
+                };
                 const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `日语单词备份_${new Date().toISOString().slice(0,10)}.json`; a.click();
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+                a.download = `日语单词备份_${new Date().toISOString().slice(0,10)}.json`; a.click();
             };
             window.importBackup = () => {
                 const file = document.getElementById('importFile').files[0];
@@ -1227,7 +1237,8 @@
             };
             window.resetAllData = () => {
                 if (confirm('⚠️ 删除所有数据？')) {
-                    allDecks = []; allVocabularies = []; unitWrongWords = []; summaryWrongWords = []; verbWrongWords = [];
+                    allDecks = []; allVocabularies = [];
+                    unitWrongWords = []; summaryWrongWords = []; verbWrongWords = [];
                     settings = { practiceCount: 30 }; uploadHistory = [];
                     saveAll(); renderDecks(); renderWordList([]); renderWrongList(); fillAllSelects();
                 }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>日语学习工具 · 完整功能修复</title>
+    <title>日语学习工具 · 底栏不遮挡修复</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
     <style>
         * { box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
@@ -14,7 +14,7 @@
         .tab-btn.active { background: #1e3c5c; color: white; box-shadow: 0 2px 8px rgba(30,60,92,0.3); }
         .page { display: none; background: white; border-radius: 24px; padding: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.02); margin-bottom: 20px; }
         .page.active { display: block; }
-        #practice { padding-bottom: 130px; }
+        #practice { padding-bottom: 180px; }  /* 🔧 加大底边距，确保结果不被底栏遮挡 */
         button { background: #eef3f9; border: none; border-radius: 60px; padding: 12px 18px; font-size: 1rem; color: #1e3c5c; font-weight: 500; cursor: pointer; transition: 0.15s; box-shadow: 0 2px 4px rgba(0,0,0,0.03); }
         button.primary { background: #1e3c5c; color: white; }
         button.warning { background: #f5b342; color: #1e1e1e; }
@@ -72,7 +72,7 @@
 </head>
 <body>
 <button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
-<h1>📗 日语学习 · 完整功能修复</h1>
+<h1>📗 日语学习 · 底栏不遮挡</h1>
 <div class="tab-bar">
     <button class="tab-btn active" onclick="showPage('practice')">练习</button>
     <button class="tab-btn" onclick="showPage('wrong')">错题</button>
@@ -267,7 +267,6 @@
         return verbWrong;
     }
 
-    // 存储
     function loadFromStorage() {
         try {
             allDecks = JSON.parse(localStorage.getItem('jp_decks')||'[]');
@@ -319,7 +318,6 @@
         if(document.getElementById('library')) renderBookLists();
     }
 
-    // 数据修复按钮
     window.fixDataCategories = function() {
         let count = 0;
         allVocabularies.forEach(w => {
@@ -389,7 +387,6 @@
         if(pid==='sync') fillGithubConfigToUI();
     };
 
-    // 题库渲染
     function renderBookLists() {
         const wordBooks = allDecks.filter(d=>d.type==='book' && d.category==='word');
         const grammarBooks = allDecks.filter(d=>d.type==='book' && d.category==='grammar');
@@ -447,7 +444,6 @@
         list.classList.add('open'); icon.classList.add('open');
     };
 
-    // 搜索
     window.searchWords = function() {
         const kw = document.getElementById('searchWordInput').value.trim().toLowerCase();
         const cat = document.getElementById('searchCategory').value;
@@ -476,7 +472,6 @@
         html += '</table>'; cont.innerHTML = html;
     }
 
-    // 错题
     window.switchWrongCategory = function() {
         wrongCategory = document.getElementById('wrongCategory').value;
         document.getElementById('wordWrongTabs').style.display = wrongCategory==='word'?'block':'none';
@@ -512,7 +507,6 @@
         showPage('practice'); startPractice();
     };
 
-    // 练习核心
     window.updatePracticeCategory = function() {
         practiceCategory = document.getElementById('practiceCategory').value;
         document.getElementById('grammarDirectionRow').style.display = practiceCategory==='grammar'?'flex':'none';
@@ -615,7 +609,6 @@
         currentKanaCorrect = false;
         updateProgress();
         document.getElementById('answerInput').focus();
-        // 移动端自动滚到题目
         if (window.innerWidth <= 768) scrollToQuestion();
     }
 
@@ -709,15 +702,13 @@
         if (currentIndex + 1 < practiceWords.length) { currentIndex++; showQuestion(); }
         else { alert(`练习完成！正确:${stats.correct} 错误:${stats.wrong}`); practiceWords=[]; showQuestion(); }
     };
-    window.removeCurrentFromWrong = function() { /* 省略 */ };
+    window.removeCurrentFromWrong = function() { /* 保留原逻辑 */ };
     window.keepInWrong = () => document.getElementById('wrongRemoveOption').style.display='none';
 
-    // 输入同步预览
     document.getElementById('answerInput').addEventListener('input', function() {
         document.getElementById('previewText').innerText = this.value;
     });
 
-    // 回车操作
     document.getElementById('answerInput').addEventListener('keydown', e => {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -734,7 +725,6 @@
         else if(mode==='review'||mode==='verbJudge'){ div.style.display='block'; bookRow.style.display='block'; renderBookMultiSelect(); }
     };
 
-    // 书本/单元/单词操作
     window.editDeck = (id) => { const d=allDecks.find(x=>x.id==id); if(!d) return; const n=prompt('名称',d.name); if(n){d.name=n.trim(); saveAll(); renderBookLists();} };
     window.deleteDeck = (id) => { if(!confirm('确定删除？')) return; const d=allDecks.find(x=>x.id==id); if(d.type==='book'){ const uids=allDecks.filter(u=>u.parentId==id).map(u=>u.id); allVocabularies=allVocabularies.filter(v=>!uids.includes(v.deckId)); allDecks=allDecks.filter(x=>!(x.parentId==id||x.id==id)); } else { allVocabularies=allVocabularies.filter(v=>v.deckId!=id); allDecks=allDecks.filter(x=>x.id!=id); } saveAll(); renderBookLists(); };
     window.createNewBook = function(category) { const name = prompt(`输入${category==='word'?'单词':'语法'}书本名称`); if(!name) return; allDecks.push({ id: Date.now()+Math.random(), name: name.trim(), type: 'book', category: category }); saveAll(); renderBookLists(); };
@@ -758,7 +748,7 @@
         saveAll(); renderBookLists(); alert(`添加 ${added} 条`);
     };
 
-    // GitHub 同步（压缩）
+    // GitHub 同步
     function fillGithubConfigToUI(){ document.getElementById('githubUser').value=githubConfig.username||''; document.getElementById('githubToken').value=githubConfig.token||''; document.getElementById('gistIdInput').value=githubConfig.gistId||''; }
     window.saveGithubConfig=()=>{ githubConfig.username=document.getElementById('githubUser').value.trim(); githubConfig.token=document.getElementById('githubToken').value.trim(); githubConfig.gistId=document.getElementById('gistIdInput').value.trim(); localStorage.setItem('jp_github',JSON.stringify(githubConfig)); document.getElementById('configStatus').innerHTML='✅ 已保存'; setTimeout(()=>document.getElementById('configStatus').innerHTML='',2000); };
     async function githubRequest(url,opt={}){ opt.headers={...opt.headers,Authorization:`token ${githubConfig.token}`,Accept:'application/vnd.github.v3+json'}; const r=await fetch(url,opt); if(!r.ok){const e=await r.json().catch(()=>({message:r.statusText})); throw new Error(e.message||`HTTP ${r.status}`);} return r.json(); }
@@ -774,7 +764,6 @@
     window.changePracticeCount = () => { const s = document.getElementById('practiceCountSelect'); if (s.value === 'custom') document.getElementById('customCountRow').style.display = 'flex'; else { settings.practiceCount = parseInt(s.value); saveAll(); document.getElementById('customCountRow').style.display = 'none'; } };
     window.applyCustomCount = () => { const v = parseInt(document.getElementById('customCountInput').value); if (v > 0) { settings.practiceCount = v; saveAll(); document.getElementById('customCountRow').style.display = 'none'; } };
 
-    // 启动
     loadFromStorage();
     fillAllSelects();
     renderBookLists();

@@ -240,7 +240,6 @@
 
 <script>
 (function() {
-    // ========== 数据 ==========
     let allDecks = [];
     let allVocabularies = [];
     let unitWrong = [], summaryWrong = [], verbWrong = [];
@@ -264,13 +263,6 @@
         if (currentWrongTab === 'unit') return unitWrong;
         if (currentWrongTab === 'summary') return summaryWrong;
         return verbWrong;
-    }
-
-    // 数据清洗
-    function sanitizeString(str) { if (typeof str !== 'string') return str; return str.replace(/[\x00-\x1F\x7F]/g, ' ').trim(); }
-    function sanitizeData() {
-        allVocabularies.forEach(w => { w.chinese = sanitizeString(w.chinese); w.japanese = sanitizeString(w.japanese); w.wordType = sanitizeString(w.wordType); w.particle = sanitizeString(w.particle); w.example = sanitizeString(w.example); w.exampleCn = sanitizeString(w.exampleCn); });
-        [unitWrong, summaryWrong, verbWrong, grammarUnitWrong, grammarSummaryWrong].forEach(arr => arr.forEach(w => { w.chinese = sanitizeString(w.chinese); w.japanese = sanitizeString(w.japanese); }));
     }
 
     // 存储
@@ -299,7 +291,6 @@
         });
     }
     function saveAll() {
-        sanitizeData();
         localStorage.setItem('jp_decks', JSON.stringify(allDecks));
         localStorage.setItem('jp_vocab', JSON.stringify(allVocabularies));
         localStorage.setItem('jp_unit_wrong', JSON.stringify(unitWrong));
@@ -344,7 +335,10 @@
         sel.innerHTML = '<option value="">选择单元</option>'+units.map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
     };
 
-    window.updateImportCategory = function() { updateImportSelects(); document.getElementById('importText').placeholder = document.getElementById('importCategory').value==='word' ? '中文 假名 词性 助词 短句' : '中文 日语语法 例句 翻译'; };
+    window.updateImportCategory = function() {
+        updateImportSelects();
+        document.getElementById('importText').placeholder = document.getElementById('importCategory').value==='word' ? '中文 假名 词性 助词 短句' : '中文 日语语法 例句 翻译';
+    };
     function updateImportSelects() {
         const cat = document.getElementById('importCategory').value;
         const books = allDecks.filter(d=>d.type==='book' && d.category===cat);
@@ -502,7 +496,7 @@
         showPage('practice'); startPractice();
     };
 
-    // 练习核心
+    // 练习核心（随机打乱语法题顺序）
     window.updatePracticeCategory = function() {
         practiceCategory = document.getElementById('practiceCategory').value;
         document.getElementById('grammarDirectionRow').style.display = practiceCategory==='grammar'?'flex':'none';
@@ -569,6 +563,7 @@
                     groupedQuestions.push({ type: 'multi', japanese: japanese, meanings: items, direction: 'jp2cn' });
                 }
             });
+            // 随机打乱分组题目
             for (let i = groupedQuestions.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [groupedQuestions[i], groupedQuestions[j]] = [groupedQuestions[j], groupedQuestions[i]];
@@ -932,84 +927,37 @@
         saveAll(); renderBookLists(); alert(`添加 ${added} 条`);
     };
 
-    // JSON 容错
-    function safeJSONParse(str) {
-        try { return JSON.parse(str); } catch (e) {
-            let fixed = str.replace(/[\x00-\x1F\x7F]/g, ' ').replace(/\s+$/, '');
-            if (!fixed.endsWith('}') && !fixed.endsWith(']')) fixed += '"}';
-            try { return JSON.parse(fixed); } catch (e2) {
-                try { return eval('(' + str + ')'); } catch (e3) { return null; }
-            }
-        }
-    }
-
     // GitHub 同步
     function fillGithubConfigToUI(){ document.getElementById('githubUser').value=githubConfig.username||''; document.getElementById('githubToken').value=githubConfig.token||''; document.getElementById('gistIdInput').value=githubConfig.gistId||''; }
-    window.saveGithubConfig=()=>{ githubConfig.username=document.getElementById('githubUser').value.trim(); githubConfig.token=document.getElementById('githubToken').value.trim(); githubConfig.gistId=document.getElementById('gistIdInput').value.trim(); localStorage.setItem('jp_github',JSON.stringify(githubConfig)); document.getElementById('configStatus').innerHTML='✅ 已保存'; };
+    window.saveGithubConfig=()=>{ githubConfig.username=document.getElementById('githubUser').value.trim(); githubConfig.token=document.getElementById('githubToken').value.trim(); githubConfig.gistId=document.getElementById('gistIdInput').value.trim(); localStorage.setItem('jp_github',JSON.stringify(githubConfig)); document.getElementById('configStatus').innerHTML='✅ 已保存'; setTimeout(()=>document.getElementById('configStatus').innerHTML='',2000); };
     async function githubRequest(url,opt={}){ opt.headers={...opt.headers,Authorization:`token ${githubConfig.token}`,Accept:'application/vnd.github.v3+json'}; const r=await fetch(url,opt); if(!r.ok){const e=await r.json().catch(()=>({message:r.statusText})); throw new Error(e.message||`HTTP ${r.status}`);} return r.json(); }
-    window.createNewGist=async()=>{ if(!githubConfig.username||!githubConfig.token){alert('保存配置');return;} try{sanitizeData();const c=JSON.stringify({allDecks,allVocabularies,unitWrong,summaryWrong,verbWrong,grammarUnitWrong,grammarSummaryWrong,settings,uploadHistory},null,2); const d=await githubRequest('https://api.github.com/gists',{method:'POST',body:JSON.stringify({description:'日语备份',public:false,files:{'japanese_words_backup.json':{content:c}}})}); githubConfig.gistId=d.id; document.getElementById('gistIdInput').value=d.id; saveGithubConfig();}catch(e){alert(e.message);} };
+    window.createNewGist=async()=>{ if(!githubConfig.username||!githubConfig.token){alert('保存配置');return;} try{const c=JSON.stringify({allDecks,allVocabularies,unitWrong,summaryWrong,verbWrong,grammarUnitWrong,grammarSummaryWrong,settings,uploadHistory},null,2); const d=await githubRequest('https://api.github.com/gists',{method:'POST',body:JSON.stringify({description:'日语备份',public:false,files:{'japanese_words_backup.json':{content:c}}})}); githubConfig.gistId=d.id; document.getElementById('gistIdInput').value=d.id; saveGithubConfig();}catch(e){alert(e.message);} };
     window.fetchGistIdFromList=async()=>{ if(!githubConfig.token){alert('保存token');return;} try{const g=await githubRequest('https://api.github.com/gists'); const c=g.filter(x=>x.files['japanese_words_backup.json']); if(!c.length){alert('无备份');return;} let l=''; c.forEach((x,i)=>l+=`${i+1}: ${x.id}\n`); const i=prompt(l); if(i){const ch=c[parseInt(i)-1]; if(ch){githubConfig.gistId=ch.id; document.getElementById('gistIdInput').value=ch.id; saveGithubConfig();}} }catch(e){alert(e.message);} };
-    window.uploadToGithub = async function() {
-        if (!githubConfig.gistId || !githubConfig.token) { alert('配置缺失'); return; }
-        try {
-            sanitizeData();
-            const content = JSON.stringify({ allDecks, allVocabularies, unitWrong, summaryWrong, verbWrong, grammarUnitWrong, grammarSummaryWrong, settings, uploadHistory }, null, 2);
-            await githubRequest(`https://api.github.com/gists/${githubConfig.gistId}`, { method: 'PATCH', body: JSON.stringify({ files: { 'japanese_words_backup.json': { content } } }) });
-            document.getElementById('syncMessage').innerHTML = `<span class="success-msg">✅ 上传成功 (${new Date().toLocaleTimeString()})</span>`;
-        } catch (e) { document.getElementById('syncMessage').innerHTML = `<span class="error-msg">上传失败: ${e.message}</span>`; }
-    };
-    window.downloadFromGithub = async function() {
-        if (!githubConfig.gistId) { alert('填写Gist ID'); return; }
-        const msgDiv = document.getElementById('syncMessage');
-        try {
-            const gist = await githubRequest(`https://api.github.com/gists/${githubConfig.gistId}`);
-            const file = gist.files['japanese_words_backup.json'];
-            if (!file) throw new Error('文件中不存在备份');
-            const remoteData = safeJSONParse(file.content);
-            if (!remoteData) {
-                msgDiv.innerHTML = `<span class="error-msg">远程数据格式损坏，无法解析。<br><button onclick="repairAndDownload()" style="margin-top:8px;background:#f5b342;color:#1e1e1e;border:none;border-radius:60px;padding:12px 18px;font-size:1rem;cursor:pointer;">🔧 用本地数据修复远程并下载</button></span>`;
-                return;
-            }
-            if (!confirm('下载将覆盖当前数据，确定？')) return;
-            allDecks = remoteData.allDecks || [];
-            allVocabularies = remoteData.allVocabularies || [];
-            unitWrong = remoteData.unitWrong || remoteData.wrongWords || [];
-            summaryWrong = remoteData.summaryWrong || [];
-            verbWrong = remoteData.verbWrong || [];
-            grammarUnitWrong = remoteData.grammarUnitWrong || [];
-            grammarSummaryWrong = remoteData.grammarSummaryWrong || [];
-            settings = remoteData.settings || { practiceCount: 30 };
-            uploadHistory = remoteData.uploadHistory || [];
-            saveAll();
-            msgDiv.innerHTML = `<span class="success-msg">✅ 下载成功，共 ${allVocabularies.length} 条目</span>`;
-            renderBookLists();
-            renderWrongList();
-        } catch (e) { msgDiv.innerHTML = `<span class="error-msg">下载失败: ${e.message}</span>`; }
-    };
-    window.repairAndDownload = async function() {
-        const msgDiv = document.getElementById('syncMessage');
-        msgDiv.innerHTML = `<span class="success-msg">正在用本地数据修复远程...</span>`;
-        try {
-            await window.uploadToGithub();
-            msgDiv.innerHTML = `<span class="success-msg">修复成功，正在重新下载...</span>`;
-            await window.downloadFromGithub();
-        } catch (e) { msgDiv.innerHTML = `<span class="error-msg">修复失败: ${e.message}</span>`; }
-    };
-    window.exportBackup = () => { sanitizeData(); const data = { allDecks, allVocabularies, unitWrong, summaryWrong, verbWrong, grammarUnitWrong, grammarSummaryWrong, settings, uploadHistory }; const blob = new Blob([JSON.stringify(data)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `日语备份_${new Date().toISOString().slice(0,10)}.json`; a.click(); };
+    window.uploadToGithub=async()=>{ if(!githubConfig.gistId||!githubConfig.token){alert('配置缺失');return;} try{const c=JSON.stringify({allDecks,allVocabularies,unitWrong,summaryWrong,verbWrong,grammarUnitWrong,grammarSummaryWrong,settings,uploadHistory},null,2); await githubRequest(`https://api.github.com/gists/${githubConfig.gistId}`,{method:'PATCH',body:JSON.stringify({files:{'japanese_words_backup.json':{content:c}}})}); alert('上传成功');}catch(e){alert(e.message);} };
+    window.downloadFromGithub=async()=>{ if(!githubConfig.gistId){alert('填写ID');return;} try{const g=await githubRequest(`https://api.github.com/gists/${githubConfig.gistId}`); const f=g.files['japanese_words_backup.json']; if(!f) throw new Error('无文件'); const d=JSON.parse(f.content); if(!confirm('覆盖？')) return; allDecks=d.allDecks||[]; allVocabularies=d.allVocabularies||[]; unitWrong=d.unitWrong||d.wrongWords||[]; summaryWrong=d.summaryWrong||[]; verbWrong=d.verbWrong||[]; grammarUnitWrong=d.grammarUnitWrong||[]; grammarSummaryWrong=d.grammarSummaryWrong||[]; settings=d.settings||{practiceCount:30}; uploadHistory=d.uploadHistory||[]; saveAll(); renderBookLists(); }catch(e){alert(e.message);} };
+    window.exportBackup=()=>{ const d={allDecks,allVocabularies,unitWrong,summaryWrong,verbWrong,grammarUnitWrong,grammarSummaryWrong,settings,uploadHistory}; const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`日语备份_${new Date().toISOString().slice(0,10)}.json`; a.click(); };
     window.importBackup = function() {
-        const file = document.getElementById('importFile').files[0]; if(!file) return;
+        const file = document.getElementById('importFile').files[0];
+        if (!file) return;
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
-                const data = safeJSONParse(e.target.result);
-                if (!data) { alert('文件格式错误'); return; }
-                if (data.allDecks) allDecks = data.allDecks.map(d => { if(d.type==='book'&&!d.category) d.category='word'; return d; });
-                if (data.allVocabularies) allVocabularies = data.allVocabularies.map(w => { if(!w.id) w.id = Date.now()+Math.random(); if(!w.category) w.category = (w.wordType==='语法'?'grammar':'word'); if(!w.exampleCn) w.exampleCn = ''; if(!w.wordType) w.wordType = ''; if(!w.particle) w.particle = ''; if(!w.example) w.example = ''; return w; });
-                unitWrong = data.unitWrong || data.unitWrongWords || []; summaryWrong = data.summaryWrong || data.summaryWrongWords || []; verbWrong = data.verbWrong || data.verbWrongWords || [];
-                grammarUnitWrong = data.grammarUnitWrong || []; grammarSummaryWrong = data.grammarSummaryWrong || [];
-                if(data.settings) settings = data.settings; if(data.uploadHistory) uploadHistory = data.uploadHistory;
-                saveAll(); alert('导入完成'); renderBookLists(); renderWrongList(); fillAllSelects();
-            } catch(ex) { alert('解析失败: ' + ex.message); }
+                const data = JSON.parse(e.target.result);
+                if (data.allDecks) { allDecks = data.allDecks.map(d => { if (d.type === 'book' && !d.category) d.category = 'word'; return d; }); }
+                if (data.allVocabularies) { allVocabularies = data.allVocabularies.map(w => { if (!w.id) w.id = Date.now() + Math.random(); if (!w.category) w.category = (w.wordType === '语法' ? 'grammar' : 'word'); if (!w.exampleCn) w.exampleCn = ''; if (!w.wordType) w.wordType = ''; if (!w.particle) w.particle = ''; if (!w.example) w.example = ''; return w; }); }
+                unitWrong = data.unitWrong || data.unitWrongWords || [];
+                summaryWrong = data.summaryWrong || data.summaryWrongWords || [];
+                verbWrong = data.verbWrong || data.verbWrongWords || [];
+                grammarUnitWrong = data.grammarUnitWrong || [];
+                grammarSummaryWrong = data.grammarSummaryWrong || [];
+                if (data.settings) settings = data.settings;
+                if (data.uploadHistory) uploadHistory = data.uploadHistory;
+                saveAll();
+                alert('导入完成');
+                renderBookLists();
+                renderWrongList();
+                fillAllSelects();
+            } catch (ex) { alert('解析失败: ' + ex.message); }
         };
         reader.readAsText(file);
     };

@@ -14,7 +14,7 @@
         .tab-btn.active { background: #1e3c5c; color: white; box-shadow: 0 2px 8px rgba(30,60,92,0.3); }
         .page { display: none; background: white; border-radius: 24px; padding: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.02); margin-bottom: 20px; }
         .page.active { display: block; }
-        #practice { padding-bottom: 200px; }  /* 🔧 加大底边距，确保结果不被底栏遮挡 */
+        #practice { padding-bottom: 200px; }
         button { background: #eef3f9; border: none; border-radius: 60px; padding: 12px 18px; font-size: 1rem; color: #1e3c5c; font-weight: 500; cursor: pointer; transition: 0.15s; box-shadow: 0 2px 4px rgba(0,0,0,0.03); }
         button.primary { background: #1e3c5c; color: white; }
         button.warning { background: #f5b342; color: #1e1e1e; }
@@ -25,7 +25,7 @@
         .word-display { font-size: 2.4rem; font-weight: 700; text-align: center; margin: 20px 0 10px; color: #11324d; line-height: 1.3; }
         .type-badge { font-size: 1rem; font-weight: 500; background: #cfe2ff; color: #0d47a1; padding: 2px 10px; border-radius: 20px; margin-left: 10px; vertical-align: middle; }
         .type-badge.他 { background: #ffd6d6; color: #a10d0d; }
-        .result-badge { text-align: center; padding: 16px; border-radius: 60px; font-size: 1.3rem; font-weight: 600; margin: 12px 0; scroll-margin-bottom: 200px; } /* 🔧 滚动后避开底栏 */
+        .result-badge { text-align: center; padding: 16px; border-radius: 60px; font-size: 1.3rem; font-weight: 600; margin: 12px 0; scroll-margin-bottom: 200px; }
         .correct { background: #e1f7e3; color: #1e7a44; }
         .wrong { background: #ffe9e9; color: #b33; }
         .progress-bar { height: 12px; background: #e2eaf3; border-radius: 40px; overflow: hidden; margin: 15px 0; }
@@ -573,7 +573,19 @@
         }
         let limit = settings.practiceCount;
         if (limit > 0 && candidates.length > limit) candidates = candidates.slice(0, limit);
-        practiceWords = candidates.map(item => ({ type: 'single', item: item, direction: 'cn2jp' }));
+        
+        // 修复：根据语法方向设置每个题目的方向
+        practiceWords = candidates.map(item => {
+            let dir;
+            if (isGrammarPractice) {
+                if (grammarDirectionMode === 'cn2jp') dir = 'cn2jp';
+                else if (grammarDirectionMode === 'jp2cn') dir = 'jp2cn';
+                else dir = Math.random() < 0.5 ? 'cn2jp' : 'jp2cn'; // 随机
+            } else {
+                dir = 'cn2jp'; // 单词保持假名输入
+            }
+            return { type: 'single', item: item, direction: dir };
+        });
         currentIndex = 0;
         stats = { total: practiceWords.length, correct: 0, wrong: 0 };
         answerState = 'initial';
@@ -596,8 +608,14 @@
         document.getElementById('resultMessage').innerHTML = '';
         document.getElementById('previewText').innerText = '';
         if (isGrammarPractice) {
-            document.getElementById('questionWord').innerHTML = word.chinese;
-            document.getElementById('answerInput').placeholder = '输入日语语法';
+            // 根据方向显示题目
+            if (question.direction === 'cn2jp') {
+                document.getElementById('questionWord').innerHTML = word.chinese;
+                document.getElementById('answerInput').placeholder = '输入日语语法';
+            } else {
+                document.getElementById('questionWord').innerHTML = word.japanese;
+                document.getElementById('answerInput').placeholder = '输入中文意思';
+            }
         } else {
             let html = word.chinese;
             if (!isVerbMode && word.wordType) html += ` <span class="type-badge${word.wordType.includes('他')?' 他':''}">${word.wordType}</span>`;
@@ -630,14 +648,20 @@
         if (!ans) return;
 
         if (isGrammarPractice) {
-            const correct = (question.direction === 'cn2jp' ? ans === word.japanese : ans === word.chinese);
+            // 根据方向判断对错
+            let correct;
+            if (question.direction === 'cn2jp') {
+                correct = (ans === word.japanese);
+            } else {
+                correct = (ans === word.chinese);
+            }
             document.getElementById('resultMessage').className = correct ? 'result-badge correct' : 'result-badge wrong';
             document.getElementById('resultMessage').innerText = correct ? '✓ 正确' : `✗ 错误 正确答案: ${question.direction==='cn2jp'?word.japanese:word.chinese}`;
             if (word.example) { document.getElementById('exampleCard').innerHTML = `📖 ${word.example} ${word.exampleCn||''}`; document.getElementById('exampleCard').style.display = 'block'; }
             if (correct) stats.correct++; else { stats.wrong++; addToWrong(word); }
             answerState = 'completed';
             updateProgress();
-            scrollToResult(); // 🔧 PC 端也自动滚动到结果区
+            scrollToResult();
         } else {
             if (answerState === 'initial') {
                 const kanaOk = (ans === word.japanese);
@@ -662,7 +686,7 @@
                     }
                     answerState = 'completed';
                     updateProgress();
-                    scrollToResult(); // 🔧 PC 端也自动滚动到结果区
+                    scrollToResult();
                 }
             } else if (answerState === 'waitingParticle') {
                 const correctParticle = word.particle || '';
@@ -683,7 +707,7 @@
                 answerState = 'completed';
                 document.getElementById('answerInput').placeholder = '输入日语假名';
                 updateProgress();
-                scrollToResult(); // 🔧 PC 端也自动滚动到结果区
+                scrollToResult();
             }
         }
     };

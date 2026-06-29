@@ -72,7 +72,7 @@
 </head>
 <body>
 <button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
-<h1>📗 日语学习 · 完整修复</h1>
+<h1>📗 日语学习 · 完整功能修复</h1>
 <div class="tab-bar">
     <button class="tab-btn active" onclick="showPage('practice')">练习</button>
     <button class="tab-btn" onclick="showPage('wrong')">错题</button>
@@ -698,6 +698,11 @@
     };
     window.removeCurrentFromWrong = function() { /* 省略 */ };
     window.keepInWrong = () => document.getElementById('wrongRemoveOption').style.display='none';
+
+    // ★★★ 恢复输入同步预览 ★★★
+    document.getElementById('answerInput').addEventListener('input', function() {
+        document.getElementById('previewText').innerText = this.value;
+    });
 
     document.getElementById('answerInput').addEventListener('keydown', e => {
         if (e.key === 'Enter') {

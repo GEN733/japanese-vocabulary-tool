@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>日语学习工具 · 单词+语法整合版</title>
+    <title>日语学习工具 · 单词+语法整合版（压缩同步）</title>
+    <!-- 引入 pako 压缩库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
     <style>
         * { box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
-        body { background: #f4f7fb; margin: 0; padding: 12px; max-width: 800px; margin: 0 auto; position: relative; overscroll-behavior: none; -webkit-overflow-scrolling: touch; }
+        body { background: #f4f7fb; margin: 0; padding: 12px; max-width: 800px; margin: 0 auto; position: relative; overscroll-behavior: none; }
         h1 { font-size: 1.7rem; margin: 0 0 10px; color: #1e3c5c; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .tab-bar { display: flex; flex-wrap: wrap; gap: 5px; background: white; border-radius: 40px; padding: 6px; margin-bottom: 18px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); position: sticky; top: 10px; z-index: 10; }
         .tab-btn { flex: 1 0 auto; background: none; border: none; padding: 10px 8px; font-size: 0.95rem; border-radius: 30px; color: #4a5f73; font-weight: 500; transition: 0.2s; cursor: pointer; }
@@ -228,7 +230,7 @@
 
 <!-- 同步页面 -->
 <div id="sync" class="page">
-    <h3>☁️ GitHub 同步</h3>
+    <h3>☁️ GitHub 同步 (压缩传输)</h3>
     <div class="sync-step"><h4>1. 配置</h4><input type="text" id="githubUser" placeholder="用户名"><input type="password" id="githubToken" placeholder="Token"><button onclick="saveGithubConfig()">保存</button><span id="configStatus"></span></div>
     <div class="sync-step"><h4>2. Gist ID</h4><div class="flex-row"><input type="text" id="gistIdInput" style="flex:3;"><button onclick="fetchGistIdFromList()" style="flex:1;">选择Gist</button></div><button onclick="createNewGist()" class="warning" style="margin-top:10px;">创建新Gist</button></div>
     <div class="sync-step"><h4>3. 同步</h4><div class="flex-row"><button onclick="uploadToGithub()" class="primary" style="flex:1;">⬆️ 上传</button><button onclick="downloadFromGithub()" class="primary" style="flex:1;">⬇️ 下载</button></div><div id="syncMessage" style="margin-top:15px;"></div></div>
@@ -496,7 +498,7 @@
         showPage('practice'); startPractice();
     };
 
-    // 练习核心（随机打乱语法题顺序）
+    // 练习核心
     window.updatePracticeCategory = function() {
         practiceCategory = document.getElementById('practiceCategory').value;
         document.getElementById('grammarDirectionRow').style.display = practiceCategory==='grammar'?'flex':'none';
@@ -563,7 +565,6 @@
                     groupedQuestions.push({ type: 'multi', japanese: japanese, meanings: items, direction: 'jp2cn' });
                 }
             });
-            // 随机打乱分组题目
             for (let i = groupedQuestions.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [groupedQuestions[i], groupedQuestions[j]] = [groupedQuestions[j], groupedQuestions[i]];
@@ -911,31 +912,109 @@
     window.deleteWord = (id) => { if(!confirm('删除？')) return; allVocabularies=allVocabularies.filter(v=>v.id!=id); [unitWrong,summaryWrong,verbWrong,grammarUnitWrong,grammarSummaryWrong].forEach(arr=>{ for(let i=arr.length-1;i>=0;i--) if(!allVocabularies.some(v=>v.chinese===arr[i].chinese&&v.japanese===arr[i].japanese)) arr.splice(i,1); }); saveAll(); clearSearch(); renderBookLists(); };
     window.importWords = function() {
         const unitId = document.getElementById('importUnit').value; if(!unitId){alert('选单元');return;}
-        const unit = allDecks.find(d=>d.id==unitId), book = allDecks.find(b=>b.id==unit.parentId);
         const text = document.getElementById('importText').value.trim(); if(!text) return;
         const lines = text.split('\n'); let added=0; const cat = document.getElementById('importCategory').value;
         lines.forEach(line=>{
             const parts = line.trim().split(/\s+/);
             if(cat==='word' && parts.length>=2) {
                 const [ch,ja,wt='',pt='',...rest]=parts; const ex=rest.join(' ');
-                if(!allVocabularies.some(v=>v.chinese===ch&&v.japanese===ja)){ allVocabularies.push({id:Date.now()+Math.random(),chinese:ch,japanese:ja,deckId:unitId,book:book.name,unit:unit.name,category:'word',wordType:wt,particle:pt,example:ex}); added++; }
+                if(!allVocabularies.some(v=>v.chinese===ch&&v.japanese===ja)){ allVocabularies.push({id:Date.now()+Math.random(),chinese:ch,japanese:ja,deckId:unitId,category:'word',wordType:wt,particle:pt,example:ex}); added++; }
             } else if(cat==='grammar' && parts.length>=2) {
                 const [ch,ja,ex='',exCn=''] = parts;
-                if(!allVocabularies.some(v=>v.chinese===ch&&v.japanese===ja)){ allVocabularies.push({id:Date.now()+Math.random(),chinese:ch,japanese:ja,deckId:unitId,book:book.name,unit:unit.name,category:'grammar',wordType:'语法',particle:'',example:ex,exampleCn:exCn}); added++; }
+                if(!allVocabularies.some(v=>v.chinese===ch&&v.japanese===ja)){ allVocabularies.push({id:Date.now()+Math.random(),chinese:ch,japanese:ja,deckId:unitId,category:'grammar',wordType:'语法',particle:'',example:ex,exampleCn:exCn}); added++; }
             }
         });
         saveAll(); renderBookLists(); alert(`添加 ${added} 条`);
     };
 
-    // GitHub 同步
+    // ===== GitHub 同步（压缩传输）=====
     function fillGithubConfigToUI(){ document.getElementById('githubUser').value=githubConfig.username||''; document.getElementById('githubToken').value=githubConfig.token||''; document.getElementById('gistIdInput').value=githubConfig.gistId||''; }
     window.saveGithubConfig=()=>{ githubConfig.username=document.getElementById('githubUser').value.trim(); githubConfig.token=document.getElementById('githubToken').value.trim(); githubConfig.gistId=document.getElementById('gistIdInput').value.trim(); localStorage.setItem('jp_github',JSON.stringify(githubConfig)); document.getElementById('configStatus').innerHTML='✅ 已保存'; setTimeout(()=>document.getElementById('configStatus').innerHTML='',2000); };
+
     async function githubRequest(url,opt={}){ opt.headers={...opt.headers,Authorization:`token ${githubConfig.token}`,Accept:'application/vnd.github.v3+json'}; const r=await fetch(url,opt); if(!r.ok){const e=await r.json().catch(()=>({message:r.statusText})); throw new Error(e.message||`HTTP ${r.status}`);} return r.json(); }
-    window.createNewGist=async()=>{ if(!githubConfig.username||!githubConfig.token){alert('保存配置');return;} try{const c=JSON.stringify({allDecks,allVocabularies,unitWrong,summaryWrong,verbWrong,grammarUnitWrong,grammarSummaryWrong,settings,uploadHistory},null,2); const d=await githubRequest('https://api.github.com/gists',{method:'POST',body:JSON.stringify({description:'日语备份',public:false,files:{'japanese_words_backup.json':{content:c}}})}); githubConfig.gistId=d.id; document.getElementById('gistIdInput').value=d.id; saveGithubConfig();}catch(e){alert(e.message);} };
-    window.fetchGistIdFromList=async()=>{ if(!githubConfig.token){alert('保存token');return;} try{const g=await githubRequest('https://api.github.com/gists'); const c=g.filter(x=>x.files['japanese_words_backup.json']); if(!c.length){alert('无备份');return;} let l=''; c.forEach((x,i)=>l+=`${i+1}: ${x.id}\n`); const i=prompt(l); if(i){const ch=c[parseInt(i)-1]; if(ch){githubConfig.gistId=ch.id; document.getElementById('gistIdInput').value=ch.id; saveGithubConfig();}} }catch(e){alert(e.message);} };
-    window.uploadToGithub=async()=>{ if(!githubConfig.gistId||!githubConfig.token){alert('配置缺失');return;} try{const c=JSON.stringify({allDecks,allVocabularies,unitWrong,summaryWrong,verbWrong,grammarUnitWrong,grammarSummaryWrong,settings,uploadHistory},null,2); await githubRequest(`https://api.github.com/gists/${githubConfig.gistId}`,{method:'PATCH',body:JSON.stringify({files:{'japanese_words_backup.json':{content:c}}})}); alert('上传成功');}catch(e){alert(e.message);} };
-    window.downloadFromGithub=async()=>{ if(!githubConfig.gistId){alert('填写ID');return;} try{const g=await githubRequest(`https://api.github.com/gists/${githubConfig.gistId}`); const f=g.files['japanese_words_backup.json']; if(!f) throw new Error('无文件'); const d=JSON.parse(f.content); if(!confirm('覆盖？')) return; allDecks=d.allDecks||[]; allVocabularies=d.allVocabularies||[]; unitWrong=d.unitWrong||d.wrongWords||[]; summaryWrong=d.summaryWrong||[]; verbWrong=d.verbWrong||[]; grammarUnitWrong=d.grammarUnitWrong||[]; grammarSummaryWrong=d.grammarSummaryWrong||[]; settings=d.settings||{practiceCount:30}; uploadHistory=d.uploadHistory||[]; saveAll(); renderBookLists(); }catch(e){alert(e.message);} };
-    window.exportBackup=()=>{ const d={allDecks,allVocabularies,unitWrong,summaryWrong,verbWrong,grammarUnitWrong,grammarSummaryWrong,settings,uploadHistory}; const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`日语备份_${new Date().toISOString().slice(0,10)}.json`; a.click(); };
+
+    function packData() {
+        const jsonStr = JSON.stringify({ allDecks, allVocabularies, unitWrong, summaryWrong, verbWrong, grammarUnitWrong, grammarSummaryWrong, settings, uploadHistory });
+        const compressed = pako.deflate(jsonStr);
+        return btoa(String.fromCharCode.apply(null, compressed));
+    }
+    function unpackData(b64) {
+        const binaryStr = atob(b64);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) { bytes[i] = binaryStr.charCodeAt(i); }
+        const jsonStr = pako.inflate(bytes, { to: 'string' });
+        return JSON.parse(jsonStr);
+    }
+
+    window.createNewGist = async () => {
+        if (!githubConfig.username || !githubConfig.token) { alert('保存配置'); return; }
+        try {
+            const packed = packData();
+            const data = await githubRequest('https://api.github.com/gists', {
+                method: 'POST',
+                body: JSON.stringify({ description: '日语备份(压缩)', public: false, files: { 'japanese_words_backup.json': { content: packed } } })
+            });
+            githubConfig.gistId = data.id;
+            document.getElementById('gistIdInput').value = data.id;
+            saveGithubConfig();
+            alert('✅ 创建成功');
+        } catch (e) { alert('创建失败: ' + e.message); }
+    };
+
+    window.uploadToGithub = async () => {
+        if (!githubConfig.gistId || !githubConfig.token) { alert('配置缺失'); return; }
+        try {
+            const packed = packData();
+            await githubRequest(`https://api.github.com/gists/${githubConfig.gistId}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ files: { 'japanese_words_backup.json': { content: packed } } })
+            });
+            alert('✅ 上传成功');
+        } catch (e) { alert('上传失败: ' + e.message); }
+    };
+
+    window.downloadFromGithub = async () => {
+        if (!githubConfig.gistId) { alert('填写ID'); return; }
+        try {
+            const gist = await githubRequest(`https://api.github.com/gists/${githubConfig.gistId}`);
+            const file = gist.files['japanese_words_backup.json'];
+            if (!file) throw new Error('无文件');
+            const data = unpackData(file.content);
+            if (!confirm('覆盖？')) return;
+            allDecks = data.allDecks || [];
+            allVocabularies = data.allVocabularies || [];
+            unitWrong = data.unitWrong || [];
+            summaryWrong = data.summaryWrong || [];
+            verbWrong = data.verbWrong || [];
+            grammarUnitWrong = data.grammarUnitWrong || [];
+            grammarSummaryWrong = data.grammarSummaryWrong || [];
+            settings = data.settings || { practiceCount: 30 };
+            uploadHistory = data.uploadHistory || [];
+            saveAll();
+            renderBookLists();
+            alert('✅ 下载成功');
+        } catch (e) { alert('下载失败: ' + e.message); }
+    };
+
+    window.fetchGistIdFromList = async () => {
+        if (!githubConfig.token) { alert('保存token'); return; }
+        try {
+            const gists = await githubRequest('https://api.github.com/gists');
+            const candidates = gists.filter(g => g.files['japanese_words_backup.json']);
+            if (!candidates.length) { alert('无备份'); return; }
+            let list = ''; candidates.forEach((g, i) => list += `${i+1}: ${g.id}\n`);
+            const idx = prompt(list);
+            if (idx) { const chosen = candidates[parseInt(idx)-1]; if (chosen) { githubConfig.gistId = chosen.id; document.getElementById('gistIdInput').value = chosen.id; saveGithubConfig(); } }
+        } catch (e) { alert(e.message); }
+    };
+
+    window.exportBackup = () => {
+        const data = { allDecks, allVocabularies, unitWrong, summaryWrong, verbWrong, grammarUnitWrong, grammarSummaryWrong, settings, uploadHistory };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = `日语备份_${new Date().toISOString().slice(0,10)}.json`; a.click();
+    };
+
     window.importBackup = function() {
         const file = document.getElementById('importFile').files[0];
         if (!file) return;
@@ -943,15 +1022,15 @@
         reader.onload = (e) => {
             try {
                 const data = JSON.parse(e.target.result);
-                if (data.allDecks) { allDecks = data.allDecks.map(d => { if (d.type === 'book' && !d.category) d.category = 'word'; return d; }); }
-                if (data.allVocabularies) { allVocabularies = data.allVocabularies.map(w => { if (!w.id) w.id = Date.now() + Math.random(); if (!w.category) w.category = (w.wordType === '语法' ? 'grammar' : 'word'); if (!w.exampleCn) w.exampleCn = ''; if (!w.wordType) w.wordType = ''; if (!w.particle) w.particle = ''; if (!w.example) w.example = ''; return w; }); }
-                unitWrong = data.unitWrong || data.unitWrongWords || [];
-                summaryWrong = data.summaryWrong || data.summaryWrongWords || [];
-                verbWrong = data.verbWrong || data.verbWrongWords || [];
+                if (data.allDecks) allDecks = data.allDecks;
+                if (data.allVocabularies) allVocabularies = data.allVocabularies;
+                unitWrong = data.unitWrong || [];
+                summaryWrong = data.summaryWrong || [];
+                verbWrong = data.verbWrong || [];
                 grammarUnitWrong = data.grammarUnitWrong || [];
                 grammarSummaryWrong = data.grammarSummaryWrong || [];
-                if (data.settings) settings = data.settings;
-                if (data.uploadHistory) uploadHistory = data.uploadHistory;
+                settings = data.settings || { practiceCount: 30 };
+                uploadHistory = data.uploadHistory || [];
                 saveAll();
                 alert('导入完成');
                 renderBookLists();
@@ -961,9 +1040,26 @@
         };
         reader.readAsText(file);
     };
-    window.resetAllData=()=>{ if(confirm('删除所有？')){ allDecks=[]; allVocabularies=[]; unitWrong=[]; summaryWrong=[]; verbWrong=[]; grammarUnitWrong=[]; grammarSummaryWrong=[]; settings={practiceCount:30}; uploadHistory=[]; saveAll(); renderBookLists(); renderWrongList(); } };
-    window.changePracticeCount=()=>{ const s=document.getElementById('practiceCountSelect'); if(s.value==='custom') document.getElementById('customCountRow').style.display='flex'; else{ settings.practiceCount=parseInt(s.value); saveAll(); document.getElementById('customCountRow').style.display='none'; } };
-    window.applyCustomCount=()=>{ const v=parseInt(document.getElementById('customCountInput').value); if(v>0){ settings.practiceCount=v; saveAll(); document.getElementById('customCountRow').style.display='none'; } };
+
+    window.resetAllData = () => {
+        if (confirm('⚠️ 删除所有数据？')) {
+            allDecks = []; allVocabularies = [];
+            unitWrong = []; summaryWrong = []; verbWrong = [];
+            grammarUnitWrong = []; grammarSummaryWrong = [];
+            settings = { practiceCount: 30 }; uploadHistory = [];
+            saveAll();
+        }
+    };
+
+    window.changePracticeCount = () => {
+        const s = document.getElementById('practiceCountSelect');
+        if (s.value === 'custom') document.getElementById('customCountRow').style.display = 'flex';
+        else { settings.practiceCount = parseInt(s.value); saveAll(); document.getElementById('customCountRow').style.display = 'none'; }
+    };
+    window.applyCustomCount = () => {
+        const v = parseInt(document.getElementById('customCountInput').value);
+        if (v > 0) { settings.practiceCount = v; saveAll(); document.getElementById('customCountRow').style.display = 'none'; }
+    };
 
     // 启动
     loadFromStorage();

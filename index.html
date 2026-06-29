@@ -267,6 +267,7 @@
         return verbWrong;
     }
 
+    // 存储
     function loadFromStorage() {
         try {
             allDecks = JSON.parse(localStorage.getItem('jp_decks')||'[]');
@@ -318,6 +319,7 @@
         if(document.getElementById('library')) renderBookLists();
     }
 
+    // 数据修复按钮
     window.fixDataCategories = function() {
         let count = 0;
         allVocabularies.forEach(w => {
@@ -387,6 +389,7 @@
         if(pid==='sync') fillGithubConfigToUI();
     };
 
+    // 题库渲染
     function renderBookLists() {
         const wordBooks = allDecks.filter(d=>d.type==='book' && d.category==='word');
         const grammarBooks = allDecks.filter(d=>d.type==='book' && d.category==='grammar');
@@ -444,6 +447,7 @@
         list.classList.add('open'); icon.classList.add('open');
     };
 
+    // 搜索
     window.searchWords = function() {
         const kw = document.getElementById('searchWordInput').value.trim().toLowerCase();
         const cat = document.getElementById('searchCategory').value;
@@ -472,7 +476,7 @@
         html += '</table>'; cont.innerHTML = html;
     }
 
-    // 错题相关
+    // 错题
     window.switchWrongCategory = function() {
         wrongCategory = document.getElementById('wrongCategory').value;
         document.getElementById('wordWrongTabs').style.display = wrongCategory==='word'?'block':'none';
@@ -521,6 +525,7 @@
         fillAllSelects();
         updateModeUI();
     };
+
     window.startPractice = function() {
         const mode = document.getElementById('practiceMode').value;
         isGrammarPractice = (practiceCategory === 'grammar');
@@ -578,9 +583,12 @@
         currentIndex = 0;
         stats = { total: practiceWords.length, correct: 0, wrong: 0 };
         answerState = 'initial';
-        isVerbMode = isVerbMode;
         showQuestion();
     };
+
+    function scrollToElement(el) { if(el) setTimeout(()=> el.scrollIntoView({behavior:'smooth',block:'center'}), 100); }
+    function scrollToQuestion() { scrollToElement(document.getElementById('questionWord')); }
+    function scrollToResult() { scrollToElement(document.getElementById('resultMessage')); }
 
     function showQuestion() {
         if (!practiceWords.length || currentIndex >= practiceWords.length) {
@@ -607,6 +615,8 @@
         currentKanaCorrect = false;
         updateProgress();
         document.getElementById('answerInput').focus();
+        // 移动端自动滚到题目
+        if (window.innerWidth <= 768) scrollToQuestion();
     }
 
     function updateProgress() {
@@ -631,9 +641,10 @@
             document.getElementById('resultMessage').className = correct ? 'result-badge correct' : 'result-badge wrong';
             document.getElementById('resultMessage').innerText = correct ? '✓ 正确' : `✗ 错误 正确答案: ${question.direction==='cn2jp'?word.japanese:word.chinese}`;
             if (word.example) { document.getElementById('exampleCard').innerHTML = `📖 ${word.example} ${word.exampleCn||''}`; document.getElementById('exampleCard').style.display = 'block'; }
-            if (correct) stats.correct++; else stats.wrong++;
+            if (correct) stats.correct++; else { stats.wrong++; addToWrong(word); }
             answerState = 'completed';
             updateProgress();
+            if (window.innerWidth <= 768) scrollToResult();
         } else {
             if (answerState === 'initial') {
                 const kanaOk = (ans === word.japanese);
@@ -658,6 +669,7 @@
                     }
                     answerState = 'completed';
                     updateProgress();
+                    if (window.innerWidth <= 768) scrollToResult();
                 }
             } else if (answerState === 'waitingParticle') {
                 const correctParticle = word.particle || '';
@@ -678,6 +690,7 @@
                 answerState = 'completed';
                 document.getElementById('answerInput').placeholder = '输入日语假名';
                 updateProgress();
+                if (window.innerWidth <= 768) scrollToResult();
             }
         }
     };
@@ -699,11 +712,12 @@
     window.removeCurrentFromWrong = function() { /* 省略 */ };
     window.keepInWrong = () => document.getElementById('wrongRemoveOption').style.display='none';
 
-    // ★★★ 恢复输入同步预览 ★★★
+    // 输入同步预览
     document.getElementById('answerInput').addEventListener('input', function() {
         document.getElementById('previewText').innerText = this.value;
     });
 
+    // 回车操作
     document.getElementById('answerInput').addEventListener('keydown', e => {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -720,6 +734,7 @@
         else if(mode==='review'||mode==='verbJudge'){ div.style.display='block'; bookRow.style.display='block'; renderBookMultiSelect(); }
     };
 
+    // 书本/单元/单词操作
     window.editDeck = (id) => { const d=allDecks.find(x=>x.id==id); if(!d) return; const n=prompt('名称',d.name); if(n){d.name=n.trim(); saveAll(); renderBookLists();} };
     window.deleteDeck = (id) => { if(!confirm('确定删除？')) return; const d=allDecks.find(x=>x.id==id); if(d.type==='book'){ const uids=allDecks.filter(u=>u.parentId==id).map(u=>u.id); allVocabularies=allVocabularies.filter(v=>!uids.includes(v.deckId)); allDecks=allDecks.filter(x=>!(x.parentId==id||x.id==id)); } else { allVocabularies=allVocabularies.filter(v=>v.deckId!=id); allDecks=allDecks.filter(x=>x.id!=id); } saveAll(); renderBookLists(); };
     window.createNewBook = function(category) { const name = prompt(`输入${category==='word'?'单词':'语法'}书本名称`); if(!name) return; allDecks.push({ id: Date.now()+Math.random(), name: name.trim(), type: 'book', category: category }); saveAll(); renderBookLists(); };

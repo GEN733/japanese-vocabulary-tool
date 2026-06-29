@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>日语学习工具 · 语法汇总修复</title>
+    <title>日语学习工具 · 完整功能修复</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
     <style>
         * { box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
@@ -72,7 +72,7 @@
 </head>
 <body>
 <button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
-<h1>📗 日语学习 · 语法汇总修复</h1>
+<h1>📗 日语学习 · 完整修复</h1>
 <div class="tab-bar">
     <button class="tab-btn active" onclick="showPage('practice')">练习</button>
     <button class="tab-btn" onclick="showPage('wrong')">错题</button>
@@ -80,7 +80,7 @@
     <button class="tab-btn" onclick="showPage('sync')">同步</button>
 </div>
 
-<!-- 练习页面（完整） -->
+<!-- 练习页面 -->
 <div id="practice" class="page active">
     <div class="flex-row" style="margin-bottom:10px;">
         <label style="font-weight:600;">练习类型：</label>
@@ -149,7 +149,7 @@
     </div>
 </div>
 
-<!-- 错题页面（完整） -->
+<!-- 错题页面 -->
 <div id="wrong" class="page">
     <h3>❌ 错题集 <span id="wrongCount">(0)</span></h3>
     <div class="flex-row" style="margin-bottom:10px;">
@@ -179,7 +179,7 @@
     </div>
 </div>
 
-<!-- 题库页面（完整） -->
+<!-- 题库页面 -->
 <div id="library" class="page">
     <h3>🔍 搜索</h3>
     <div class="flex-row" style="margin-bottom:10px;">
@@ -223,16 +223,15 @@
     <button onclick="importWords()">导入</button>
 </div>
 
-<!-- 同步页面（含修复按钮） -->
+<!-- 同步页面 -->
 <div id="sync" class="page">
     <h3>☁️ GitHub 同步 (压缩传输)</h3>
     <div class="sync-step"><h4>1. 配置</h4><input type="text" id="githubUser" placeholder="用户名"><input type="password" id="githubToken" placeholder="Token"><button onclick="saveGithubConfig()">保存</button><span id="configStatus"></span></div>
     <div class="sync-step"><h4>2. Gist ID</h4><div class="flex-row"><input type="text" id="gistIdInput" style="flex:3;"><button onclick="fetchGistIdFromList()" style="flex:1;">选择Gist</button></div><button onclick="createNewGist()" class="warning" style="margin-top:10px;">创建新Gist</button></div>
     <div class="sync-step"><h4>3. 同步</h4><div class="flex-row"><button onclick="uploadToGithub()" class="primary" style="flex:1;">⬆️ 上传</button><button onclick="downloadFromGithub()" class="primary" style="flex:1;">⬇️ 下载</button></div><div id="syncMessage" style="margin-top:15px;"></div></div>
     <hr>
-    <h4>🔧 数据修复工具</h4>
+    <h4>🔧 数据修复</h4>
     <button class="warning" onclick="fixDataCategories()">🔧 自动修正单词类别（根据所属书本）</button>
-    <div class="tiny-note">如果语法书本下的单词类别不对，点此自动根据书本类型修正。</div>
     <hr>
     <h4>💾 本地备份</h4>
     <button onclick="exportBackup()">📤 导出备份文件</button>
@@ -251,15 +250,13 @@
     let currentWrongTab = 'unit';
     let wrongCategory = 'word';
     let practiceCategory = 'word';
-
     let practiceWords = [], currentIndex = 0, stats = { total:0, correct:0, wrong:0 };
     let answerState = 'initial', currentKanaCorrect = false, isVerbMode = false;
     let grammarDirectionMode = 'random', isGrammarPractice = false, currentQuestionDirection = 'cn2jp';
-    let isMultiMeaning = false, multiMeanings = [], multiMeaningIndex = 0, multiUserAnswers = [];
     let githubConfig = { username: '', token: '', gistId: '' };
 
     function isVerb(word) {
-        if (word.wordType && (word.wordType.includes('自动') || word.wordType.includes('他动') || word.wordType.includes('自他'))) return true;
+        if (word.wordType && (word.wordType.includes('自动')||word.wordType.includes('他动')||word.wordType.includes('自他'))) return true;
         if (word.particle && word.particle.trim() !== '') return true;
         return false;
     }
@@ -270,7 +267,6 @@
         return verbWrong;
     }
 
-    // 存储（自动修正单词类别）
     function loadFromStorage() {
         try {
             allDecks = JSON.parse(localStorage.getItem('jp_decks')||'[]');
@@ -284,27 +280,20 @@
             uploadHistory = JSON.parse(localStorage.getItem('jp_history')||'[]');
             const gh = localStorage.getItem('jp_github'); if(gh) githubConfig = JSON.parse(gh);
         } catch(e){}
-        // 修正书本分类
         allDecks = allDecks.map(d => { if(d.type==='book' && !d.category) d.category = 'word'; return d; });
-        // 修正单词分类：根据所属单元 -> 书本的 category 自动设置
         allVocabularies = allVocabularies.map(w => {
             if(!w.id) w.id = Date.now()+Math.random();
             if(!w.exampleCn) w.exampleCn = '';
             if(!w.wordType) w.wordType = '';
             if(!w.particle) w.particle = '';
             if(!w.example) w.example = '';
-            // 自动推断 category
-            if (!w.category || (w.category !== 'word' && w.category !== 'grammar')) {
+            if (!w.category) {
                 const unit = allDecks.find(d => d.id == w.deckId);
                 if (unit && unit.type === 'unit') {
                     const book = allDecks.find(b => b.id == unit.parentId);
-                    if (book) {
-                        w.category = book.category || 'word';
-                    } else {
-                        w.category = 'word';
-                    }
+                    w.category = book ? book.category : 'word';
                 } else {
-                    w.category = w.wordType === '语法' ? 'grammar' : 'word';
+                    w.category = 'word';
                 }
             }
             return w;
@@ -329,7 +318,6 @@
         if(document.getElementById('library')) renderBookLists();
     }
 
-    // 数据修复按钮：强制根据书本类型修正单词类别
     window.fixDataCategories = function() {
         let count = 0;
         allVocabularies.forEach(w => {
@@ -364,12 +352,12 @@
     function renderBookMultiSelect() {
         const c = document.getElementById('bookMultiSelect'); if(!c) return;
         const books = practiceCategory === 'grammar' ? allDecks.filter(d=>d.type==='book'&&d.category==='grammar') : allDecks.filter(d=>d.type==='book'&&d.category==='word');
-        c.innerHTML = books.length===0 ? '<p>暂无书本，请先在题库创建书本。</p>' : '<div class="checkbox-group">'+books.map(b=>`<label><input type="checkbox" value="${b.id}" class="book-check"> ${b.name}</label>`).join('')+'</div>';
+        c.innerHTML = books.length===0 ? '<p>暂无书本</p>' : '<div class="checkbox-group">'+books.map(b=>`<label><input type="checkbox" value="${b.id}" class="book-check"> ${b.name}</label>`).join('')+'</div>';
     }
     window.loadUnitsForBook = function() {
         const bookId = document.getElementById('bookSelect')?.value;
         const sel = document.getElementById('unitSelect'); if(!sel) return;
-        const units = allDecks.filter(d=>d.type==='unit'&&String(d.parentId)===String(bookId));
+        const units = allDecks.filter(d=>d.type==='unit'&&d.parentId==bookId);
         sel.innerHTML = '<option value="">选择单元</option>'+units.map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
     };
     window.updateImportCategory = function() {
@@ -384,7 +372,7 @@
     }
     window.updateImportUnits = function() {
         const bookId = document.getElementById('importBook').value;
-        const units = allDecks.filter(d=>d.type==='unit'&&String(d.parentId)===String(bookId));
+        const units = allDecks.filter(d=>d.type==='unit'&&d.parentId==bookId);
         document.getElementById('importUnit').innerHTML = '<option value="">选择目标单元</option>'+units.map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
     };
     document.getElementById('importBook').addEventListener('change', updateImportUnits);
@@ -410,13 +398,13 @@
         if(!books.length) { container.innerHTML = '<p>暂无书本</p>'; return; }
         let html = '';
         books.forEach(b => {
-            const units = allDecks.filter(d=>d.type==='unit'&&String(d.parentId)===String(b.id));
-            const count = allVocabularies.filter(v=>v.category===type && units.some(u=>String(u.id)===String(v.deckId))).length;
+            const units = allDecks.filter(d=>d.type==='unit'&&d.parentId==b.id);
+            const count = allVocabularies.filter(v=>v.category===type && units.some(u=>u.id==v.deckId)).length;
             html += `<div class="deck-card" data-book-id="${b.id}" onclick="toggleUnitList('${b.id}')">
                 <div class="deck-title"><span>📘 ${b.name} <span class="deck-meta">(单元 ${units.length} · ${count})</span></span><span class="collapse-icon" id="icon-${b.id}">▶</span></div>
                 <div class="unit-list" id="units-${b.id}">
                     ${units.map(u => {
-                        const wc = allVocabularies.filter(v=>String(v.deckId)===String(u.id) && v.category===type).length;
+                        const wc = allVocabularies.filter(v=>v.deckId==u.id && v.category===type).length;
                         return `<div class="unit-card" onclick="event.stopPropagation();toggleWordList('${u.id}','${type}')">
                             <div class="unit-title"><span>📖 ${u.name} (${wc}) <span class="collapse-icon" id="word-icon-${u.id}">▶</span></span>
                             <span><button class="btn-sm" onclick="event.stopPropagation();editDeck('${u.id}')">编辑</button><button class="btn-sm danger" onclick="event.stopPropagation();deleteDeck('${u.id}')">删除</button></span></div>
@@ -437,7 +425,7 @@
         const list = document.getElementById('words-'+unitId), icon = document.getElementById('word-icon-'+unitId);
         if(!list) return;
         if(list.classList.contains('open')) { list.classList.remove('open'); icon.classList.remove('open'); return; }
-        const words = allVocabularies.filter(v=>String(v.deckId)===String(unitId) && v.category===type);
+        const words = allVocabularies.filter(v=>v.deckId==unitId && v.category===type);
         let html = '<table class="word-table" style="margin-top:8px;">';
         if(type==='word') {
             html += '<tr><th>中文</th><th>日文</th><th>词性</th><th>助词</th><th>短句</th><th>操作</th></tr>';
@@ -470,26 +458,57 @@
         if(cat==='word') {
             html += '<tr><th>中文</th><th>日文</th><th>词性</th><th>助词</th><th>短句</th><th>位置</th><th>操作</th></tr>';
             words.forEach(w=>{
-                const deck = allDecks.find(d=>String(d.id)===String(w.deckId));
+                const deck = allDecks.find(d=>d.id==w.deckId);
                 const wt = w.wordType?`<span class="type-badge${w.wordType.includes('他')?' 他':''}">${w.wordType}</span>`:'-';
                 html += `<tr><td>${w.chinese}</td><td>${w.japanese}</td><td>${wt}</td><td>${w.particle||'-'}</td><td>${w.example||'-'}</td><td>${deck?.name||'?'}</td><td><button class="btn-sm" onclick="editWord('${w.id}')">编辑</button><button class="btn-sm danger" onclick="deleteWord('${w.id}')">删</button></td></tr>`;
             });
         } else {
             html += '<tr><th>中文</th><th>日语语法</th><th>例句</th><th>翻译</th><th>位置</th><th>操作</th></tr>';
             words.forEach(w=>{
-                const deck = allDecks.find(d=>String(d.id)===String(w.deckId));
+                const deck = allDecks.find(d=>d.id==w.deckId);
                 html += `<tr><td>${w.chinese}</td><td>${w.japanese}</td><td>${w.example||'-'}</td><td>${w.exampleCn||'-'}</td><td>${deck?.name||'?'}</td><td><button class="btn-sm" onclick="editWord('${w.id}')">编辑</button><button class="btn-sm danger" onclick="deleteWord('${w.id}')">删</button></td></tr>`;
             });
         }
         html += '</table>'; cont.innerHTML = html;
     }
 
-    window.switchWrongCategory = function() { /* 省略，保留原样 */ };
+    // 错题相关
+    window.switchWrongCategory = function() {
+        wrongCategory = document.getElementById('wrongCategory').value;
+        document.getElementById('wordWrongTabs').style.display = wrongCategory==='word'?'block':'none';
+        document.getElementById('grammarWrongTabs').style.display = wrongCategory==='grammar'?'block':'none';
+        if(wrongCategory==='word') { currentWrongTab = 'unit'; }
+        else { currentWrongTab = 'grammarUnit'; }
+        updateUIStats(); renderWrongList();
+    };
     window.switchWrongTab = function(tab) { currentWrongTab = tab; updateUIStats(); renderWrongList(); };
-    function renderWrongList() { /* 省略，保留原样 */ }
-    window.clearAllWrong = function() { /* 省略 */ };
-    window.startPracticeFromWrong = function() { /* 省略 */ };
+    function renderWrongList() {
+        const cont = document.getElementById('wrongListContainer');
+        const list = getCurrentWrongList();
+        if(!list.length){ cont.innerHTML='<p>暂无错题</p>'; return; }
+        let html = '<table class="word-table"><tr><th>中文</th><th>日文/语法</th><th>错误次数</th><th>操作</th></tr>';
+        list.forEach((ww,idx)=>{
+            html += `<tr><td>${ww.chinese}</td><td>${ww.japanese}</td><td>${ww.wrongCount||1}</td><td><button class="btn-sm" onclick="removeWrongItem(${idx})">移除</button></td></tr>`;
+        });
+        html += '</table>'; cont.innerHTML = html;
+    }
+    window.removeWrongItem = function(idx) { getCurrentWrongList().splice(idx,1); saveAll(); renderWrongList(); };
+    window.clearAllWrong = function() { if(confirm('清空当前错题？')){ if(currentWrongTab==='unit') unitWrong=[]; else if(currentWrongTab==='summary') summaryWrong=[]; else if(currentWrongTab==='verb') verbWrong=[]; else if(currentWrongTab==='grammarUnit') grammarUnitWrong=[]; else grammarSummaryWrong=[]; saveAll(); renderWrongList(); } };
+    window.startPracticeFromWrong = function() {
+        if(wrongCategory==='grammar') {
+            document.getElementById('practiceCategory').value = 'grammar';
+            document.getElementById('practiceMode').value = currentWrongTab==='grammarUnit' ? 'wrong' : 'summaryWrong';
+        } else {
+            document.getElementById('practiceCategory').value = 'word';
+            if(currentWrongTab==='unit') document.getElementById('practiceMode').value = 'wrong';
+            else if(currentWrongTab==='summary') document.getElementById('practiceMode').value = 'summaryWrong';
+            else document.getElementById('practiceMode').value = 'verbWrong';
+        }
+        updatePracticeCategory();
+        showPage('practice'); startPractice();
+    };
 
+    // 练习核心
     window.updatePracticeCategory = function() {
         practiceCategory = document.getElementById('practiceCategory').value;
         document.getElementById('grammarDirectionRow').style.display = practiceCategory==='grammar'?'flex':'none';
@@ -502,7 +521,6 @@
         fillAllSelects();
         updateModeUI();
     };
-
     window.startPractice = function() {
         const mode = document.getElementById('practiceMode').value;
         isGrammarPractice = (practiceCategory === 'grammar');
@@ -511,26 +529,30 @@
         let candidates = [];
         const cat = isGrammarPractice ? 'grammar' : 'word';
 
-        if(mode==='wrong') { /* 省略 */ }
-        else if(mode==='summaryWrong') { /* 省略 */ }
-        else if(mode==='verbWrong') { /* 省略 */ }
-        else if(mode==='verbJudge') {
+        if(mode==='wrong') {
+            const list = isGrammarPractice ? grammarUnitWrong : unitWrong;
+            candidates = list.map(ww=>allVocabularies.find(v=>v.chinese===ww.chinese&&v.japanese===ww.japanese)).filter(Boolean);
+        } else if(mode==='summaryWrong') {
+            const list = isGrammarPractice ? grammarSummaryWrong : summaryWrong;
+            candidates = list.map(ww=>allVocabularies.find(v=>v.chinese===ww.chinese&&v.japanese===ww.japanese)).filter(Boolean);
+        } else if(mode==='verbWrong') {
+            candidates = verbWrong.map(ww=>allVocabularies.find(v=>v.chinese===ww.chinese&&v.japanese===ww.japanese)).filter(Boolean);
+        } else if(mode==='verbJudge') {
             const unitId = document.getElementById('unitSelect').value;
             if(unitId) candidates = allVocabularies.filter(v=>String(v.deckId)===String(unitId) && isVerb(v));
             else {
                 const checked = Array.from(document.querySelectorAll('.book-check:checked')).map(cb=>cb.value);
                 if(!checked.length){ alert('请选择单元或书本'); return; }
-                const unitIds = []; checked.forEach(bid=> allDecks.filter(d=>d.type==='unit'&&String(d.parentId)===String(bid)).forEach(u=>unitIds.push(u.id)));
-                candidates = allVocabularies.filter(v=>unitIds.map(String).includes(String(v.deckId)) && isVerb(v));
+                const unitIds = []; checked.forEach(bid=> allDecks.filter(d=>d.type==='unit'&&d.parentId==bid).forEach(u=>unitIds.push(u.id)));
+                candidates = allVocabularies.filter(v=>unitIds.includes(v.deckId) && isVerb(v));
             }
-        }
-        else if(mode==='all') { candidates = allVocabularies.filter(v=>v.category===cat); }
-        else if(mode==='unit') {
+        } else if(mode==='all') {
+            candidates = allVocabularies.filter(v=>v.category===cat);
+        } else if(mode==='unit') {
             const unitId = document.getElementById('unitSelect').value;
             if(!unitId){ alert('请选择单元'); return; }
             candidates = allVocabularies.filter(v=>String(v.deckId)===String(unitId)&&v.category===cat);
-        }
-        else if(mode==='review') {
+        } else if(mode==='review') {
             const checked = Array.from(document.querySelectorAll('.book-check:checked')).map(cb=>cb.value);
             if(!checked.length){ alert('请至少勾选一个书本'); return; }
             const unitIds = [];
@@ -556,7 +578,7 @@
         currentIndex = 0;
         stats = { total: practiceWords.length, correct: 0, wrong: 0 };
         answerState = 'initial';
-        isMultiMeaning = false;
+        isVerbMode = isVerbMode;
         showQuestion();
     };
 
@@ -565,7 +587,8 @@
             document.getElementById('questionWord').innerHTML = '无单词';
             return;
         }
-        const word = practiceWords[currentIndex].item;
+        const question = practiceWords[currentIndex];
+        const word = question.item;
         document.getElementById('exampleCard').style.display = 'none';
         document.getElementById('wrongRemoveOption').style.display = 'none';
         document.getElementById('resultMessage').innerHTML = '';
@@ -586,9 +609,104 @@
         document.getElementById('answerInput').focus();
     }
 
-    function updateProgress() { /* 简略 */ }
-    window.checkAnswer = function() { /* 保留原逻辑 */ };
-    window.nextWord = function() { /* 保留原逻辑 */ };
+    function updateProgress() {
+        const total = practiceWords.length;
+        const answered = stats.correct + stats.wrong;
+        document.getElementById('progressCurr').innerText = currentIndex + 1;
+        document.getElementById('progressTotal').innerText = total;
+        document.getElementById('totalAnswered').innerText = answered;
+        document.getElementById('correctRate').innerText = answered ? Math.round(stats.correct / answered * 100) : 0;
+        document.getElementById('progressFill').style.width = (total ? ((currentIndex + 1) / total * 100) : 0) + '%';
+    }
+
+    window.checkAnswer = function() {
+        const question = practiceWords[currentIndex];
+        if (!question) return;
+        const word = question.item;
+        const ans = document.getElementById('answerInput').value.trim();
+        if (!ans) return;
+
+        if (isGrammarPractice) {
+            const correct = (question.direction === 'cn2jp' ? ans === word.japanese : ans === word.chinese);
+            document.getElementById('resultMessage').className = correct ? 'result-badge correct' : 'result-badge wrong';
+            document.getElementById('resultMessage').innerText = correct ? '✓ 正确' : `✗ 错误 正确答案: ${question.direction==='cn2jp'?word.japanese:word.chinese}`;
+            if (word.example) { document.getElementById('exampleCard').innerHTML = `📖 ${word.example} ${word.exampleCn||''}`; document.getElementById('exampleCard').style.display = 'block'; }
+            if (correct) stats.correct++; else stats.wrong++;
+            answerState = 'completed';
+            updateProgress();
+        } else {
+            if (answerState === 'initial') {
+                const kanaOk = (ans === word.japanese);
+                currentKanaCorrect = kanaOk;
+                if (isVerbMode && isVerb(word)) {
+                    document.getElementById('previewText').innerText = kanaOk ? '✓ 假名正确，请输入助词' : '✗ 假名错误，仍需输入助词';
+                    if(word.example) { document.getElementById('exampleCard').innerHTML='📖 '+word.example.replace('___','<span>＿＿</span>'); document.getElementById('exampleCard').style.display='block'; }
+                    answerState = 'waitingParticle';
+                    document.getElementById('answerInput').value = '';
+                    document.getElementById('answerInput').placeholder = '输入助词（が/を/に）';
+                    document.getElementById('answerInput').focus();
+                } else {
+                    if(kanaOk) {
+                        stats.correct++;
+                        document.getElementById('resultMessage').className = 'result-badge correct';
+                        document.getElementById('resultMessage').innerText = '✓ 正确';
+                    } else {
+                        stats.wrong++;
+                        document.getElementById('resultMessage').className = 'result-badge wrong';
+                        document.getElementById('resultMessage').innerText = `✗ 错误 正确答案: ${word.japanese}`;
+                        addToWrong(word);
+                    }
+                    answerState = 'completed';
+                    updateProgress();
+                }
+            } else if (answerState === 'waitingParticle') {
+                const correctParticle = word.particle || '';
+                const particleOk = (ans === correctParticle);
+                if(currentKanaCorrect && particleOk) {
+                    stats.correct++;
+                    document.getElementById('resultMessage').className = 'result-badge correct';
+                    document.getElementById('resultMessage').innerText = `✓ 正确！「${word.japanese}」${word.wordType||''}（${correctParticle}）`;
+                } else {
+                    stats.wrong++;
+                    let msg = '✗ 错误';
+                    if(!currentKanaCorrect) msg += ` 假名: ${word.japanese}`;
+                    if(!particleOk) msg += ` 助词: ${ans} (应为 ${correctParticle||'无'})`;
+                    document.getElementById('resultMessage').className = 'result-badge wrong';
+                    document.getElementById('resultMessage').innerText = msg;
+                    addToWrong(word);
+                }
+                answerState = 'completed';
+                document.getElementById('answerInput').placeholder = '输入日语假名';
+                updateProgress();
+            }
+        }
+    };
+
+    function addToWrong(word) {
+        const list = isVerbMode ? verbWrong : (getCurrentWrongList());
+        const existing = list.find(w => w.chinese === word.chinese && w.japanese === word.japanese);
+        if (existing) { existing.wrongCount = (existing.wrongCount || 1) + 1; }
+        else { list.push({ chinese: word.chinese, japanese: word.japanese, wrongCount: 1 }); }
+        saveAll();
+    }
+
+    window.nextWord = function() {
+        if (answerState === 'waitingParticle') checkAnswer();
+        if (answerState !== 'completed') checkAnswer();
+        if (currentIndex + 1 < practiceWords.length) { currentIndex++; showQuestion(); }
+        else { alert(`练习完成！正确:${stats.correct} 错误:${stats.wrong}`); practiceWords=[]; showQuestion(); }
+    };
+    window.removeCurrentFromWrong = function() { /* 省略 */ };
+    window.keepInWrong = () => document.getElementById('wrongRemoveOption').style.display='none';
+
+    document.getElementById('answerInput').addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (answerState === 'completed') nextWord();
+            else checkAnswer();
+        }
+    });
+
     window.updateModeUI = function() {
         const mode = document.getElementById('practiceMode').value;
         const unitRow = document.getElementById('unitSelectRow'), bookRow = document.getElementById('bookMultiRow'), div = document.getElementById('bookUnitSelector');
@@ -600,10 +718,25 @@
     window.editDeck = (id) => { const d=allDecks.find(x=>x.id==id); if(!d) return; const n=prompt('名称',d.name); if(n){d.name=n.trim(); saveAll(); renderBookLists();} };
     window.deleteDeck = (id) => { if(!confirm('确定删除？')) return; const d=allDecks.find(x=>x.id==id); if(d.type==='book'){ const uids=allDecks.filter(u=>u.parentId==id).map(u=>u.id); allVocabularies=allVocabularies.filter(v=>!uids.includes(v.deckId)); allDecks=allDecks.filter(x=>!(x.parentId==id||x.id==id)); } else { allVocabularies=allVocabularies.filter(v=>v.deckId!=id); allDecks=allDecks.filter(x=>x.id!=id); } saveAll(); renderBookLists(); };
     window.createNewBook = function(category) { const name = prompt(`输入${category==='word'?'单词':'语法'}书本名称`); if(!name) return; allDecks.push({ id: Date.now()+Math.random(), name: name.trim(), type: 'book', category: category }); saveAll(); renderBookLists(); };
-    window.addNewUnit = function(type) { /* 略 */ };
-    window.editWord = function(id) { /* 略 */ };
+    window.addNewUnit = function(type) { const bookId = document.getElementById(type==='word'?'wordUnitBookSelect':'grammarUnitBookSelect').value; const name = document.getElementById(type==='word'?'wordUnitName':'grammarUnitName').value.trim(); if(!bookId||!name){ alert('请填写完整'); return; } allDecks.push({ id: Date.now()+Math.random(), name, type: 'unit', parentId: bookId }); saveAll(); renderBookLists(); };
+    window.editWord = function(id) { const w = allVocabularies.find(v=>v.id==id); if(!w) return; const fields = w.category==='grammar' ? [{k:'chinese',l:'中文'},{k:'japanese',l:'日语语法'},{k:'example',l:'例句'},{k:'exampleCn',l:'翻译'}] : [{k:'chinese',l:'中文'},{k:'japanese',l:'日语'},{k:'wordType',l:'词性'},{k:'particle',l:'助词'},{k:'example',l:'短句'}]; fields.forEach(f=>{ const v=prompt(f.l, w[f.k]||''); if(v!==null) w[f.k]=v.trim(); }); saveAll(); clearSearch(); renderBookLists(); };
     window.deleteWord = (id) => { if(!confirm('删除？')) return; allVocabularies=allVocabularies.filter(v=>v.id!=id); saveAll(); clearSearch(); renderBookLists(); };
-    window.importWords = function() { /* 略 */ };
+    window.importWords = function() {
+        const unitId = document.getElementById('importUnit').value; if(!unitId){alert('选单元');return;}
+        const text = document.getElementById('importText').value.trim(); if(!text) return;
+        const lines = text.split('\n'); let added=0; const cat = document.getElementById('importCategory').value;
+        lines.forEach(line=>{
+            const parts = line.trim().split(/\s+/);
+            if(cat==='word' && parts.length>=2) {
+                const [ch,ja,wt='',pt='',...rest]=parts; const ex=rest.join(' ');
+                if(!allVocabularies.some(v=>v.chinese===ch&&v.japanese===ja)){ allVocabularies.push({id:Date.now()+Math.random(),chinese:ch,japanese:ja,deckId:unitId,category:'word',wordType:wt,particle:pt,example:ex}); added++; }
+            } else if(cat==='grammar' && parts.length>=2) {
+                const [ch,ja,ex='',exCn=''] = parts;
+                if(!allVocabularies.some(v=>v.chinese===ch&&v.japanese===ja)){ allVocabularies.push({id:Date.now()+Math.random(),chinese:ch,japanese:ja,deckId:unitId,category:'grammar',wordType:'语法',particle:'',example:ex,exampleCn:exCn}); added++; }
+            }
+        });
+        saveAll(); renderBookLists(); alert(`添加 ${added} 条`);
+    };
 
     // GitHub 同步（压缩）
     function fillGithubConfigToUI(){ document.getElementById('githubUser').value=githubConfig.username||''; document.getElementById('githubToken').value=githubConfig.token||''; document.getElementById('gistIdInput').value=githubConfig.gistId||''; }
@@ -614,9 +747,9 @@
     window.createNewGist = async () => { if (!githubConfig.username || !githubConfig.token) { alert('保存配置'); return; } try { const packed = packData(); const data = await githubRequest('https://api.github.com/gists', { method: 'POST', body: JSON.stringify({ description: '日语备份(压缩)', public: false, files: { 'japanese_words_backup.json': { content: packed } } }) }); githubConfig.gistId = data.id; document.getElementById('gistIdInput').value = data.id; saveGithubConfig(); alert('✅ 创建成功'); } catch (e) { alert('创建失败: ' + e.message); } };
     window.uploadToGithub = async () => { if (!githubConfig.gistId || !githubConfig.token) { alert('配置缺失'); return; } try { const packed = packData(); await githubRequest(`https://api.github.com/gists/${githubConfig.gistId}`, { method: 'PATCH', body: JSON.stringify({ files: { 'japanese_words_backup.json': { content: packed } } }) }); alert('✅ 上传成功'); } catch (e) { alert('上传失败: ' + e.message); } };
     window.downloadFromGithub = async () => { if (!githubConfig.gistId) { alert('填写ID'); return; } try { const gist = await githubRequest(`https://api.github.com/gists/${githubConfig.gistId}`); const file = gist.files['japanese_words_backup.json']; if (!file) throw new Error('无文件'); const data = unpackData(file.content); if (!confirm('覆盖？')) return; allDecks = data.allDecks || []; allVocabularies = data.allVocabularies || []; unitWrong = data.unitWrong || []; summaryWrong = data.summaryWrong || []; verbWrong = data.verbWrong || []; grammarUnitWrong = data.grammarUnitWrong || []; grammarSummaryWrong = data.grammarSummaryWrong || []; settings = data.settings || { practiceCount: 30 }; uploadHistory = data.uploadHistory || []; saveAll(); renderBookLists(); alert('✅ 下载成功'); } catch (e) { alert('下载失败: ' + e.message); } };
-    window.fetchGistIdFromList = async () => { /* 略 */ };
+    window.fetchGistIdFromList = async () => { if (!githubConfig.token) { alert('保存token'); return; } try { const gists = await githubRequest('https://api.github.com/gists'); const candidates = gists.filter(g => g.files['japanese_words_backup.json']); if (!candidates.length) { alert('无备份'); return; } let list = ''; candidates.forEach((g, i) => list += `${i+1}: ${g.id}\n`); const idx = prompt(list); if (idx) { const chosen = candidates[parseInt(idx)-1]; if (chosen) { githubConfig.gistId = chosen.id; document.getElementById('gistIdInput').value = chosen.id; saveGithubConfig(); } } } catch (e) { alert(e.message); } };
     window.exportBackup = () => { const data = { allDecks, allVocabularies, unitWrong, summaryWrong, verbWrong, grammarUnitWrong, grammarSummaryWrong, settings, uploadHistory }; const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `日语备份_${new Date().toISOString().slice(0,10)}.json`; a.click(); };
-    window.importBackup = function() { /* 略 */ };
+    window.importBackup = function() { const file = document.getElementById('importFile').files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { try { const data = JSON.parse(e.target.result); if (data.allDecks) allDecks = data.allDecks; if (data.allVocabularies) allVocabularies = data.allVocabularies; unitWrong = data.unitWrong || []; summaryWrong = data.summaryWrong || []; verbWrong = data.verbWrong || []; grammarUnitWrong = data.grammarUnitWrong || []; grammarSummaryWrong = data.grammarSummaryWrong || []; settings = data.settings || { practiceCount: 30 }; uploadHistory = data.uploadHistory || []; saveAll(); alert('导入完成'); renderBookLists(); renderWrongList(); fillAllSelects(); } catch (ex) { alert('解析失败: ' + ex.message); } }; reader.readAsText(file); };
     window.resetAllData = () => { if (confirm('⚠️ 删除所有数据？')) { allDecks = []; allVocabularies = []; unitWrong = []; summaryWrong = []; verbWrong = []; grammarUnitWrong = []; grammarSummaryWrong = []; settings = { practiceCount: 30 }; uploadHistory = []; saveAll(); } };
     window.changePracticeCount = () => { const s = document.getElementById('practiceCountSelect'); if (s.value === 'custom') document.getElementById('customCountRow').style.display = 'flex'; else { settings.practiceCount = parseInt(s.value); saveAll(); document.getElementById('customCountRow').style.display = 'none'; } };
     window.applyCustomCount = () => { const v = parseInt(document.getElementById('customCountInput').value); if (v > 0) { settings.practiceCount = v; saveAll(); document.getElementById('customCountRow').style.display = 'none'; } };

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>日语学习工具 · 底栏不遮挡修复</title>
+    <title>日语学习工具 · 完整修复版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
     <style>
         * { box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
@@ -67,12 +67,13 @@
         .unit-title { font-size: 1rem; font-weight: 600; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
         .grammar-badge { background: #e8daef; color: #6a1b9a; padding: 2px 8px; border-radius: 20px; font-size: 0.8rem; }
         .create-unit-box { background: #f2f6fc; border-radius: 24px; padding: 16px; margin: 20px 0; }
-        .answer-record { font-size: 0.95rem; margin: 5px 0; padding: 5px; background: #f8f9fc; border-radius: 10px; }
+        .multi-meaning-hint { font-size: 0.95rem; color: #6a1b9a; margin-top: 5px; }
+        .answer-list { font-size: 1.1rem; background: #f8f9fc; border-radius: 20px; padding: 12px; margin: 10px 0; }
     </style>
 </head>
 <body>
 <button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
-<h1>📗 日语学习 · 底栏不遮挡</h1>
+<h1>📗 日语学习 · 完整修复</h1>
 <div class="tab-bar">
     <button class="tab-btn active" onclick="showPage('practice')">练习</button>
     <button class="tab-btn" onclick="showPage('wrong')">错题</button>
@@ -133,9 +134,11 @@
     </div>
     <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
     <div class="word-display" id="questionWord">请开始练习</div>
+    <div id="multiHint" class="multi-meaning-hint" style="display:none;"></div>
     <div class="answer-preview">答案：<span id="previewText"></span></div>
     <div id="exampleCard" style="display:none;" class="example-box"></div>
     <div id="resultMessage" class="result-badge"></div>
+    <div id="answerListArea" class="answer-list" style="display:none;"></div>
     <div id="wrongRemoveOption" style="display:none;text-align:center;margin:10px 0;">
         <button class="btn-sm warning" onclick="removeCurrentFromWrong()">从错题集移除</button>
         <button class="btn-sm" onclick="keepInWrong()">保留</button>
@@ -253,6 +256,7 @@
     let practiceWords = [], currentIndex = 0, stats = { total:0, correct:0, wrong:0 };
     let answerState = 'initial', currentKanaCorrect = false, isVerbMode = false;
     let grammarDirectionMode = 'random', isGrammarPractice = false, currentQuestionDirection = 'cn2jp';
+    let currentMultiAnswers = []; // 多义题暂存用户答案
     let githubConfig = { username: '', token: '', gistId: '' };
 
     function isVerb(word) {
@@ -528,6 +532,7 @@
         let candidates = [];
         const cat = isGrammarPractice ? 'grammar' : 'word';
 
+        // 获取原始候选数组
         if(mode==='wrong') {
             const list = isGrammarPractice ? grammarUnitWrong : unitWrong;
             candidates = list.map(ww=>allVocabularies.find(v=>v.chinese===ww.chinese&&v.japanese===ww.japanese)).filter(Boolean);
@@ -567,25 +572,60 @@
             return;
         }
 
-        for (let i = candidates.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
-        }
-        let limit = settings.practiceCount;
-        if (limit > 0 && candidates.length > limit) candidates = candidates.slice(0, limit);
-        
-        // 修复：根据语法方向设置每个题目的方向
-        practiceWords = candidates.map(item => {
-            let dir;
-            if (isGrammarPractice) {
-                if (grammarDirectionMode === 'cn2jp') dir = 'cn2jp';
-                else if (grammarDirectionMode === 'jp2cn') dir = 'jp2cn';
-                else dir = Math.random() < 0.5 ? 'cn2jp' : 'jp2cn'; // 随机
-            } else {
-                dir = 'cn2jp'; // 单词保持假名输入
+        // 构建练习题：对于语法日→中方向，合并同日语的多义行
+        if (isGrammarPractice && grammarDirectionMode === 'jp2cn') {
+            const grouped = new Map();
+            candidates.forEach(item => {
+                const key = item.japanese;
+                if (!grouped.has(key)) {
+                    grouped.set(key, { japanese: key, chineses: new Set(), items: [] });
+                }
+                const entry = grouped.get(key);
+                entry.chineses.add(item.chinese);
+                entry.items.push(item);
+            });
+            const rawQuestions = Array.from(grouped.values());
+            // 随机排序
+            for (let i = rawQuestions.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [rawQuestions[i], rawQuestions[j]] = [rawQuestions[j], rawQuestions[i]];
             }
-            return { type: 'single', item: item, direction: dir };
-        });
+            let limit = settings.practiceCount;
+            if (limit > 0 && rawQuestions.length > limit) rawQuestions.length = limit;
+
+            practiceWords = rawQuestions.map(entry => {
+                const meanings = Array.from(entry.chineses);
+                const representative = entry.items[0]; // 取第一个条目作为例句等显示用
+                return {
+                    type: meanings.length > 1 ? 'multi' : 'single',
+                    direction: 'jp2cn',
+                    japanese: entry.japanese,
+                    meanings: meanings,
+                    item: representative, // 保留一个条目用于显示例句等
+                };
+            });
+        } else {
+            // 打乱顺序
+            for (let i = candidates.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+            }
+            let limit = settings.practiceCount;
+            if (limit > 0 && candidates.length > limit) candidates = candidates.slice(0, limit);
+
+            practiceWords = candidates.map(item => {
+                let dir;
+                if (isGrammarPractice) {
+                    if (grammarDirectionMode === 'cn2jp') dir = 'cn2jp';
+                    else if (grammarDirectionMode === 'jp2cn') dir = 'jp2cn';
+                    else dir = Math.random() < 0.5 ? 'cn2jp' : 'jp2cn';
+                } else {
+                    dir = 'cn2jp';
+                }
+                return { type: 'single', item, direction: dir };
+            });
+        }
+
         currentIndex = 0;
         stats = { total: practiceWords.length, correct: 0, wrong: 0 };
         answerState = 'initial';
@@ -602,29 +642,45 @@
             return;
         }
         const question = practiceWords[currentIndex];
-        const word = question.item;
         document.getElementById('exampleCard').style.display = 'none';
         document.getElementById('wrongRemoveOption').style.display = 'none';
         document.getElementById('resultMessage').innerHTML = '';
         document.getElementById('previewText').innerText = '';
-        if (isGrammarPractice) {
-            // 根据方向显示题目
-            if (question.direction === 'cn2jp') {
-                document.getElementById('questionWord').innerHTML = word.chinese;
-                document.getElementById('answerInput').placeholder = '输入日语语法';
-            } else {
-                document.getElementById('questionWord').innerHTML = word.japanese;
-                document.getElementById('answerInput').placeholder = '输入中文意思';
-            }
-        } else {
-            let html = word.chinese;
-            if (!isVerbMode && word.wordType) html += ` <span class="type-badge${word.wordType.includes('他')?' 他':''}">${word.wordType}</span>`;
-            document.getElementById('questionWord').innerHTML = html;
-            document.getElementById('answerInput').placeholder = '输入日语假名';
-        }
-        document.getElementById('answerInput').value = '';
+        document.getElementById('multiHint').style.display = 'none';
+        document.getElementById('answerListArea').style.display = 'none';
+        currentMultiAnswers = [];
         answerState = 'initial';
         currentKanaCorrect = false;
+
+        if (question.type === 'multi') {
+            // 多义题日→中
+            document.getElementById('questionWord').innerHTML = question.japanese;
+            document.getElementById('multiHint').innerHTML = `该语法有 <b>${question.meanings.length}</b> 个含义，请逐个输入`;
+            document.getElementById('multiHint').style.display = 'block';
+            document.getElementById('answerInput').placeholder = '输入其中一个中文含义';
+            if (question.item.example) {
+                document.getElementById('exampleCard').innerHTML = `📖 ${question.item.example} ${question.item.exampleCn||''}`;
+                document.getElementById('exampleCard').style.display = 'block';
+            }
+            answerState = 'multiMeaning';
+        } else {
+            const word = question.item;
+            if (isGrammarPractice) {
+                if (question.direction === 'cn2jp') {
+                    document.getElementById('questionWord').innerHTML = word.chinese;
+                    document.getElementById('answerInput').placeholder = '输入日语语法';
+                } else {
+                    document.getElementById('questionWord').innerHTML = word.japanese;
+                    document.getElementById('answerInput').placeholder = '输入中文意思';
+                }
+            } else {
+                let html = word.chinese;
+                if (!isVerbMode && word.wordType) html += ` <span class="type-badge${word.wordType.includes('他')?' 他':''}">${word.wordType}</span>`;
+                document.getElementById('questionWord').innerHTML = html;
+                document.getElementById('answerInput').placeholder = '输入日语假名';
+            }
+        }
+        document.getElementById('answerInput').value = '';
         updateProgress();
         document.getElementById('answerInput').focus();
         if (window.innerWidth <= 768) scrollToQuestion();
@@ -640,15 +696,49 @@
         document.getElementById('progressFill').style.width = (total ? ((currentIndex + 1) / total * 100) : 0) + '%';
     }
 
+    function renderMultiAnswers() {
+        const area = document.getElementById('answerListArea');
+        if (currentMultiAnswers.length === 0) {
+            area.style.display = 'none';
+            return;
+        }
+        area.style.display = 'block';
+        area.innerHTML = '<strong>已输入含义：</strong><br>' + currentMultiAnswers.map((a, i) => `${i+1}. ${a}`).join('<br>');
+    }
+
     window.checkAnswer = function() {
         const question = practiceWords[currentIndex];
         if (!question) return;
-        const word = question.item;
         const ans = document.getElementById('answerInput').value.trim();
         if (!ans) return;
 
+        if (question.type === 'multi') {
+            // 多义题处理
+            if (currentMultiAnswers.includes(ans)) {
+                // 重复
+                document.getElementById('resultMessage').className = 'result-badge wrong';
+                document.getElementById('resultMessage').innerText = '⚠️ 这个含义已经输入过了';
+                document.getElementById('answerInput').value = '';
+                scrollToResult();
+                return;
+            }
+            currentMultiAnswers.push(ans);
+            renderMultiAnswers();
+            document.getElementById('answerInput').value = '';
+            document.getElementById('resultMessage').innerHTML = ''; // 清空之前的提示
+
+            if (currentMultiAnswers.length >= question.meanings.length) {
+                // 自动完成判定
+                finalizeMultiAnswer(question);
+            } else {
+                document.getElementById('answerInput').focus();
+            }
+            return;
+        }
+
+        // 以下为原有单义题逻辑
+        const word = question.item;
         if (isGrammarPractice) {
-            // 根据方向判断对错
             let correct;
             if (question.direction === 'cn2jp') {
                 correct = (ans === word.japanese);
@@ -712,6 +802,34 @@
         }
     };
 
+    function finalizeMultiAnswer(question) {
+        // 判定：用户输入的含义集合是否完全覆盖标准含义（不要求顺序，但需完全匹配）
+        const correctSet = question.meanings;
+        const userSet = currentMultiAnswers;
+        const allCorrectIncluded = correctSet.every(m => userSet.includes(m));
+        const noExtra = userSet.length === correctSet.length; // 因为去重，长度相等即无多余
+        const isCorrect = allCorrectIncluded && noExtra;
+
+        let msg = `已输入含义：${userSet.join('、')}<br>`;
+        if (isCorrect) {
+            stats.correct++;
+            document.getElementById('resultMessage').className = 'result-badge correct';
+            msg += '✓ 完全正确！';
+        } else {
+            stats.wrong++;
+            document.getElementById('resultMessage').className = 'result-badge wrong';
+            msg += `✗ 错误，正确答案：${correctSet.join('、')}`;
+            // 加入错题本（使用第一个条目作为代表）
+            addToWrong(question.item);
+        }
+        document.getElementById('resultMessage').innerHTML = msg;
+        answerState = 'completed';
+        updateProgress();
+        document.getElementById('multiHint').style.display = 'none';
+        document.getElementById('answerListArea').style.display = 'none';
+        scrollToResult();
+    }
+
     function addToWrong(word) {
         const list = isVerbMode ? verbWrong : (getCurrentWrongList());
         const existing = list.find(w => w.chinese === word.chinese && w.japanese === word.japanese);
@@ -721,11 +839,26 @@
     }
 
     window.nextWord = function() {
-        if (answerState === 'waitingParticle') checkAnswer();
-        if (answerState !== 'completed') checkAnswer();
-        if (currentIndex + 1 < practiceWords.length) { currentIndex++; showQuestion(); }
-        else { alert(`练习完成！正确:${stats.correct} 错误:${stats.wrong}`); practiceWords=[]; showQuestion(); }
+        const question = practiceWords[currentIndex];
+        if (!question) return;
+
+        if (question.type === 'multi' && answerState === 'multiMeaning') {
+            // 多义题未完成，点下一题则强制判定当前已输入的内容
+            finalizeMultiAnswer(question);
+        } else if (answerState !== 'completed') {
+            checkAnswer();
+        }
+
+        if (currentIndex + 1 < practiceWords.length) {
+            currentIndex++;
+            showQuestion();
+        } else {
+            alert(`练习完成！正确:${stats.correct} 错误:${stats.wrong}`);
+            practiceWords = [];
+            showQuestion();
+        }
     };
+
     window.removeCurrentFromWrong = function() { /* 保留原逻辑 */ };
     window.keepInWrong = () => document.getElementById('wrongRemoveOption').style.display='none';
 

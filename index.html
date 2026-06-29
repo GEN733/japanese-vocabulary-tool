@@ -69,6 +69,8 @@
         .create-unit-box { background: #f2f6fc; border-radius: 24px; padding: 16px; margin: 20px 0; }
         .multi-meaning-hint { font-size: 0.95rem; color: #6a1b9a; margin-top: 5px; }
         .answer-list { font-size: 1.1rem; background: #f8f9fc; border-radius: 20px; padding: 12px; margin: 10px 0; }
+        #wrongActionBar { display: none; }
+        #wrongActionBar button { flex: 1; }
     </style>
 </head>
 <body>
@@ -139,15 +141,16 @@
     <div id="exampleCard" style="display:none;" class="example-box"></div>
     <div id="resultMessage" class="result-badge"></div>
     <div id="answerListArea" class="answer-list" style="display:none;"></div>
-    <div id="wrongRemoveOption" style="display:none;text-align:center;margin:10px 0;">
-        <button class="btn-sm warning" onclick="removeCurrentFromWrong()">从错题集移除</button>
-        <button class="btn-sm" onclick="keepInWrong()">保留</button>
-    </div>
+
     <div id="fixedInputArea">
         <form id="answerForm" onsubmit="return false;"><input type="text" id="answerInput" placeholder="输入答案" autocomplete="off" autofocus></form>
-        <div class="flex-row">
+        <div class="flex-row" id="actionButtonsRow">
             <button style="flex:1;" onclick="checkAnswer()">✓ 检查</button>
             <button style="flex:1;" onclick="nextWord()" class="primary">➡ 下一题</button>
+        </div>
+        <div class="flex-row" id="wrongActionBar" style="display:none;">
+            <button class="warning" onclick="handleWrongRemove()" style="flex:1;">🗑️ 从错题集移除</button>
+            <button onclick="handleWrongKeep()" style="flex:1;">💾 保留</button>
         </div>
     </div>
 </div>
@@ -257,7 +260,8 @@
     let answerState = 'initial', currentKanaCorrect = false, isVerbMode = false;
     let grammarDirectionMode = 'random', isGrammarPractice = false, currentQuestionDirection = 'cn2jp';
     let currentMultiAnswers = [];
-    let currentPracticeMode = 'unit'; // 新增：记录当前练习模式
+    let currentPracticeMode = 'unit';
+    let pendingWrongAction = { item: null, listType: null }; // 新增：待处理的错题操作
     let githubConfig = { username: '', token: '', gistId: '' };
 
     function isVerb(word) {
@@ -265,7 +269,7 @@
         if (word.particle && word.particle.trim() !== '') return true;
         return false;
     }
-    // 仅用于错题页面显示
+
     function getCurrentWrongList() {
         if (wrongCategory === 'grammar') return currentWrongTab==='grammarUnit' ? grammarUnitWrong : grammarSummaryWrong;
         if (currentWrongTab === 'unit') return unitWrong;
@@ -528,7 +532,7 @@
 
     window.startPractice = function() {
         const mode = document.getElementById('practiceMode').value;
-        currentPracticeMode = mode; // 记录当前模式
+        currentPracticeMode = mode;
         isGrammarPractice = (practiceCategory === 'grammar');
         grammarDirectionMode = isGrammarPractice ? document.getElementById('grammarDirection').value : 'cn2jp';
         isVerbMode = (!isGrammarPractice && (mode==='verbJudge'||mode==='verbWrong'));
@@ -574,9 +578,7 @@
             return;
         }
 
-        // 构建练习题
         if (isGrammarPractice && grammarDirectionMode === 'jp2cn') {
-            // 日→中多义合并
             const grouped = new Map();
             candidates.forEach(item => {
                 const key = item.japanese;
@@ -595,19 +597,14 @@
             let limit = settings.practiceCount;
             if (limit > 0 && rawQuestions.length > limit) rawQuestions.length = limit;
 
-            practiceWords = rawQuestions.map(entry => {
-                const meanings = Array.from(entry.chineses);
-                const representative = entry.items[0];
-                return {
-                    type: meanings.length > 1 ? 'multi' : 'single',
-                    direction: 'jp2cn',
-                    japanese: entry.japanese,
-                    meanings: meanings,
-                    item: representative,
-                };
-            });
+            practiceWords = rawQuestions.map(entry => ({
+                type: entry.chineses.size > 1 ? 'multi' : 'single',
+                direction: 'jp2cn',
+                japanese: entry.japanese,
+                meanings: Array.from(entry.chineses),
+                item: entry.items[0],
+            }));
         } else {
-            // 原有打乱
             for (let i = candidates.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
@@ -631,6 +628,7 @@
         currentIndex = 0;
         stats = { total: practiceWords.length, correct: 0, wrong: 0 };
         answerState = 'initial';
+        pendingWrongAction = { item: null, listType: null }; // 重置
         showQuestion();
     };
 
@@ -645,7 +643,6 @@
         }
         const question = practiceWords[currentIndex];
         document.getElementById('exampleCard').style.display = 'none';
-        document.getElementById('wrongRemoveOption').style.display = 'none';
         document.getElementById('resultMessage').innerHTML = '';
         document.getElementById('previewText').innerText = '';
         document.getElementById('multiHint').style.display = 'none';
@@ -653,6 +650,9 @@
         currentMultiAnswers = [];
         answerState = 'initial';
         currentKanaCorrect = false;
+        // 恢复默认按钮
+        document.getElementById('actionButtonsRow').style.display = 'flex';
+        document.getElementById('wrongActionBar').style.display = 'none';
 
         if (question.type === 'multi') {
             document.getElementById('questionWord').innerHTML = question.japanese;
@@ -707,6 +707,61 @@
         area.innerHTML = '<strong>已输入含义：</strong><br>' + currentMultiAnswers.map((a, i) => `${i+1}. ${a}`).join('<br>');
     }
 
+    // 新增：根据 listType 从对应列表中移除条目
+    function removeFromWrongList(item, listType) {
+        let target;
+        switch(listType) {
+            case 'unit': target = unitWrong; break;
+            case 'summary': target = summaryWrong; break;
+            case 'verb': target = verbWrong; break;
+            case 'grammarUnit': target = grammarUnitWrong; break;
+            case 'grammarSummary': target = grammarSummaryWrong; break;
+            default: return;
+        }
+        const idx = target.findIndex(w => w.chinese === item.chinese && w.japanese === item.japanese);
+        if (idx > -1) {
+            target.splice(idx, 1);
+            saveAll();
+        }
+    }
+
+    function handleCorrectForWrongPractice(item) {
+        if (currentPracticeMode === 'wrong') {
+            // 单元错题练习，直接移除
+            removeFromWrongList(item, isGrammarPractice ? 'grammarUnit' : 'unit');
+        } else if (currentPracticeMode === 'verbWrong') {
+            removeFromWrongList(item, 'verb');
+        } else if (currentPracticeMode === 'summaryWrong') {
+            // 汇总错题，显示选择栏
+            pendingWrongAction.item = item;
+            pendingWrongAction.listType = isGrammarPractice ? 'grammarSummary' : 'summary';
+            document.getElementById('actionButtonsRow').style.display = 'none';
+            document.getElementById('wrongActionBar').style.display = 'flex';
+            document.getElementById('answerInput').disabled = true; // 禁止输入直到选择
+            return false; // 表示尚未完成流程
+        }
+        return true; // 已处理，可以继续
+    }
+
+    window.handleWrongRemove = function() {
+        if (pendingWrongAction.item) {
+            removeFromWrongList(pendingWrongAction.item, pendingWrongAction.listType);
+        }
+        document.getElementById('answerInput').disabled = false;
+        document.getElementById('actionButtonsRow').style.display = 'flex';
+        document.getElementById('wrongActionBar').style.display = 'none';
+        pendingWrongAction = { item: null, listType: null };
+        nextWord();
+    };
+
+    window.handleWrongKeep = function() {
+        document.getElementById('answerInput').disabled = false;
+        document.getElementById('actionButtonsRow').style.display = 'flex';
+        document.getElementById('wrongActionBar').style.display = 'none';
+        pendingWrongAction = { item: null, listType: null };
+        nextWord();
+    };
+
     window.checkAnswer = function() {
         const question = practiceWords[currentIndex];
         if (!question) return;
@@ -745,7 +800,13 @@
             document.getElementById('resultMessage').className = correct ? 'result-badge correct' : 'result-badge wrong';
             document.getElementById('resultMessage').innerText = correct ? '✓ 正确' : `✗ 错误 正确答案: ${question.direction==='cn2jp'?word.japanese:word.chinese}`;
             if (word.example) { document.getElementById('exampleCard').innerHTML = `📖 ${word.example} ${word.exampleCn||''}`; document.getElementById('exampleCard').style.display = 'block'; }
-            if (correct) stats.correct++; else { stats.wrong++; addToWrong(word); }
+            if (correct) {
+                stats.correct++;
+                if (!handleCorrectForWrongPractice(word)) return; // 如果是汇总错题，等待选择
+            } else {
+                stats.wrong++;
+                addToWrong(word);
+            }
             answerState = 'completed';
             updateProgress();
             scrollToResult();
@@ -763,6 +824,7 @@
                 } else {
                     if(kanaOk) {
                         stats.correct++;
+                        if (!handleCorrectForWrongPractice(word)) return;
                         document.getElementById('resultMessage').className = 'result-badge correct';
                         document.getElementById('resultMessage').innerText = '✓ 正确';
                     } else {
@@ -780,6 +842,7 @@
                 const particleOk = (ans === correctParticle);
                 if(currentKanaCorrect && particleOk) {
                     stats.correct++;
+                    if (!handleCorrectForWrongPractice(word)) return;
                     document.getElementById('resultMessage').className = 'result-badge correct';
                     document.getElementById('resultMessage').innerText = `✓ 正确！「${word.japanese}」${word.wordType||''}（${correctParticle}）`;
                 } else {
@@ -811,6 +874,16 @@
             stats.correct++;
             document.getElementById('resultMessage').className = 'result-badge correct';
             msg += '✓ 完全正确！';
+            if (!handleCorrectForWrongPractice(question.item)) {
+                // 汇总错题等待选择，但先显示结果
+                document.getElementById('resultMessage').innerHTML = msg;
+                document.getElementById('multiHint').style.display = 'none';
+                document.getElementById('answerListArea').style.display = 'none';
+                answerState = 'completed';
+                updateProgress();
+                scrollToResult();
+                return;
+            }
         } else {
             stats.wrong++;
             document.getElementById('resultMessage').className = 'result-badge wrong';
@@ -825,17 +898,14 @@
         scrollToResult();
     }
 
-    // 新增：根据练习类型自动归类错题
     function addToWrong(word) {
         let targetList;
         if (isGrammarPractice) {
-            // 语法错题：单元/单元错题练习 -> grammarUnitWrong，书本汇总/汇总错题练习 -> grammarSummaryWrong
             targetList = (currentPracticeMode === 'unit' || currentPracticeMode === 'wrong') ? grammarUnitWrong : grammarSummaryWrong;
         } else {
             if (isVerbMode) {
                 targetList = verbWrong;
             } else {
-                // 单词错题：单元/单元错题 -> unitWrong，书本汇总/汇总错题 -> summaryWrong
                 targetList = (currentPracticeMode === 'unit' || currentPracticeMode === 'wrong') ? unitWrong :
                              (currentPracticeMode === 'review' || currentPracticeMode === 'summaryWrong') ? summaryWrong : unitWrong;
             }
@@ -847,13 +917,19 @@
     }
 
     window.nextWord = function() {
+        // 如果有待处理的汇总错题选择，不允许下一题（按钮已隐藏，但防止其他调用）
+        if (pendingWrongAction.item) return;
+
         const question = practiceWords[currentIndex];
         if (!question) return;
 
         if (question.type === 'multi' && answerState === 'multiMeaning') {
             finalizeMultiAnswer(question);
+            // finalizeMultiAnswer 可能会触发 handleCorrectForWrongPractice 且需要等待，此时应返回
+            if (pendingWrongAction.item) return;
         } else if (answerState !== 'completed') {
             checkAnswer();
+            if (pendingWrongAction.item) return;
         }
 
         if (currentIndex + 1 < practiceWords.length) {
@@ -876,6 +952,7 @@
     document.getElementById('answerInput').addEventListener('keydown', e => {
         if (e.key === 'Enter') {
             e.preventDefault();
+            if (pendingWrongAction.item) return; // 等待选择时忽略回车
             if (answerState === 'completed') nextWord();
             else checkAnswer();
         }

@@ -261,11 +261,10 @@
     let pendingWrongAction = { item: null, listType: null };
     let githubConfig = { username: '', token: '', gistId: '' };
 
-    // ★ 修改1：仅当助词列有数据时视为自他动词
+    // 自他动词判断：仅当助词列有数据时才算动词
     function isVerb(word) {
         return word.particle && word.particle.trim() !== '';
     }
-
     function getCurrentWrongList() {
         if (wrongCategory === 'grammar') return currentWrongTab==='grammarUnit' ? grammarUnitWrong : grammarSummaryWrong;
         if (currentWrongTab === 'unit') return unitWrong;
@@ -559,14 +558,8 @@
 
     window.updateModeUI = function() {
         const mode = document.getElementById('practiceMode').value;
-        const unitRow = document.getElementById('unitSelectRow');
-        const bookRow = document.getElementById('bookMultiRow');
-        const div = document.getElementById('bookUnitSelector');
-        unitRow.style.display='none';
-        bookRow.style.display='none';
-        div.style.display='none';
-
-        // ★ 修改2：自他动词判断同时显示单元选择和书本多选
+        const unitRow = document.getElementById('unitSelectRow'), bookRow = document.getElementById('bookMultiRow'), div = document.getElementById('bookUnitSelector');
+        unitRow.style.display='none'; bookRow.style.display='none'; div.style.display='none';
         if(mode==='unit' || mode==='verbJudge'){
             div.style.display='block';
             unitRow.style.display='block';
@@ -594,12 +587,99 @@
             let list = isGrammarPractice ? grammarUnitWrong : unitWrong;
             list = cleanWrongList(list);
             if (isGrammarPractice) grammarUnitWrong = list; else unitWrong = list;
-            candidates = list.map(ww => allVocabularies.find(v => v.chinese===ww.chinese && v.japanese===ww.japanese)).filter(Boolean);
+            if (isGrammarPractice) {
+                // 语法错题：提取日语，获取全部含义，以便多义输入
+                const uniqueJp = [...new Set(list.map(ww => ww.japanese))];
+                const rawQuestions = [];
+                uniqueJp.forEach(jp => {
+                    const items = allVocabularies.filter(v => v.category === 'grammar' && v.japanese === jp);
+                    if (items.length === 0) return;
+                    const meaningMap = new Map();
+                    items.forEach(item => {
+                        const aliases = item.chinese.split('/').map(s => s.trim()).filter(Boolean);
+                        const key = aliases.sort().join('||');
+                        if (!meaningMap.has(key)) meaningMap.set(key, { aliases, items: [] });
+                        meaningMap.get(key).items.push(item);
+                    });
+                    const meanings = Array.from(meaningMap.values());
+                    if (meanings.length > 1) {
+                        rawQuestions.push({
+                            type: 'multi',
+                            japanese: jp,
+                            meanings: meanings,
+                            item: meanings[0].items[0]
+                        });
+                    } else if (meanings.length === 1) {
+                        const meaning = meanings[0];
+                        let dir = grammarDirectionMode;
+                        if (dir === 'random') dir = Math.random() < 0.5 ? 'cn2jp' : 'jp2cn';
+                        rawQuestions.push({
+                            type: 'single',
+                            item: meaning.items[0],
+                            direction: dir,
+                            aliases: meaning.aliases
+                        });
+                    }
+                });
+                if (!rawQuestions.length) { alert('当前没有语法错题。'); return; }
+                for (let i = rawQuestions.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [rawQuestions[i], rawQuestions[j]] = [rawQuestions[j], rawQuestions[i]];
+                }
+                let limit = settings.practiceCount;
+                if (limit > 0 && rawQuestions.length > limit) rawQuestions.length = limit;
+                practiceWords = rawQuestions;
+            } else {
+                candidates = list.map(ww => allVocabularies.find(v => v.chinese===ww.chinese && v.japanese===ww.japanese)).filter(Boolean);
+            }
         } else if (mode === 'summaryWrong') {
             let list = isGrammarPractice ? grammarSummaryWrong : summaryWrong;
             list = cleanWrongList(list);
             if (isGrammarPractice) grammarSummaryWrong = list; else summaryWrong = list;
-            candidates = list.map(ww => allVocabularies.find(v => v.chinese===ww.chinese && v.japanese===ww.japanese)).filter(Boolean);
+            if (isGrammarPractice) {
+                const uniqueJp = [...new Set(list.map(ww => ww.japanese))];
+                const rawQuestions = [];
+                uniqueJp.forEach(jp => {
+                    const items = allVocabularies.filter(v => v.category === 'grammar' && v.japanese === jp);
+                    if (items.length === 0) return;
+                    const meaningMap = new Map();
+                    items.forEach(item => {
+                        const aliases = item.chinese.split('/').map(s => s.trim()).filter(Boolean);
+                        const key = aliases.sort().join('||');
+                        if (!meaningMap.has(key)) meaningMap.set(key, { aliases, items: [] });
+                        meaningMap.get(key).items.push(item);
+                    });
+                    const meanings = Array.from(meaningMap.values());
+                    if (meanings.length > 1) {
+                        rawQuestions.push({
+                            type: 'multi',
+                            japanese: jp,
+                            meanings: meanings,
+                            item: meanings[0].items[0]
+                        });
+                    } else if (meanings.length === 1) {
+                        const meaning = meanings[0];
+                        let dir = grammarDirectionMode;
+                        if (dir === 'random') dir = Math.random() < 0.5 ? 'cn2jp' : 'jp2cn';
+                        rawQuestions.push({
+                            type: 'single',
+                            item: meaning.items[0],
+                            direction: dir,
+                            aliases: meaning.aliases
+                        });
+                    }
+                });
+                if (!rawQuestions.length) { alert('当前没有语法错题。'); return; }
+                for (let i = rawQuestions.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [rawQuestions[i], rawQuestions[j]] = [rawQuestions[j], rawQuestions[i]];
+                }
+                let limit = settings.practiceCount;
+                if (limit > 0 && rawQuestions.length > limit) rawQuestions.length = limit;
+                practiceWords = rawQuestions;
+            } else {
+                candidates = list.map(ww => allVocabularies.find(v => v.chinese===ww.chinese && v.japanese===ww.japanese)).filter(Boolean);
+            }
         } else if (mode === 'verbWrong') {
             let list = verbWrong;
             list = cleanWrongList(list);
@@ -636,61 +716,26 @@
             candidates = allVocabularies.filter(v=>unitIds.includes(String(v.deckId)) && v.category===cat);
         }
 
-        if(!candidates.length){
+        if (!practiceWords && !candidates.length) {
             alert(`当前范围内没有${isGrammarPractice?'语法':'单词'}。`);
             return;
         }
 
-        if (isGrammarPractice) {
-            const grouped = new Map();
-            candidates.forEach(item => {
-                const key = item.japanese;
-                if (!grouped.has(key)) {
-                    grouped.set(key, []);
+        if (!isGrammarPractice || (mode !== 'wrong' && mode !== 'summaryWrong')) {
+            if (!practiceWords) {
+                for (let i = candidates.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
                 }
-                const meaningsList = grouped.get(key);
-                const aliases = item.chinese.split('/').map(s => s.trim()).filter(Boolean);
-                const aliasKey = aliases.sort().join('||');
-                let existing = meaningsList.find(m => m.aliasKey === aliasKey);
-                if (existing) {
-                    existing.items.push(item);
-                } else {
-                    meaningsList.push({ aliases, items: [item], aliasKey });
-                }
-            });
-            const rawQuestions = Array.from(grouped.entries()).map(([japanese, meanings]) => ({
-                japanese,
-                meanings: meanings.map(m => ({ aliases: m.aliases, items: m.items }))
-            }));
-            for (let i = rawQuestions.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [rawQuestions[i], rawQuestions[j]] = [rawQuestions[j], rawQuestions[i]];
+                let limit = settings.practiceCount;
+                if (limit > 0 && candidates.length > limit) candidates = candidates.slice(0, limit);
+                practiceWords = candidates.map(item => ({ type: 'single', item, direction: 'cn2jp' }));
             }
-            let limit = settings.practiceCount;
-            if (limit > 0 && rawQuestions.length > limit) rawQuestions.length = limit;
-            practiceWords = rawQuestions.map(entry => {
-                if (entry.meanings.length > 1) {
-                    return {
-                        type: 'multi',
-                        japanese: entry.japanese,
-                        meanings: entry.meanings,
-                        item: entry.meanings[0].items[0]
-                    };
-                } else {
-                    const meaning = entry.meanings[0];
-                    let dir = grammarDirectionMode;
-                    if (dir === 'random') dir = Math.random() < 0.5 ? 'cn2jp' : 'jp2cn';
-                    return { type: 'single', item: meaning.items[0], direction: dir, aliases: meaning.aliases };
-                }
-            });
-        } else {
-            for (let i = candidates.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
-            }
-            let limit = settings.practiceCount;
-            if (limit > 0 && candidates.length > limit) candidates = candidates.slice(0, limit);
-            practiceWords = candidates.map(item => ({ type: 'single', item, direction: 'cn2jp' }));
+        }
+
+        if (!practiceWords || practiceWords.length === 0) {
+            alert('没有可练习的内容。');
+            return;
         }
 
         currentIndex = 0;
@@ -998,7 +1043,6 @@
             else { list.push({ chinese: word.chinese, japanese: word.japanese, wrongCount: 1 }); }
         };
         addToList(targetList);
-        // 如果添加到单元错题，也添加到汇总错题
         if (targetList === unitWrong || targetList === grammarUnitWrong) {
             if (targetList === unitWrong) {
                 addToList(summaryWrong);

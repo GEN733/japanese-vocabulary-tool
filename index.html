@@ -671,11 +671,9 @@
             let pendingWrongAction = { item: null, listType: null };
             let githubConfig = { username: '', token: '', gistId: '' };
 
+            // 修改后的判断逻辑：仅检查助词字段是否非空
             function isVerb(word) {
-                if (word.wordType && (word.wordType.includes('自动') || word.wordType.includes('他动') || word
-                        .wordType.includes('自他'))) return true;
-                if (word.particle && word.particle.trim() !== '') return true;
-                return false;
+                return word.particle && word.particle.trim() !== '';
             }
 
             function getCurrentWrongList() {
@@ -1103,7 +1101,7 @@
                         candidates = allVocabularies.filter(v => unitIds.includes(String(v.deckId)) && isVerb(v));
                     }
                     if (candidates.length === 0) {
-                        alert('当前范围内没有找到含有助词或自动/他动词性的单词，请检查数据。');
+                        alert('当前范围内没有含有助词的单词，请检查数据。');
                         return;
                     }
                 } else if (mode === 'all') {

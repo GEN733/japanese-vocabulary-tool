@@ -184,6 +184,7 @@
         </div>
         <div id="wordSearchResults" style="margin-top:10px;"></div>
     </div>
+
     <div class="module-card">
         <h3 style="cursor:pointer;" onclick="toggleModuleCollapse('wordBookModule')">📚 单词书本列表 <span class="collapse-icon open" id="wordBookModuleIcon">▼</span></h3>
         <div id="wordBookModuleContent">
@@ -199,6 +200,7 @@
             </div>
         </div>
     </div>
+
     <div class="module-card">
         <h3 style="cursor:pointer;" onclick="toggleModuleCollapse('grammarBookModule')">📘 语法书本列表 <span class="collapse-icon open" id="grammarBookModuleIcon">▼</span></h3>
         <div id="grammarBookModuleContent">
@@ -214,6 +216,7 @@
             </div>
         </div>
     </div>
+
     <div class="module-card">
         <h3>📎 批量导入</h3>
         <select id="importCategory" style="width:auto;" onchange="updateImportCategory()">
@@ -258,9 +261,9 @@
     let pendingWrongAction = { item: null, listType: null };
     let githubConfig = { username: '', token: '', gistId: '' };
 
-    // 强化判断：仅当助词字段存在、为字符串且trim后非空时，才视为自他动词
+    // ★ 修改1：仅当助词列有数据时视为自他动词
     function isVerb(word) {
-        return typeof word.particle === 'string' && word.particle.trim() !== '';
+        return word.particle && word.particle.trim() !== '';
     }
 
     function getCurrentWrongList() {
@@ -556,13 +559,20 @@
 
     window.updateModeUI = function() {
         const mode = document.getElementById('practiceMode').value;
-        const unitRow = document.getElementById('unitSelectRow'), bookRow = document.getElementById('bookMultiRow'), div = document.getElementById('bookUnitSelector');
-        unitRow.style.display='none'; bookRow.style.display='none'; div.style.display='none';
-        if(mode==='unit'){ div.style.display='block'; unitRow.style.display='block'; }
-        else if(mode==='review'){ div.style.display='block'; bookRow.style.display='block'; renderBookMultiSelect(); }
-        else if(mode==='verbJudge'){
+        const unitRow = document.getElementById('unitSelectRow');
+        const bookRow = document.getElementById('bookMultiRow');
+        const div = document.getElementById('bookUnitSelector');
+        unitRow.style.display='none';
+        bookRow.style.display='none';
+        div.style.display='none';
+
+        // ★ 修改2：自他动词判断同时显示单元选择和书本多选
+        if(mode==='unit' || mode==='verbJudge'){
             div.style.display='block';
             unitRow.style.display='block';
+        }
+        if(mode==='review' || mode==='verbJudge'){
+            div.style.display='block';
             bookRow.style.display='block';
             renderBookMultiSelect();
         }
@@ -580,62 +590,50 @@
         let candidates = [];
         const cat = isGrammarPractice ? 'grammar' : 'word';
 
-        if (mode === 'wrong' || mode === 'summaryWrong' || mode === 'verbWrong') {
-            let list;
-            if (mode === 'wrong') list = isGrammarPractice ? grammarUnitWrong : unitWrong;
-            else if (mode === 'summaryWrong') list = isGrammarPractice ? grammarSummaryWrong : summaryWrong;
-            else list = verbWrong;
+        if (mode === 'wrong') {
+            let list = isGrammarPractice ? grammarUnitWrong : unitWrong;
             list = cleanWrongList(list);
-            if (isGrammarPractice) {
-                if (mode === 'wrong') grammarUnitWrong = list;
-                else if (mode === 'summaryWrong') grammarSummaryWrong = list;
-            } else {
-                if (mode === 'wrong') unitWrong = list;
-                else if (mode === 'summaryWrong') summaryWrong = list;
-                else verbWrong = list;
-            }
-            if (isGrammarPractice && (mode === 'wrong' || mode === 'summaryWrong')) {
-                const japaneseSet = new Set(list.map(ww => ww.japanese));
-                candidates = allVocabularies.filter(v => v.category === 'grammar' && japaneseSet.has(v.japanese));
-            } else {
-                candidates = list.map(ww => allVocabularies.find(v => v.chinese === ww.chinese && v.japanese === ww.japanese)).filter(Boolean);
-            }
+            if (isGrammarPractice) grammarUnitWrong = list; else unitWrong = list;
+            candidates = list.map(ww => allVocabularies.find(v => v.chinese===ww.chinese && v.japanese===ww.japanese)).filter(Boolean);
+        } else if (mode === 'summaryWrong') {
+            let list = isGrammarPractice ? grammarSummaryWrong : summaryWrong;
+            list = cleanWrongList(list);
+            if (isGrammarPractice) grammarSummaryWrong = list; else summaryWrong = list;
+            candidates = list.map(ww => allVocabularies.find(v => v.chinese===ww.chinese && v.japanese===ww.japanese)).filter(Boolean);
+        } else if (mode === 'verbWrong') {
+            let list = verbWrong;
+            list = cleanWrongList(list);
+            verbWrong = list;
+            candidates = list.map(ww => allVocabularies.find(v => v.chinese===ww.chinese && v.japanese===ww.japanese)).filter(Boolean);
         } else if (mode === 'verbJudge') {
             const unitId = document.getElementById('unitSelect').value;
-            if (unitId) {
-                candidates = allVocabularies.filter(v => String(v.deckId) === String(unitId) && v.category === 'word' && isVerb(v));
+            if(unitId) {
+                candidates = allVocabularies.filter(v=>String(v.deckId)===String(unitId) && isVerb(v));
             } else {
-                const checked = Array.from(document.querySelectorAll('.book-check:checked')).map(cb => cb.value);
-                if (!checked.length) { alert('请选择单元或书本'); return; }
+                const checked = Array.from(document.querySelectorAll('.book-check:checked')).map(cb=>cb.value);
+                if(!checked.length){ alert('请选择单元或勾选书本'); return; }
                 const unitIds = [];
-                checked.forEach(bid => {
-                    allDecks.filter(d => d.type === 'unit' && String(d.parentId) === String(bid))
-                        .forEach(u => unitIds.push(String(u.id)));
+                checked.forEach(bid=> {
+                    allDecks.filter(d=>d.type==='unit'&&String(d.parentId)===String(bid)).forEach(u=>unitIds.push(String(u.id)));
                 });
-                candidates = allVocabularies.filter(v => unitIds.includes(String(v.deckId)) && v.category === 'word' && isVerb(v));
-            }
-            // 调试输出：可在控制台查看具体单词
-            console.log('自他动词候选单词:', candidates.map(v => ({ chinese: v.chinese, japanese: v.japanese, particle: v.particle })));
-            if (candidates.length === 0) {
-                alert('当前范围内没有含有助词的单词，请检查数据。');
-                return;
+                if(unitIds.length === 0){ alert('所选书本下没有任何单元'); return; }
+                candidates = allVocabularies.filter(v=>unitIds.includes(String(v.deckId)) && isVerb(v));
             }
         } else if (mode === 'all') {
-            candidates = allVocabularies.filter(v => v.category === cat);
+            candidates = allVocabularies.filter(v=>v.category===cat);
         } else if (mode === 'unit') {
             const unitId = document.getElementById('unitSelect').value;
             if(!unitId){ alert('请选择单元'); return; }
-            candidates = allVocabularies.filter(v => String(v.deckId) === String(unitId) && v.category === cat);
+            candidates = allVocabularies.filter(v=>String(v.deckId)===String(unitId)&&v.category===cat);
         } else if (mode === 'review') {
-            const checked = Array.from(document.querySelectorAll('.book-check:checked')).map(cb => cb.value);
+            const checked = Array.from(document.querySelectorAll('.book-check:checked')).map(cb=>cb.value);
             if(!checked.length){ alert('请至少勾选一个书本'); return; }
             const unitIds = [];
             checked.forEach(bid => {
-                allDecks.filter(d => d.type === 'unit' && String(d.parentId) === String(bid))
-                        .forEach(u => unitIds.push(String(u.id)));
+                allDecks.filter(d=>d.type==='unit' && String(d.parentId)===String(bid)).forEach(u => unitIds.push(String(u.id)));
             });
             if(unitIds.length === 0){ alert('所选书本下没有任何单元'); return; }
-            candidates = allVocabularies.filter(v => unitIds.includes(String(v.deckId)) && v.category === cat);
+            candidates = allVocabularies.filter(v=>unitIds.includes(String(v.deckId)) && v.category===cat);
         }
 
         if(!candidates.length){
@@ -1000,6 +998,7 @@
             else { list.push({ chinese: word.chinese, japanese: word.japanese, wrongCount: 1 }); }
         };
         addToList(targetList);
+        // 如果添加到单元错题，也添加到汇总错题
         if (targetList === unitWrong || targetList === grammarUnitWrong) {
             if (targetList === unitWrong) {
                 addToList(summaryWrong);

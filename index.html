@@ -671,7 +671,7 @@
             let pendingWrongAction = { item: null, listType: null };
             let githubConfig = { username: '', token: '', gistId: '' };
 
-            // 修改后的判断逻辑：仅检查助词字段是否非空
+            // 仅通过助词字段判断是否为需要练习自他动词的单词
             function isVerb(word) {
                 return word.particle && word.particle.trim() !== '';
             }
@@ -1090,8 +1090,7 @@
                     if (unitId) {
                         candidates = allVocabularies.filter(v => String(v.deckId) === String(unitId) && isVerb(v));
                     } else {
-                        const checked = Array.from(document.querySelectorAll('.book-check:checked')).map(cb => cb
-                        .value);
+                        const checked = Array.from(document.querySelectorAll('.book-check:checked')).map(cb => cb.value);
                         if (!checked.length) { alert('请选择单元或书本'); return; }
                         const unitIds = [];
                         checked.forEach(bid => {
@@ -1109,19 +1108,17 @@
                 } else if (mode === 'unit') {
                     const unitId = document.getElementById('unitSelect').value;
                     if (!unitId) { alert('请选择单元'); return; }
-                    candidates = allVocabularies.filter(v => String(v.deckId) === String(unitId) && v.category ===
-                    cat);
+                    candidates = allVocabularies.filter(v => String(v.deckId) === String(unitId) && v.category === cat);
                 } else if (mode === 'review') {
                     const checked = Array.from(document.querySelectorAll('.book-check:checked')).map(cb => cb.value);
                     if (!checked.length) { alert('请至少勾选一个书本'); return; }
                     const unitIds = [];
                     checked.forEach(bid => {
-                        allDecks.filter(d => d.type === 'unit' && String(d.parentId) === String(bid)).forEach(
-                            u => unitIds.push(String(u.id)));
+                        allDecks.filter(d => d.type === 'unit' && String(d.parentId) === String(bid))
+                            .forEach(u => unitIds.push(String(u.id)));
                     });
                     if (unitIds.length === 0) { alert('所选书本下没有任何单元'); return; }
-                    candidates = allVocabularies.filter(v => unitIds.includes(String(v.deckId)) && v.category ===
-                    cat);
+                    candidates = allVocabularies.filter(v => unitIds.includes(String(v.deckId)) && v.category === cat);
                 }
 
                 if (!candidates.length) {
@@ -1168,8 +1165,7 @@
                             const meaning = entry.meanings[0];
                             let dir = grammarDirectionMode;
                             if (dir === 'random') dir = Math.random() < 0.5 ? 'cn2jp' : 'jp2cn';
-                            return { type: 'single', item: meaning.items[0], direction: dir, aliases: meaning
-                                    .aliases };
+                            return { type: 'single', item: meaning.items[0], direction: dir, aliases: meaning.aliases };
                         }
                     });
                 } else {

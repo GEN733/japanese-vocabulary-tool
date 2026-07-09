@@ -4,1140 +4,1786 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>日语学习工具 · 完全体</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js">
+    </script>
     <style>
-        * { box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
-        body { background: #f4f7fb; margin: 0; padding: 12px; max-width: 800px; margin: 0 auto; position: relative; overscroll-behavior: none; }
-        h1 { font-size: 1.7rem; margin: 0 0 10px; color: #1e3c5c; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-        .tab-bar { display: flex; flex-wrap: wrap; gap: 5px; background: white; border-radius: 40px; padding: 6px; margin-bottom: 18px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); position: sticky; top: 10px; z-index: 10; }
-        .tab-btn { flex: 1 0 auto; background: none; border: none; padding: 10px 8px; font-size: 0.95rem; border-radius: 30px; color: #4a5f73; font-weight: 500; transition: 0.2s; cursor: pointer; }
-        .tab-btn.active { background: #1e3c5c; color: white; box-shadow: 0 2px 8px rgba(30,60,92,0.3); }
-        .page { display: none; background: white; border-radius: 24px; padding: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.02); margin-bottom: 20px; }
-        .page.active { display: block; }
-        #practice { padding-bottom: 180px; }
-        button { background: #eef3f9; border: none; border-radius: 60px; padding: 12px 18px; font-size: 1rem; color: #1e3c5c; font-weight: 500; cursor: pointer; transition: 0.15s; box-shadow: 0 2px 4px rgba(0,0,0,0.03); }
-        button.primary { background: #1e3c5c; color: white; }
-        button.warning { background: #f5b342; color: #1e1e1e; }
-        button.danger { background: #d9534f; color: white; }
-        input, select, textarea { width: 100%; padding: 14px 16px; border: 1px solid #d9e1ec; border-radius: 60px; font-size: 1rem; margin: 8px 0; background: white; }
-        textarea { border-radius: 24px; resize: vertical; }
-        .flex-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-        .word-display { font-size: 2.4rem; font-weight: 700; text-align: center; margin: 20px 0 10px; color: #11324d; line-height: 1.3; }
-        .type-badge { font-size: 1rem; font-weight: 500; background: #cfe2ff; color: #0d47a1; padding: 2px 10px; border-radius: 20px; margin-left: 10px; vertical-align: middle; }
-        .type-badge.他 { background: #ffd6d6; color: #a10d0d; }
-        .result-badge { text-align: center; padding: 16px; border-radius: 60px; font-size: 1.3rem; font-weight: 600; margin: 12px 0; scroll-margin-bottom: 200px; }
-        .correct { background: #e1f7e3; color: #1e7a44; }
-        .wrong { background: #ffe9e9; color: #b33; }
-        .progress-bar { height: 12px; background: #e2eaf3; border-radius: 40px; overflow: hidden; margin: 15px 0; }
-        .progress-fill { height: 100%; background: #1e3c5c; width: 0%; transition: 0.2s; }
-        .stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin: 16px 0; }
-        .stat-card { background: #f2f6fc; border-radius: 24px; padding: 16px 8px; text-align: center; }
-        .stat-num { font-size: 2rem; font-weight: 700; color: #1e3c5c; }
-        .deck-card { background: #f6faff; border-radius: 24px; padding: 16px; border: 1px solid #dbe4f0; margin-bottom: 12px; cursor: pointer; }
-        .deck-title { font-size: 1.3rem; font-weight: 600; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
-        .deck-meta { color: #5f738c; font-size: 0.9rem; }
-        .sync-step { background: #f2f6fc; border-radius: 24px; padding: 16px; margin: 18px 0; }
-        .sync-step h4 { margin: 0 0 12px; color: #1e3c5c; }
-        .error-msg { color: #b33; background: #ffe6e6; padding: 10px 16px; border-radius: 60px; font-size: 0.9rem; }
-        .success-msg { color: #1e7a44; background: #e1f7e3; padding: 10px 16px; border-radius: 60px; }
-        .tiny-note { font-size: 0.8rem; color: #7a8b9f; margin-top: 5px; }
-        .search-box { margin: 15px 0; }
-        .word-table { width: 100%; border-collapse: collapse; }
-        .word-table th { background: #1e3c5c; color: white; padding: 12px; border-radius: 20px 20px 0 0; }
-        .word-table td { padding: 12px; border-bottom: 1px solid #e2eaf3; }
-        .wrong-count-badge { background: #d9534f; color: white; border-radius: 40px; padding: 3px 10px; font-size: 0.8rem; margin-left: 6px; }
-        .btn-sm { padding: 6px 14px; font-size: 0.85rem; margin: 2px; }
-        #backToTop { position: fixed; bottom: 20px; right: 20px; background: #1e3c5c; color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; box-shadow: 0 4px 10px rgba(0,0,0,0.2); cursor: pointer; border: none; z-index: 999; }
-        .answer-preview { font-size: 1.3rem; margin: 10px 0; padding: 8px 16px; background: #f2f6fc; border-radius: 20px; word-break: break-all; text-align: center; color: #1e3c5c; }
-        .checkbox-group { display: flex; flex-wrap: wrap; gap: 12px; background: #f8f9fc; padding: 12px; border-radius: 20px; margin: 10px 0; }
-        .checkbox-group label { display: flex; align-items: center; gap: 5px; font-size: 0.95rem; }
-        .example-box { background: #eef3f9; border-radius: 20px; padding: 12px; margin: 10px 0; font-size: 1.2rem; text-align: center; color: #11324d; animation: slideIn 0.3s ease-out; }
-        .example-box span { background: white; padding: 2px 8px; border-radius: 10px; margin: 0 4px; }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        .section-title { font-weight: 600; margin: 8px 0 4px; font-size: 0.9rem; color: #5f738c; }
-        #fixedInputArea { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 800px; background: white; padding: 10px 12px 16px; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); z-index: 100; border-radius: 24px 24px 0 0; }
-        #fixedInputArea .flex-row { margin-top: 0; }
-        .unit-list { display: none; padding-left: 15px; margin-bottom: 10px; }
-        .unit-list.open { display: block; }
-        .word-list { display: none; padding-left: 20px; margin-top: 5px; }
-        .word-list.open { display: block; }
-        .collapse-icon { font-size: 1.2rem; transition: transform 0.2s; }
-        .collapse-icon.open { transform: rotate(90deg); }
-        .unit-card { background: #f9fafc; border: 1px solid #e2eaf3; border-radius: 16px; padding: 12px; margin-bottom: 8px; }
-        .unit-title { font-size: 1rem; font-weight: 600; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-        .grammar-badge { background: #e8daef; color: #6a1b9a; padding: 2px 8px; border-radius: 20px; font-size: 0.8rem; }
-        .create-unit-box { background: #f2f6fc; border-radius: 24px; padding: 16px; margin: 20px 0; }
-        .multi-meaning-hint { font-size: 0.95rem; color: #6a1b9a; margin-top: 5px; }
-        .answer-list { font-size: 1.1rem; background: #f8f9fc; border-radius: 20px; padding: 12px; margin: 10px 0; }
-        #wrongActionBar button { flex: 1; }
-        .module-card { background: #ffffff; border-radius: 24px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); border: 1px solid #eef2f7; }
-        .module-card h3 { margin-top: 0; color: #1e3c5c; }
-        .sub-tab-bar { display: flex; gap: 8px; margin-bottom: 12px; background: #f0f4f9; border-radius: 40px; padding: 5px; }
-        .sub-tab-btn { flex: 1; padding: 10px 15px; background: none; border: none; border-radius: 30px; font-size: 0.95rem; color: #4a5f73; cursor: pointer; transition: 0.2s; }
-        .sub-tab-btn.active { background: #1e3c5c; color: white; box-shadow: 0 2px 8px rgba(30,60,92,0.3); }
-        .wrong-tab-bar { display: flex; gap: 8px; margin-bottom: 15px; }
-        .wrong-tab-btn { flex: 1; padding: 10px 15px; border: none; border-radius: 30px; background: #eef3f9; color: #1e3c5c; cursor: pointer; font-weight: 500; transition: 0.2s; }
-        .wrong-tab-btn.active { background: #1e3c5c; color: white; }
-        #wrongActionBar { margin-top: 6px; }
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            background: #f4f7fb;
+            margin: 0;
+            padding: 12px;
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+            overscroll-behavior: none;
+        }
+        h1 {
+            font-size: 1.7rem;
+            margin: 0 0 10px;
+            color: #1e3c5c;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .tab-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            background: white;
+            border-radius: 40px;
+            padding: 6px;
+            margin-bottom: 18px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+            position: sticky;
+            top: 10px;
+            z-index: 10;
+        }
+        .tab-btn {
+            flex: 1 0 auto;
+            background: none;
+            border: none;
+            padding: 10px 8px;
+            font-size: 0.95rem;
+            border-radius: 30px;
+            color: #4a5f73;
+            font-weight: 500;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+        .tab-btn.active {
+            background: #1e3c5c;
+            color: white;
+            box-shadow: 0 2px 8px rgba(30, 60, 92, 0.3);
+        }
+        .page {
+            display: none;
+            background: white;
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.02);
+            margin-bottom: 20px;
+        }
+        .page.active {
+            display: block;
+        }
+        #practice {
+            padding-bottom: 180px;
+        }
+        button {
+            background: #eef3f9;
+            border: none;
+            border-radius: 60px;
+            padding: 12px 18px;
+            font-size: 1rem;
+            color: #1e3c5c;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.15s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+        }
+        button.primary {
+            background: #1e3c5c;
+            color: white;
+        }
+        button.warning {
+            background: #f5b342;
+            color: #1e1e1e;
+        }
+        button.danger {
+            background: #d9534f;
+            color: white;
+        }
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid #d9e1ec;
+            border-radius: 60px;
+            font-size: 1rem;
+            margin: 8px 0;
+            background: white;
+        }
+        textarea {
+            border-radius: 24px;
+            resize: vertical;
+        }
+        .flex-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .word-display {
+            font-size: 2.4rem;
+            font-weight: 700;
+            text-align: center;
+            margin: 20px 0 10px;
+            color: #11324d;
+            line-height: 1.3;
+        }
+        .type-badge {
+            font-size: 1rem;
+            font-weight: 500;
+            background: #cfe2ff;
+            color: #0d47a1;
+            padding: 2px 10px;
+            border-radius: 20px;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        .type-badge.他 {
+            background: #ffd6d6;
+            color: #a10d0d;
+        }
+        .result-badge {
+            text-align: center;
+            padding: 16px;
+            border-radius: 60px;
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin: 12px 0;
+            scroll-margin-bottom: 200px;
+        }
+        .correct {
+            background: #e1f7e3;
+            color: #1e7a44;
+        }
+        .wrong {
+            background: #ffe9e9;
+            color: #b33;
+        }
+        .progress-bar {
+            height: 12px;
+            background: #e2eaf3;
+            border-radius: 40px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #1e3c5c;
+            width: 0%;
+            transition: 0.2s;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 16px 0;
+        }
+        .stat-card {
+            background: #f2f6fc;
+            border-radius: 24px;
+            padding: 16px 8px;
+            text-align: center;
+        }
+        .stat-num {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1e3c5c;
+        }
+        .deck-card {
+            background: #f6faff;
+            border-radius: 24px;
+            padding: 16px;
+            border: 1px solid #dbe4f0;
+            margin-bottom: 12px;
+            cursor: pointer;
+        }
+        .deck-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .deck-meta {
+            color: #5f738c;
+            font-size: 0.9rem;
+        }
+        .sync-step {
+            background: #f2f6fc;
+            border-radius: 24px;
+            padding: 16px;
+            margin: 18px 0;
+        }
+        .sync-step h4 {
+            margin: 0 0 12px;
+            color: #1e3c5c;
+        }
+        .error-msg {
+            color: #b33;
+            background: #ffe6e6;
+            padding: 10px 16px;
+            border-radius: 60px;
+            font-size: 0.9rem;
+        }
+        .success-msg {
+            color: #1e7a44;
+            background: #e1f7e3;
+            padding: 10px 16px;
+            border-radius: 60px;
+        }
+        .tiny-note {
+            font-size: 0.8rem;
+            color: #7a8b9f;
+            margin-top: 5px;
+        }
+        .search-box {
+            margin: 15px 0;
+        }
+        .word-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .word-table th {
+            background: #1e3c5c;
+            color: white;
+            padding: 12px;
+            border-radius: 20px 20px 0 0;
+        }
+        .word-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e2eaf3;
+        }
+        .wrong-count-badge {
+            background: #d9534f;
+            color: white;
+            border-radius: 40px;
+            padding: 3px 10px;
+            font-size: 0.8rem;
+            margin-left: 6px;
+        }
+        .btn-sm {
+            padding: 6px 14px;
+            font-size: 0.85rem;
+            margin: 2px;
+        }
+        #backToTop {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1e3c5c;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            border: none;
+            z-index: 999;
+        }
+        .answer-preview {
+            font-size: 1.3rem;
+            margin: 10px 0;
+            padding: 8px 16px;
+            background: #f2f6fc;
+            border-radius: 20px;
+            word-break: break-all;
+            text-align: center;
+            color: #1e3c5c;
+        }
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: #f8f9fc;
+            padding: 12px;
+            border-radius: 20px;
+            margin: 10px 0;
+        }
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.95rem;
+        }
+        .example-box {
+            background: #eef3f9;
+            border-radius: 20px;
+            padding: 12px;
+            margin: 10px 0;
+            font-size: 1.2rem;
+            text-align: center;
+            color: #11324d;
+            animation: slideIn 0.3s ease-out;
+        }
+        .example-box span {
+            background: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin: 0 4px;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .section-title {
+            font-weight: 600;
+            margin: 8px 0 4px;
+            font-size: 0.9rem;
+            color: #5f738c;
+        }
+        #fixedInputArea {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            padding: 10px 12px 16px;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+            z-index: 100;
+            border-radius: 24px 24px 0 0;
+        }
+        #fixedInputArea .flex-row {
+            margin-top: 0;
+        }
+        .unit-list {
+            display: none;
+            padding-left: 15px;
+            margin-bottom: 10px;
+        }
+        .unit-list.open {
+            display: block;
+        }
+        .word-list {
+            display: none;
+            padding-left: 20px;
+            margin-top: 5px;
+        }
+        .word-list.open {
+            display: block;
+        }
+        .collapse-icon {
+            font-size: 1.2rem;
+            transition: transform 0.2s;
+        }
+        .collapse-icon.open {
+            transform: rotate(90deg);
+        }
+        .unit-card {
+            background: #f9fafc;
+            border: 1px solid #e2eaf3;
+            border-radius: 16px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+        .unit-title {
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+        .grammar-badge {
+            background: #e8daef;
+            color: #6a1b9a;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+        .create-unit-box {
+            background: #f2f6fc;
+            border-radius: 24px;
+            padding: 16px;
+            margin: 20px 0;
+        }
+        .multi-meaning-hint {
+            font-size: 0.95rem;
+            color: #6a1b9a;
+            margin-top: 5px;
+        }
+        .answer-list {
+            font-size: 1.1rem;
+            background: #f8f9fc;
+            border-radius: 20px;
+            padding: 12px;
+            margin: 10px 0;
+        }
+        #wrongActionBar button {
+            flex: 1;
+        }
+        .module-card {
+            background: #ffffff;
+            border-radius: 24px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+            border: 1px solid #eef2f7;
+        }
+        .module-card h3 {
+            margin-top: 0;
+            color: #1e3c5c;
+        }
+        /* 语法模块整体底色 */
+        .grammar-module-bg {
+            background-color: #e2eaf5;
+        }
+        .sub-tab-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            background: #f0f4f9;
+            border-radius: 40px;
+            padding: 5px;
+        }
+        .sub-tab-btn {
+            flex: 1;
+            padding: 10px 15px;
+            background: none;
+            border: none;
+            border-radius: 30px;
+            font-size: 0.95rem;
+            color: #4a5f73;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .sub-tab-btn.active {
+            background: #1e3c5c;
+            color: white;
+            box-shadow: 0 2px 8px rgba(30, 60, 92, 0.3);
+        }
+        .wrong-tab-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        .wrong-tab-btn {
+            flex: 1;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 30px;
+            background: #eef3f9;
+            color: #1e3c5c;
+            cursor: pointer;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+        .wrong-tab-btn.active {
+            background: #1e3c5c;
+            color: white;
+        }
     </style>
 </head>
 <body>
-<button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
-<h1>📗 日语学习 · 完全体</h1>
-<div class="tab-bar">
-    <button class="tab-btn active" onclick="showPage('practice')">练习</button>
-    <button class="tab-btn" onclick="showPage('wrong')">错题</button>
-    <button class="tab-btn" onclick="showPage('library')">题库</button>
-    <button class="tab-btn" onclick="showPage('sync')">同步</button>
-</div>
+    <button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+    <h1>📗 日语学习 · 完全体</h1>
+    <div class="tab-bar">
+        <button class="tab-btn active" onclick="showPage('practice')">练习</button>
+        <button class="tab-btn" onclick="showPage('wrong')">错题</button>
+        <button class="tab-btn" onclick="showPage('library')">题库</button>
+        <button class="tab-btn" onclick="showPage('sync')">同步</button>
+    </div>
 
-<div id="practice" class="page active">
-    <div class="sub-tab-bar">
-        <button class="sub-tab-btn active" onclick="setPracticeCategory('word')">单词练习</button>
-        <button class="sub-tab-btn" onclick="setPracticeCategory('grammar')">语法练习</button>
-    </div>
-    <div id="grammarDirectionBar" style="display:none;" class="sub-tab-bar">
-        <button class="sub-tab-btn" onclick="setGrammarDirection('random')">随机</button>
-        <button class="sub-tab-btn" onclick="setGrammarDirection('cn2jp')">中→日</button>
-        <button class="sub-tab-btn active" onclick="setGrammarDirection('jp2cn')">日→中</button>
-    </div>
-    <div class="flex-row" style="justify-content: space-between;">
-        <select id="practiceMode" style="width: auto; flex:2;" onchange="updateModeUI()">
-            <option value="unit">📚 单元练习</option>
-            <option value="review">📖 书本汇总</option>
-            <option value="wrong">📌 单元错题练习</option>
-            <option value="summaryWrong">📋 汇总错题练习</option>
-            <option value="verbWrong">📝 动词错题练习</option>
-            <option value="verbJudge">⚡ 自他动词判断</option>
-            <option value="all">🔤 全部单词</option>
-        </select>
-        <select id="practiceCountSelect" style="width: auto; flex:1;" onchange="changePracticeCount()">
-            <option value="10">10</option><option value="20">20</option><option value="30">30</option><option value="50">50</option><option value="100">100</option><option value="0" selected>全部</option><option value="custom">自定义</option>
-        </select>
-    </div>
-    <div id="customCountRow" style="display:none;margin:10px 0"><input type="number" id="customCountInput" min="1" max="999" placeholder="数量" value="30"><button onclick="applyCustomCount()" class="primary">应用</button></div>
-    <div id="bookUnitSelector" style="margin:15px 0;">
-        <div id="unitSelectRow" style="display:none;margin-bottom:10px;">
-            <div class="section-title">🎯 按单元精确练习</div>
-            <div class="flex-row">
-                <select id="bookSelect" style="flex:1;" onchange="loadUnitsForBook()"><option value="">选择书本</option></select>
-                <select id="unitSelect" style="flex:1;"><option value="">选择单元</option></select>
+    <div id="practice" class="page active">
+        <div class="sub-tab-bar">
+            <button class="sub-tab-btn active" onclick="setPracticeCategory('word')">单词练习</button>
+            <button class="sub-tab-btn" onclick="setPracticeCategory('grammar')">语法练习</button>
+        </div>
+        <div id="grammarDirectionBar" style="display:none;" class="sub-tab-bar">
+            <button class="sub-tab-btn" onclick="setGrammarDirection('random')">随机</button>
+            <button class="sub-tab-btn" onclick="setGrammarDirection('cn2jp')">中→日</button>
+            <button class="sub-tab-btn active" onclick="setGrammarDirection('jp2cn')">日→中</button>
+        </div>
+        <div id="wordDirectionBar" style="display:flex;" class="sub-tab-bar">
+            <button class="sub-tab-btn active" onclick="setWordDirection('cn2jp')">中→日</button>
+            <button class="sub-tab-btn" onclick="setWordDirection('jp2cn')">日→中</button>
+        </div>
+        <div class="flex-row" style="justify-content: space-between;">
+            <select id="practiceMode" style="width: auto; flex:2;" onchange="updateModeUI()">
+                <option value="unit">📚 单元练习</option>
+                <option value="review">📖 书本汇总</option>
+                <option value="wrong">📌 单元错题练习</option>
+                <option value="summaryWrong">📋 汇总错题练习</option>
+                <option value="verbWrong">📝 动词错题练习</option>
+                <option value="verbJudge">⚡ 自他动词判断</option>
+                <option value="all">🔤 全部单词</option>
+                <option value="jncnWrong">🌐 日中错题练习</option>
+            </select>
+            <select id="practiceCountSelect" style="width: auto; flex:1;" onchange="changePracticeCount()">
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="30">30</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="0" selected>全部</option>
+                <option value="custom">自定义</option>
+            </select>
+        </div>
+        <div id="customCountRow" style="display:none;margin:10px 0"><input type="number" id="customCountInput" min="1" max="999" placeholder="数量" value="30"><button onclick="applyCustomCount()" class="primary">应用</button></div>
+        <div id="bookUnitSelector" style="margin:15px 0;">
+            <div id="unitSelectRow" style="display:none;margin-bottom:10px;">
+                <div class="section-title">🎯 按单元精确练习</div>
+                <div class="flex-row">
+                    <select id="bookSelect" style="flex:1;" onchange="loadUnitsForBook()"><option value="">选择书本</option></select>
+                    <select id="unitSelect" style="flex:1;"><option value="">选择单元</option></select>
+                </div>
+            </div>
+            <div id="bookMultiRow" style="display:none;">
+                <div class="section-title">📚 按书本随机抽取（可多选）</div>
+                <div id="bookMultiSelect"></div>
             </div>
         </div>
-        <div id="bookMultiRow" style="display:none;">
-            <div class="section-title">📚 按书本随机抽取（可多选）</div>
-            <div id="bookMultiSelect"></div>
+        <button class="primary" style="width:100%;" onclick="startPractice()">▶ 开始练习</button>
+        <div class="stats-grid">
+            <div class="stat-card"><span class="stat-num" id="progressCurr">0</span>/<span id="progressTotal">0</span><br>进度</div>
+            <div class="stat-card"><span class="stat-num" id="correctRate">0</span>%<br>正确率</div>
+            <div class="stat-card"><span class="stat-num" id="totalAnswered">0</span><br>已答</div>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+        <div class="word-display" id="questionWord">请开始练习</div>
+        <div id="multiHint" class="multi-meaning-hint" style="display:none;"></div>
+        <div class="answer-preview">答案：<span id="previewText"></span></div>
+        <div id="exampleCard" style="display:none;" class="example-box"></div>
+        <div id="resultMessage" class="result-badge"></div>
+        <div id="answerListArea" class="answer-list" style="display:none;"></div>
+        <div id="fixedInputArea">
+            <form id="answerForm" onsubmit="return false;"><input type="text" id="answerInput" placeholder="输入答案，回车确认" autocomplete="off" autofocus></form>
+            <div class="flex-row" id="wrongActionBar" style="display:none;">
+                <button onclick="handleWrongKeep()">💾 保留</button>
+                <button class="warning" onclick="handleWrongRemove()">🗑️ 从错题集移除</button>
+            </div>
         </div>
     </div>
-    <button class="primary" style="width:100%;" onclick="startPractice()">▶ 开始练习</button>
-    <div class="stats-grid">
-        <div class="stat-card"><span class="stat-num" id="progressCurr">0</span>/<span id="progressTotal">0</span><br>进度</div>
-        <div class="stat-card"><span class="stat-num" id="correctRate">0</span>%<br>正确率</div>
-        <div class="stat-card"><span class="stat-num" id="totalAnswered">0</span><br>已答</div>
-    </div>
-    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
-    <div class="word-display" id="questionWord">请开始练习</div>
-    <div id="multiHint" class="multi-meaning-hint" style="display:none;"></div>
-    <div class="answer-preview">答案：<span id="previewText"></span></div>
-    <div id="exampleCard" style="display:none;" class="example-box"></div>
-    <div id="resultMessage" class="result-badge"></div>
-    <div id="answerListArea" class="answer-list" style="display:none;"></div>
-    <div id="fixedInputArea">
-        <form id="answerForm" onsubmit="return false;"><input type="text" id="answerInput" placeholder="输入答案，回车确认" autocomplete="off" autofocus></form>
-        <div class="flex-row" id="wrongActionBar" style="display:none;">
-            <button onclick="handleWrongKeep()">💾 保留</button>
-            <button class="warning" onclick="handleWrongRemove()">🗑️ 从错题集移除</button>
+
+    <div id="wrong" class="page">
+        <div class="sub-tab-bar" style="margin-bottom:15px;">
+            <button class="sub-tab-btn active" onclick="setWrongCategory('word')">单词错题</button>
+            <button class="sub-tab-btn" onclick="setWrongCategory('grammar')">语法错题</button>
+        </div>
+        <h3>❌ 错题集 <span id="wrongCount">(0)</span></h3>
+        <div id="wordWrongTabs" class="wrong-tab-bar">
+            <button class="wrong-tab-btn active" onclick="switchWrongTab('unit')" id="wrongTabUnit">单元错题</button>
+            <button class="wrong-tab-btn" onclick="switchWrongTab('summary')" id="wrongTabSummary">汇总错题</button>
+            <button class="wrong-tab-btn" onclick="switchWrongTab('verb')" id="wrongTabVerb">动词错题</button>
+            <button class="wrong-tab-btn" onclick="switchWrongTab('jncn')" id="wrongTabJncn">日中错题</button>
+        </div>
+        <div id="grammarWrongTabs" class="wrong-tab-bar" style="display:none;">
+            <button class="wrong-tab-btn active" onclick="switchWrongTab('grammarUnit')" id="wrongTabGrammarUnit">单元语法错题</button>
+            <button class="wrong-tab-btn" onclick="switchWrongTab('grammarSummary')" id="wrongTabGrammarSummary">汇总语法错题</button>
+        </div>
+        <div id="wrongListContainer">暂无错题</div>
+        <div class="flex-row" style="margin-top:20px;">
+            <button class="warning" onclick="startPracticeFromWrong()">练习当前错题</button>
+            <button class="danger" onclick="clearAllWrong()">清空当前错题</button>
         </div>
     </div>
-</div>
 
-<div id="wrong" class="page">
-    <div class="sub-tab-bar" style="margin-bottom:15px;">
-        <button class="sub-tab-btn active" onclick="setWrongCategory('word')">单词错题</button>
-        <button class="sub-tab-btn" onclick="setWrongCategory('grammar')">语法错题</button>
-    </div>
-    <h3>❌ 错题集 <span id="wrongCount">(0)</span></h3>
-    <div id="wordWrongTabs" class="wrong-tab-bar">
-        <button class="wrong-tab-btn active" onclick="switchWrongTab('unit')" id="wrongTabUnit">单元错题</button>
-        <button class="wrong-tab-btn" onclick="switchWrongTab('summary')" id="wrongTabSummary">汇总错题</button>
-        <button class="wrong-tab-btn" onclick="switchWrongTab('verb')" id="wrongTabVerb">动词错题</button>
-    </div>
-    <div id="grammarWrongTabs" class="wrong-tab-bar" style="display:none;">
-        <button class="wrong-tab-btn active" onclick="switchWrongTab('grammarUnit')" id="wrongTabGrammarUnit">单元语法错题</button>
-        <button class="wrong-tab-btn" onclick="switchWrongTab('grammarSummary')" id="wrongTabGrammarSummary">汇总语法错题</button>
-    </div>
-    <div id="wrongListContainer">暂无错题</div>
-    <div class="flex-row" style="margin-top:20px;">
-        <button class="warning" onclick="startPracticeFromWrong()">练习当前错题</button>
-        <button class="danger" onclick="clearAllWrong()">清空当前错题</button>
-    </div>
-</div>
-
-<div id="library" class="page">
-    <div class="module-card">
-        <h3>🔍 搜索</h3>
-        <div class="flex-row" style="margin-bottom:10px;">
-            <select id="searchCategory" style="width:auto;"><option value="word">单词</option><option value="grammar">语法</option></select>
-            <input type="text" id="searchWordInput" placeholder="输入中文/日文" style="flex:3;">
-            <button onclick="searchWords()" style="flex:1;">搜索</button>
-            <button onclick="clearSearch()" style="flex:1;">重置</button>
+    <div id="library" class="page">
+        <div class="module-card">
+            <h3>🔍 搜索</h3>
+            <div class="flex-row" style="margin-bottom:10px;">
+                <select id="searchCategory" style="width:auto;"><option value="word">单词</option><option value="grammar">语法</option></select>
+                <input type="text" id="searchWordInput" placeholder="输入中文/日文" style="flex:3;">
+                <button onclick="searchWords()" style="flex:1;">搜索</button>
+                <button onclick="clearSearch()" style="flex:1;">重置</button>
+            </div>
+            <div id="wordSearchResults" style="margin-top:10px;"></div>
         </div>
-        <div id="wordSearchResults" style="margin-top:10px;"></div>
-    </div>
 
-    <div class="module-card">
-        <h3 style="cursor:pointer;" onclick="toggleModuleCollapse('wordBookModule')">📚 单词书本列表 <span class="collapse-icon open" id="wordBookModuleIcon">▼</span></h3>
-        <div id="wordBookModuleContent">
-            <div id="wordBookListContainer"></div>
-            <button onclick="createNewBook('word')" class="primary" style="margin:10px 0;">+ 新建单词书本</button>
-            <div class="create-unit-box">
-                <div style="font-weight:600; margin-bottom:10px;">➕ 快速创建单词单元</div>
-                <div class="flex-row">
-                    <select id="wordUnitBookSelect" style="flex:2;"><option value="">选择所属书本</option></select>
-                    <input type="text" id="wordUnitName" placeholder="单元名称" style="flex:2;">
-                    <button onclick="addNewUnit('word')" class="primary" style="flex:1;">添加</button>
+        <div class="module-card">
+            <h3 style="cursor:pointer;" onclick="toggleModuleCollapse('wordBookModule')">📚 单词书本列表 <span class="collapse-icon open" id="wordBookModuleIcon">▼</span></h3>
+            <div id="wordBookModuleContent">
+                <div id="wordBookListContainer"></div>
+                <button onclick="createNewBook('word')" class="primary" style="margin:10px 0;">+ 新建单词书本</button>
+                <div class="create-unit-box">
+                    <div style="font-weight:600; margin-bottom:10px;">➕ 快速创建单词单元</div>
+                    <div class="flex-row">
+                        <select id="wordUnitBookSelect" style="flex:2;"><option value="">选择所属书本</option></select>
+                        <input type="text" id="wordUnitName" placeholder="单元名称" style="flex:2;">
+                        <button onclick="addNewUnit('word')" class="primary" style="flex:1;">添加</button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="module-card">
-        <h3 style="cursor:pointer;" onclick="toggleModuleCollapse('grammarBookModule')">📘 语法书本列表 <span class="collapse-icon open" id="grammarBookModuleIcon">▼</span></h3>
-        <div id="grammarBookModuleContent">
-            <div id="grammarBookListContainer"></div>
-            <button onclick="createNewBook('grammar')" class="primary" style="margin:10px 0;">+ 新建语法书本</button>
-            <div class="create-unit-box">
-                <div style="font-weight:600; margin-bottom:10px;">➕ 快速创建语法单元</div>
-                <div class="flex-row">
-                    <select id="grammarUnitBookSelect" style="flex:2;"><option value="">选择所属书本</option></select>
-                    <input type="text" id="grammarUnitName" placeholder="单元名称" style="flex:2;">
-                    <button onclick="addNewUnit('grammar')" class="primary" style="flex:1;">添加</button>
+        <div class="module-card grammar-module-bg">
+            <h3 style="cursor:pointer;" onclick="toggleModuleCollapse('grammarBookModule')">📘 语法书本列表 <span class="collapse-icon open" id="grammarBookModuleIcon">▼</span></h3>
+            <div id="grammarBookModuleContent">
+                <div id="grammarBookListContainer"></div>
+                <button onclick="createNewBook('grammar')" class="primary" style="margin:10px 0;">+ 新建语法书本</button>
+                <div class="create-unit-box">
+                    <div style="font-weight:600; margin-bottom:10px;">➕ 快速创建语法单元</div>
+                    <div class="flex-row">
+                        <select id="grammarUnitBookSelect" style="flex:2;"><option value="">选择所属书本</option></select>
+                        <input type="text" id="grammarUnitName" placeholder="单元名称" style="flex:2;">
+                        <button onclick="addNewUnit('grammar')" class="primary" style="flex:1;">添加</button>
+                    </div>
                 </div>
             </div>
         </div>
+
+        <div class="module-card">
+            <h3>📎 批量导入</h3>
+            <select id="importCategory" style="width:auto;" onchange="updateImportCategory()">
+                <option value="word">单词 (五列：中文 假名 词性 助词 短句)</option>
+                <option value="grammar">语法 (四列：中文 日语语法 例句 翻译)</option>
+            </select>
+            <select id="importBook"><option value="">选择目标书本</option></select>
+            <select id="importUnit"><option value="">选择目标单元</option></select>
+            <textarea id="importText" placeholder="按上方格式粘贴数据" rows="6"></textarea>
+            <button onclick="importWords()">导入</button>
+        </div>
     </div>
 
-    <div class="module-card">
-        <h3>📎 批量导入</h3>
-        <select id="importCategory" style="width:auto;" onchange="updateImportCategory()">
-            <option value="word">单词 (五列：中文 假名 词性 助词 短句)</option>
-            <option value="grammar">语法 (四列：中文 日语语法 例句 翻译)</option>
-        </select>
-        <select id="importBook"><option value="">选择目标书本</option></select>
-        <select id="importUnit"><option value="">选择目标单元</option></select>
-        <textarea id="importText" placeholder="按上方格式粘贴数据" rows="6"></textarea>
-        <button onclick="importWords()">导入</button>
+    <div id="sync" class="page">
+        <h3>☁️ GitHub 同步 (压缩传输)</h3>
+        <div class="sync-step"><h4>1. 配置</h4><input type="text" id="githubUser" placeholder="用户名"><input type="password" id="githubToken" placeholder="Token"><button onclick="saveGithubConfig()">保存</button><span id="configStatus"></span></div>
+        <div class="sync-step"><h4>2. Gist ID</h4><div class="flex-row"><input type="text" id="gistIdInput" style="flex:3;"><button onclick="fetchGistIdFromList()" style="flex:1;">选择Gist</button></div><button onclick="createNewGist()" class="warning" style="margin-top:10px;">创建新Gist</button></div>
+        <div class="sync-step"><h4>3. 同步</h4><div class="flex-row"><button onclick="uploadToGithub()" class="primary" style="flex:1;">⬆️ 上传</button><button onclick="downloadFromGithub()" class="primary" style="flex:1;">⬇️ 下载</button></div><div id="syncMessage" style="margin-top:15px;"></div></div>
+        <hr>
+        <h4>💾 本地备份</h4>
+        <button onclick="exportBackup()">📤 导出备份文件</button>
+        <input type="file" id="importFile" accept=".json" style="margin-top:10px;"><button onclick="importBackup()">📥 导入备份文件</button>
+        <button class="danger" style="margin-top:20px;" onclick="resetAllData()">⚠️ 清空所有数据</button>
     </div>
-</div>
 
-<div id="sync" class="page">
-    <h3>☁️ GitHub 同步 (压缩传输)</h3>
-    <div class="sync-step"><h4>1. 配置</h4><input type="text" id="githubUser" placeholder="用户名"><input type="password" id="githubToken" placeholder="Token"><button onclick="saveGithubConfig()">保存</button><span id="configStatus"></span></div>
-    <div class="sync-step"><h4>2. Gist ID</h4><div class="flex-row"><input type="text" id="gistIdInput" style="flex:3;"><button onclick="fetchGistIdFromList()" style="flex:1;">选择Gist</button></div><button onclick="createNewGist()" class="warning" style="margin-top:10px;">创建新Gist</button></div>
-    <div class="sync-step"><h4>3. 同步</h4><div class="flex-row"><button onclick="uploadToGithub()" class="primary" style="flex:1;">⬆️ 上传</button><button onclick="downloadFromGithub()" class="primary" style="flex:1;">⬇️ 下载</button></div><div id="syncMessage" style="margin-top:15px;"></div></div>
-    <hr>
-    <h4>💾 本地备份</h4>
-    <button onclick="exportBackup()">📤 导出备份文件</button>
-    <input type="file" id="importFile" accept=".json" style="margin-top:10px;"><button onclick="importBackup()">📥 导入备份文件</button>
-    <button class="danger" style="margin-top:20px;" onclick="resetAllData()">⚠️ 清空所有数据</button>
-</div>
+    <script>
+        (function() {
+            let allDecks = [];
+            let allVocabularies = [];
+            let unitWrong = [],
+                summaryWrong = [],
+                verbWrong = [];
+            let grammarUnitWrong = [],
+                grammarSummaryWrong = [];
+            let wordJnCnWrong = [];
+            let settings = { practiceCount: 0 };
+            let uploadHistory = [];
+            let currentWrongTab = 'unit';
+            let wrongCategory = 'word';
+            let practiceCategory = 'word';
+            let practiceWords = [],
+                currentIndex = 0,
+                stats = { total: 0, correct: 0, wrong: 0 };
+            let answerState = 'initial',
+                currentKanaCorrect = false,
+                isVerbMode = false;
+            let grammarDirectionMode = 'jp2cn',
+                isGrammarPractice = false;
+            let wordDirectionMode = 'cn2jp';
+            let currentMultiAnswers = [];
+            let currentPracticeMode = 'unit';
+            let pendingWrongAction = { item: null, listType: null };
+            let githubConfig = { username: '', token: '', gistId: '' };
 
-<script>
-(function() {
-    let allDecks = [];
-    let allVocabularies = [];
-    let unitWrong = [], summaryWrong = [], verbWrong = [];
-    let grammarUnitWrong = [], grammarSummaryWrong = [];
-    let settings = { practiceCount: 0 };
-    let uploadHistory = [];
-    let currentWrongTab = 'unit';
-    let wrongCategory = 'word';
-    let practiceCategory = 'word';
-    let practiceWords = [], currentIndex = 0, stats = { total:0, correct:0, wrong:0 };
-    let answerState = 'initial', currentKanaCorrect = false, isVerbMode = false;
-    let grammarDirectionMode = 'jp2cn', isGrammarPractice = false;
-    let currentMultiAnswers = [];
-    let currentPracticeMode = 'unit';
-    let pendingWrongAction = { item: null, listType: null };
-    let githubConfig = { username: '', token: '', gistId: '' };
-
-    // 自他动词判断：仅当助词列有数据时才算动词
-    function isVerb(word) {
-        return word.particle && word.particle.trim() !== '';
-    }
-    function getCurrentWrongList() {
-        if (wrongCategory === 'grammar') return currentWrongTab==='grammarUnit' ? grammarUnitWrong : grammarSummaryWrong;
-        if (currentWrongTab === 'unit') return unitWrong;
-        if (currentWrongTab === 'summary') return summaryWrong;
-        return verbWrong;
-    }
-    function isChineseMatch(input, standard) {
-        if (!standard) return input === standard;
-        const variants = standard.split('/').map(s => s.trim()).filter(Boolean);
-        return variants.includes(input);
-    }
-
-    function loadFromStorage() {
-        try {
-            allDecks = JSON.parse(localStorage.getItem('jp_decks')||'[]');
-            allVocabularies = JSON.parse(localStorage.getItem('jp_vocab')||'[]');
-            unitWrong = JSON.parse(localStorage.getItem('jp_unit_wrong')||'[]');
-            summaryWrong = JSON.parse(localStorage.getItem('jp_summary_wrong')||'[]');
-            verbWrong = JSON.parse(localStorage.getItem('jp_verb_wrong')||'[]');
-            grammarUnitWrong = JSON.parse(localStorage.getItem('jp_grammar_unit_wrong')||'[]');
-            grammarSummaryWrong = JSON.parse(localStorage.getItem('jp_grammar_summary_wrong')||'[]');
-            settings = JSON.parse(localStorage.getItem('jp_settings')||'{"practiceCount":0}');
-            uploadHistory = JSON.parse(localStorage.getItem('jp_history')||'[]');
-            const gh = localStorage.getItem('jp_github'); if(gh) githubConfig = JSON.parse(gh);
-        } catch(e){}
-        allDecks = allDecks.map(d => { if(d.type==='book' && !d.category) d.category = 'word'; return d; });
-        allVocabularies = allVocabularies.map(w => {
-            if(!w.id) w.id = Date.now()+Math.random();
-            if(!w.exampleCn) w.exampleCn = '';
-            if(!w.wordType) w.wordType = '';
-            if(!w.particle) w.particle = '';
-            if(!w.example) w.example = '';
-            if (!w.category) {
-                const unit = allDecks.find(d => d.id == w.deckId);
-                if (unit && unit.type === 'unit') {
-                    const book = allDecks.find(b => b.id == unit.parentId);
-                    w.category = book ? book.category : 'word';
-                } else {
-                    w.category = 'word';
-                }
+            function isVerb(word) {
+                return word.particle && word.particle.trim() !== '';
             }
-            return w;
-        });
-    }
-    function saveAll() {
-        localStorage.setItem('jp_decks', JSON.stringify(allDecks));
-        localStorage.setItem('jp_vocab', JSON.stringify(allVocabularies));
-        localStorage.setItem('jp_unit_wrong', JSON.stringify(unitWrong));
-        localStorage.setItem('jp_summary_wrong', JSON.stringify(summaryWrong));
-        localStorage.setItem('jp_verb_wrong', JSON.stringify(verbWrong));
-        localStorage.setItem('jp_grammar_unit_wrong', JSON.stringify(grammarUnitWrong));
-        localStorage.setItem('jp_grammar_summary_wrong', JSON.stringify(grammarSummaryWrong));
-        localStorage.setItem('jp_settings', JSON.stringify(settings));
-        localStorage.setItem('jp_history', JSON.stringify(uploadHistory));
-        localStorage.setItem('jp_github', JSON.stringify(githubConfig));
-        updateUIStats();
-    }
-    function updateUIStats() {
-        document.getElementById('wrongCount').innerText = `(${getCurrentWrongList().length})`;
-        fillAllSelects();
-        if(document.getElementById('library')) renderBookLists();
-    }
 
-    window.toggleModuleCollapse = function(moduleId) {
-        const content = document.getElementById(moduleId+'Content');
-        const icon = document.getElementById(moduleId+'Icon');
-        if (content.style.display === 'none') {
-            content.style.display = 'block';
-            icon.classList.add('open');
-        } else {
-            content.style.display = 'none';
-            icon.classList.remove('open');
-        }
-    };
+            function getCurrentWrongList() {
+                if (wrongCategory === 'grammar') return currentWrongTab === 'grammarUnit' ? grammarUnitWrong :
+                    grammarSummaryWrong;
+                if (currentWrongTab === 'unit') return unitWrong;
+                if (currentWrongTab === 'summary') return summaryWrong;
+                if (currentWrongTab === 'verb') return verbWrong;
+                if (currentWrongTab === 'jncn') return wordJnCnWrong;
+                return unitWrong;
+            }
 
-    window.setPracticeCategory = function(cat) {
-        practiceCategory = cat;
-        document.querySelectorAll('#practice .sub-tab-bar:first-child .sub-tab-btn').forEach((btn, idx) => {
-            btn.classList.toggle('active', (idx === 0 && cat === 'word') || (idx === 1 && cat === 'grammar'));
-        });
-        document.getElementById('grammarDirectionBar').style.display = cat === 'grammar' ? 'flex' : 'none';
-        updatePracticeCategory();
-    };
+            function loadFromStorage() {
+                try {
+                    allDecks = JSON.parse(localStorage.getItem('jp_decks') || '[]');
+                    allVocabularies = JSON.parse(localStorage.getItem('jp_vocab') || '[]');
+                    unitWrong = JSON.parse(localStorage.getItem('jp_unit_wrong') || '[]');
+                    summaryWrong = JSON.parse(localStorage.getItem('jp_summary_wrong') || '[]');
+                    verbWrong = JSON.parse(localStorage.getItem('jp_verb_wrong') || '[]');
+                    grammarUnitWrong = JSON.parse(localStorage.getItem('jp_grammar_unit_wrong') || '[]');
+                    grammarSummaryWrong = JSON.parse(localStorage.getItem('jp_grammar_summary_wrong') || '[]');
+                    wordJnCnWrong = JSON.parse(localStorage.getItem('jp_word_jncn_wrong') || '[]');
+                    settings = JSON.parse(localStorage.getItem('jp_settings') || '{"practiceCount":0}');
+                    uploadHistory = JSON.parse(localStorage.getItem('jp_history') || '[]');
+                    const gh = localStorage.getItem('jp_github');
+                    if (gh) githubConfig = JSON.parse(gh);
+                } catch (e) {}
+                allDecks = allDecks.map(d => { if (d.type === 'book' && !d.category) d.category = 'word'; return d; });
+                allVocabularies = allVocabularies.map(w => {
+                    if (!w.id) w.id = Date.now() + Math.random();
+                    if (!w.exampleCn) w.exampleCn = '';
+                    if (!w.wordType) w.wordType = '';
+                    if (!w.particle) w.particle = '';
+                    if (!w.example) w.example = '';
+                    if (!w.category) {
+                        const unit = allDecks.find(d => d.id == w.deckId);
+                        if (unit && unit.type === 'unit') {
+                            const book = allDecks.find(b => b.id == unit.parentId);
+                            w.category = book ? book.category : 'word';
+                        } else {
+                            w.category = 'word';
+                        }
+                    }
+                    return w;
+                });
+            }
 
-    window.setGrammarDirection = function(dir) {
-        grammarDirectionMode = dir;
-        document.querySelectorAll('#grammarDirectionBar .sub-tab-btn').forEach(btn => {
-            const val = btn.getAttribute('onclick').match(/'([^']+)'/)[1];
-            btn.classList.toggle('active', val === dir);
-        });
-    };
+            function saveAll() {
+                localStorage.setItem('jp_decks', JSON.stringify(allDecks));
+                localStorage.setItem('jp_vocab', JSON.stringify(allVocabularies));
+                localStorage.setItem('jp_unit_wrong', JSON.stringify(unitWrong));
+                localStorage.setItem('jp_summary_wrong', JSON.stringify(summaryWrong));
+                localStorage.setItem('jp_verb_wrong', JSON.stringify(verbWrong));
+                localStorage.setItem('jp_grammar_unit_wrong', JSON.stringify(grammarUnitWrong));
+                localStorage.setItem('jp_grammar_summary_wrong', JSON.stringify(grammarSummaryWrong));
+                localStorage.setItem('jp_word_jncn_wrong', JSON.stringify(wordJnCnWrong));
+                localStorage.setItem('jp_settings', JSON.stringify(settings));
+                localStorage.setItem('jp_history', JSON.stringify(uploadHistory));
+                localStorage.setItem('jp_github', JSON.stringify(githubConfig));
+                updateUIStats();
+            }
 
-    window.setWrongCategory = function(cat) {
-        wrongCategory = cat;
-        document.querySelectorAll('#wrong .sub-tab-bar .sub-tab-btn').forEach((btn, idx) => {
-            btn.classList.toggle('active', (idx === 0 && cat === 'word') || (idx === 1 && cat === 'grammar'));
-        });
-        document.getElementById('wordWrongTabs').style.display = cat === 'word' ? 'flex' : 'none';
-        document.getElementById('grammarWrongTabs').style.display = cat === 'grammar' ? 'flex' : 'none';
-        currentWrongTab = cat === 'word' ? 'unit' : 'grammarUnit';
-        updateUIStats();
-        renderWrongList();
-    };
+            function updateUIStats() {
+                document.getElementById('wrongCount').innerText = `(${getCurrentWrongList().length})`;
+                fillAllSelects();
+                if (document.getElementById('library')) renderBookLists();
+            }
 
-    window.updatePracticeCategory = function() {
-        const modeSel = document.getElementById('practiceMode');
-        if (practiceCategory === 'grammar') {
-            modeSel.innerHTML = `<option value="unit">📚 单元练习</option><option value="review">📖 书本汇总</option><option value="wrong">📌 单元错题练习</option><option value="summaryWrong">📋 汇总错题练习</option>`;
-        } else {
-            modeSel.innerHTML = `<option value="unit">📚 单元练习</option><option value="review">📖 书本汇总</option><option value="wrong">📌 单元错题练习</option><option value="summaryWrong">📋 汇总错题练习</option><option value="verbWrong">📝 动词错题练习</option><option value="verbJudge">⚡ 自他动词判断</option><option value="all">🔤 全部单词</option>`;
-        }
-        fillAllSelects();
-        updateModeUI();
-    };
+            window.toggleModuleCollapse = function(moduleId) {
+                const content = document.getElementById(moduleId + 'Content');
+                const icon = document.getElementById(moduleId + 'Icon');
+                if (content.style.display === 'none') {
+                    content.style.display = 'block';
+                    icon.classList.add('open');
+                } else {
+                    content.style.display = 'none';
+                    icon.classList.remove('open');
+                }
+            };
 
-    window.switchWrongTab = function(tab) {
-        currentWrongTab = tab;
-        document.querySelectorAll('#wordWrongTabs .wrong-tab-btn, #grammarWrongTabs .wrong-tab-btn').forEach(b => b.classList.remove('active'));
-        if (wrongCategory === 'word') {
-            document.getElementById('wrongTab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
-        } else {
-            const tabSuffix = tab.replace('grammar', '');
-            document.getElementById('wrongTabGrammar' + tabSuffix).classList.add('active');
-        }
-        updateUIStats();
-        renderWrongList();
-    };
+            window.setPracticeCategory = function(cat) {
+                practiceCategory = cat;
+                document.querySelectorAll('#practice .sub-tab-bar:first-child .sub-tab-btn').forEach((btn, idx) => {
+                    btn.classList.toggle('active', (idx === 0 && cat === 'word') || (idx === 1 && cat ===
+                        'grammar'));
+                });
+                document.getElementById('grammarDirectionBar').style.display = cat === 'grammar' ? 'flex' : 'none';
+                document.getElementById('wordDirectionBar').style.display = cat === 'word' ? 'flex' : 'none';
+                updatePracticeCategory();
+            };
 
-    function fillAllSelects() {
-        const wordBooks = allDecks.filter(d=>d.type==='book' && d.category==='word');
-        const grammarBooks = allDecks.filter(d=>d.type==='book' && d.category==='grammar');
-        const bookSelect = document.getElementById('bookSelect');
-        if (bookSelect) {
-            const books = practiceCategory === 'grammar' ? grammarBooks : wordBooks;
-            bookSelect.innerHTML = '<option value="">选择书本</option>'+books.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
-        }
-        const wSel = document.getElementById('wordUnitBookSelect'); if(wSel) wSel.innerHTML='<option value="">选择所属书本</option>'+wordBooks.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
-        const gSel = document.getElementById('grammarUnitBookSelect'); if(gSel) gSel.innerHTML='<option value="">选择所属书本</option>'+grammarBooks.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
-        updateImportSelects();
-        if(document.getElementById('unitSelect')) loadUnitsForBook();
-        renderBookMultiSelect();
-    }
-    function renderBookMultiSelect() {
-        const c = document.getElementById('bookMultiSelect'); if(!c) return;
-        const books = practiceCategory === 'grammar' ? allDecks.filter(d=>d.type==='book'&&d.category==='grammar') : allDecks.filter(d=>d.type==='book'&&d.category==='word');
-        c.innerHTML = books.length===0 ? '<p>暂无书本</p>' : '<div class="checkbox-group">'+books.map(b=>`<label><input type="checkbox" value="${b.id}" class="book-check"> ${b.name}</label>`).join('')+'</div>';
-    }
-    window.loadUnitsForBook = function() {
-        const bookId = document.getElementById('bookSelect')?.value;
-        const sel = document.getElementById('unitSelect'); if(!sel) return;
-        const units = allDecks.filter(d=>d.type==='unit'&&d.parentId==bookId);
-        sel.innerHTML = '<option value="">选择单元</option>'+units.map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
-    };
-    window.updateImportCategory = function() {
-        updateImportSelects();
-        document.getElementById('importText').placeholder = document.getElementById('importCategory').value==='word' ? '中文 假名 词性 助词 短句' : '中文 日语语法 例句 翻译';
-    };
-    function updateImportSelects() {
-        const cat = document.getElementById('importCategory').value;
-        const books = allDecks.filter(d=>d.type==='book' && d.category===cat);
-        document.getElementById('importBook').innerHTML = '<option value="">选择目标书本</option>'+books.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
-        document.getElementById('importUnit').innerHTML = '<option value="">先选书本</option>';
-    }
-    window.updateImportUnits = function() {
-        const bookId = document.getElementById('importBook').value;
-        const units = allDecks.filter(d=>d.type==='unit'&&d.parentId==bookId);
-        document.getElementById('importUnit').innerHTML = '<option value="">选择目标单元</option>'+units.map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
-    };
-    document.getElementById('importBook').addEventListener('change', updateImportUnits);
+            window.setGrammarDirection = function(dir) {
+                grammarDirectionMode = dir;
+                document.querySelectorAll('#grammarDirectionBar .sub-tab-btn').forEach(btn => {
+                    const val = btn.getAttribute('onclick').match(/'([^']+)'/)[1];
+                    btn.classList.toggle('active', val === dir);
+                });
+            };
 
-    window.showPage = function(pid) {
-        document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-        document.getElementById(pid).classList.add('active');
-        event.target.classList.add('active');
-        if(pid==='library') { renderBookLists(); clearSearch(); updateImportSelects(); }
-        if(pid==='wrong') renderWrongList();
-        if(pid==='sync') fillGithubConfigToUI();
-    };
+            window.setWordDirection = function(dir) {
+                wordDirectionMode = dir;
+                document.querySelectorAll('#wordDirectionBar .sub-tab-btn').forEach(btn => {
+                    const val = btn.getAttribute('onclick').match(/'([^']+)'/)[1];
+                    btn.classList.toggle('active', val === dir);
+                });
+            };
 
-    function renderBookLists() {
-        const wordBooks = allDecks.filter(d=>d.type==='book' && d.category==='word');
-        const grammarBooks = allDecks.filter(d=>d.type==='book' && d.category==='grammar');
-        renderBookCategory('wordBookListContainer', wordBooks, 'word');
-        renderBookCategory('grammarBookListContainer', grammarBooks, 'grammar');
-    }
-    function renderBookCategory(containerId, books, type) {
-        const container = document.getElementById(containerId);
-        if(!books.length) { container.innerHTML = '<p>暂无书本</p>'; return; }
-        let html = '';
-        books.forEach(b => {
-            const units = allDecks.filter(d=>d.type==='unit'&&d.parentId==b.id);
-            const count = allVocabularies.filter(v=>v.category===type && units.some(u=>u.id==v.deckId)).length;
-            html += `<div class="deck-card" data-book-id="${b.id}" onclick="toggleUnitList('${b.id}')">
-                <div class="deck-title"><span>📘 ${b.name} <span class="deck-meta">(单元 ${units.length} · ${count})</span></span><span class="collapse-icon" id="icon-${b.id}">▶</span></div>
-                <div class="unit-list" id="units-${b.id}">
-                    ${units.map(u => {
-                        const wc = allVocabularies.filter(v=>v.deckId==u.id && v.category===type).length;
-                        return `<div class="unit-card" onclick="event.stopPropagation();toggleWordList('${u.id}','${type}')">
-                            <div class="unit-title"><span>📖 ${u.name} (${wc}) <span class="collapse-icon" id="word-icon-${u.id}">▶</span></span>
-                            <span><button class="btn-sm" onclick="event.stopPropagation();editDeck('${u.id}')">编辑</button><button class="btn-sm danger" onclick="event.stopPropagation();deleteDeck('${u.id}')">删除</button></span></div>
-                            <div class="word-list" id="words-${u.id}"></div>
+            window.setWrongCategory = function(cat) {
+                wrongCategory = cat;
+                document.querySelectorAll('#wrong .sub-tab-bar .sub-tab-btn').forEach((btn, idx) => {
+                    btn.classList.toggle('active', (idx === 0 && cat === 'word') || (idx === 1 && cat ===
+                        'grammar'));
+                });
+                document.getElementById('wordWrongTabs').style.display = cat === 'word' ? 'flex' : 'none';
+                document.getElementById('grammarWrongTabs').style.display = cat === 'grammar' ? 'flex' : 'none';
+                currentWrongTab = cat === 'word' ? 'unit' : 'grammarUnit';
+                updateUIStats();
+                renderWrongList();
+            };
+
+            window.updatePracticeCategory = function() {
+                const modeSel = document.getElementById('practiceMode');
+                if (practiceCategory === 'grammar') {
+                    modeSel.innerHTML =
+                        `<option value="unit">📚 单元练习</option><option value="review">📖 书本汇总</option><option value="wrong">📌 单元错题练习</option><option value="summaryWrong">📋 汇总错题练习</option>`;
+                } else {
+                    modeSel.innerHTML =
+                        `<option value="unit">📚 单元练习</option><option value="review">📖 书本汇总</option><option value="wrong">📌 单元错题练习</option><option value="summaryWrong">📋 汇总错题练习</option><option value="verbWrong">📝 动词错题练习</option><option value="verbJudge">⚡ 自他动词判断</option><option value="all">🔤 全部单词</option><option value="jncnWrong">🌐 日中错题练习</option>`;
+                }
+                fillAllSelects();
+                updateModeUI();
+            };
+
+            window.switchWrongTab = function(tab) {
+                currentWrongTab = tab;
+                document.querySelectorAll(
+                    '#wordWrongTabs .wrong-tab-btn, #grammarWrongTabs .wrong-tab-btn').forEach(b => b.classList
+                    .remove('active'));
+                if (wrongCategory === 'word') {
+                    const tabMap = { unit: 'Unit', summary: 'Summary', verb: 'Verb', jncn: 'Jncn' };
+                    const targetId = 'wrongTab' + (tabMap[tab] || tab.charAt(0).toUpperCase() + tab.slice(1));
+                    const btn = document.getElementById(targetId);
+                    if (btn) btn.classList.add('active');
+                } else {
+                    const tabSuffix = tab.replace('grammar', '');
+                    const btn = document.getElementById('wrongTabGrammar' + tabSuffix);
+                    if (btn) btn.classList.add('active');
+                }
+                updateUIStats();
+                renderWrongList();
+            };
+
+            function fillAllSelects() {
+                const wordBooks = allDecks.filter(d => d.type === 'book' && d.category === 'word');
+                const grammarBooks = allDecks.filter(d => d.type === 'book' && d.category === 'grammar');
+                const bookSelect = document.getElementById('bookSelect');
+                if (bookSelect) {
+                    const books = practiceCategory === 'grammar' ? grammarBooks : wordBooks;
+                    bookSelect.innerHTML = '<option value="">选择书本</option>' + books.map(b =>
+                        `<option value="${b.id}">${b.name}</option>`).join('');
+                }
+                const wSel = document.getElementById('wordUnitBookSelect');
+                if (wSel) wSel.innerHTML = '<option value="">选择所属书本</option>' + wordBooks.map(b =>
+                    `<option value="${b.id}">${b.name}</option>`).join('');
+                const gSel = document.getElementById('grammarUnitBookSelect');
+                if (gSel) gSel.innerHTML = '<option value="">选择所属书本</option>' + grammarBooks.map(b =>
+                    `<option value="${b.id}">${b.name}</option>`).join('');
+                updateImportSelects();
+                if (document.getElementById('unitSelect')) loadUnitsForBook();
+                renderBookMultiSelect();
+            }
+
+            function renderBookMultiSelect() {
+                const c = document.getElementById('bookMultiSelect');
+                if (!c) return;
+                const books = practiceCategory === 'grammar' ? allDecks.filter(d => d.type === 'book' && d.category ===
+                    'grammar') : allDecks.filter(d => d.type === 'book' && d.category === 'word');
+                c.innerHTML = books.length === 0 ? '<p>暂无书本</p>' : '<div class="checkbox-group">' + books.map(b =>
+                    `<label><input type="checkbox" value="${b.id}" class="book-check"> ${b.name}</label>`).join('') +
+                    '</div>';
+            }
+            window.loadUnitsForBook = function() {
+                const bookId = document.getElementById('bookSelect')?.value;
+                const sel = document.getElementById('unitSelect');
+                if (!sel) return;
+                const units = allDecks.filter(d => d.type === 'unit' && d.parentId == bookId);
+                sel.innerHTML = '<option value="">选择单元</option>' + units.map(u =>
+                    `<option value="${u.id}">${u.name}</option>`).join('');
+            };
+            window.updateImportCategory = function() {
+                updateImportSelects();
+                document.getElementById('importText').placeholder = document.getElementById('importCategory').value ===
+                    'word' ? '中文 假名 词性 助词 短句' : '中文 日语语法 例句 翻译';
+            };
+
+            function updateImportSelects() {
+                const cat = document.getElementById('importCategory').value;
+                const books = allDecks.filter(d => d.type === 'book' && d.category === cat);
+                document.getElementById('importBook').innerHTML = '<option value="">选择目标书本</option>' + books.map(b =>
+                    `<option value="${b.id}">${b.name}</option>`).join('');
+                document.getElementById('importUnit').innerHTML = '<option value="">先选书本</option>';
+            }
+            window.updateImportUnits = function() {
+                const bookId = document.getElementById('importBook').value;
+                const units = allDecks.filter(d => d.type === 'unit' && d.parentId == bookId);
+                document.getElementById('importUnit').innerHTML = '<option value="">选择目标单元</option>' + units.map(u =>
+                    `<option value="${u.id}">${u.name}</option>`).join('');
+            };
+            document.getElementById('importBook').addEventListener('change', updateImportUnits);
+
+            window.showPage = function(pid) {
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.getElementById(pid).classList.add('active');
+                event.target.classList.add('active');
+                if (pid === 'library') { renderBookLists();
+                    clearSearch();
+                    updateImportSelects(); }
+                if (pid === 'wrong') renderWrongList();
+                if (pid === 'sync') fillGithubConfigToUI();
+            };
+
+            function renderBookLists() {
+                const wordBooks = allDecks.filter(d => d.type === 'book' && d.category === 'word');
+                const grammarBooks = allDecks.filter(d => d.type === 'book' && d.category === 'grammar');
+                renderBookCategory('wordBookListContainer', wordBooks, 'word');
+                renderBookCategory('grammarBookListContainer', grammarBooks, 'grammar');
+            }
+
+            function renderBookCategory(containerId, books, type) {
+                const container = document.getElementById(containerId);
+                if (!books.length) { container.innerHTML = '<p>暂无书本</p>'; return; }
+                let html = '';
+                books.forEach(b => {
+                    const units = allDecks.filter(d => d.type === 'unit' && d.parentId == b.id);
+                    const count = allVocabularies.filter(v => v.category === type && units.some(u => u.id == v
+                        .deckId)).length;
+                    html +=
+                        `<div class="deck-card" data-book-id="${b.id}" onclick="toggleUnitList('${b.id}')">
+                            <div class="deck-title"><span>📘 ${b.name} <span class="deck-meta">(单元 ${units.length} · ${count})</span></span><span class="collapse-icon" id="icon-${b.id}">▶</span></div>
+                            <div class="unit-list" id="units-${b.id}">
+                                ${units.map(u => {
+                                    const wc = allVocabularies.filter(v=>v.deckId==u.id && v.category===type).length;
+                                    return `<div class="unit-card" onclick="event.stopPropagation();toggleWordList('${u.id}','${type}')">
+                                        <div class="unit-title"><span>📖 ${u.name} (${wc}) <span class="collapse-icon" id="word-icon-${u.id}">▶</span></span>
+                                        <span><button class="btn-sm" onclick="event.stopPropagation();editDeck('${u.id}')">编辑</button><button class="btn-sm danger" onclick="event.stopPropagation();deleteDeck('${u.id}')">删除</button></span></div>
+                                        <div class="word-list" id="words-${u.id}"></div>
+                                    </div>`;
+                                }).join('')}
+                            </div>
                         </div>`;
-                    }).join('')}
-                </div>
-            </div>`;
-        });
-        container.innerHTML = html;
-    }
-    window.toggleUnitList = function(bookId) {
-        const list = document.getElementById('units-'+bookId), icon = document.getElementById('icon-'+bookId);
-        if(!list) return;
-        list.classList.toggle('open'); icon.classList.toggle('open');
-    };
-    window.toggleWordList = function(unitId, type) {
-        const list = document.getElementById('words-'+unitId), icon = document.getElementById('word-icon-'+unitId);
-        if(!list) return;
-        if(list.classList.contains('open')) { list.classList.remove('open'); icon.classList.remove('open'); return; }
-        const words = allVocabularies.filter(v=>v.deckId==unitId && v.category===type);
-        let html = '<table class="word-table" style="margin-top:8px;">';
-        if(type==='word') {
-            html += '<tr><th>中文</th><th>日文</th><th>词性</th><th>助词</th><th>短句</th><th>操作</th></tr>';
-            words.forEach(w => {
-                const wt = w.wordType?`<span class="type-badge${w.wordType.includes('他')?' 他':''}">${w.wordType}</span>`:'-';
-                html += `<tr><td>${w.chinese}</td><td>${w.japanese}</td><td>${wt}</td><td>${w.particle||'-'}</td><td>${w.example||'-'}</td><td><button class="btn-sm" onclick="event.stopPropagation();editWord('${w.id}')">编辑</button><button class="btn-sm danger" onclick="event.stopPropagation();deleteWord('${w.id}')">删</button></td></tr>`;
-            });
-        } else {
-            html += '<tr><th>中文</th><th>日语语法</th><th>例句</th><th>翻译</th><th>操作</th></tr>';
-            words.forEach(w => {
-                html += `<tr><td>${w.chinese}</td><td>${w.japanese}</td><td>${w.example||'-'}</td><td>${w.exampleCn||'-'}</td><td><button class="btn-sm" onclick="event.stopPropagation();editWord('${w.id}')">编辑</button><button class="btn-sm danger" onclick="event.stopPropagation();deleteWord('${w.id}')">删</button></td></tr>`;
-            });
-        }
-        html += '</table>';
-        list.innerHTML = html;
-        list.classList.add('open'); icon.classList.add('open');
-    };
-
-    window.searchWords = function() {
-        const kw = document.getElementById('searchWordInput').value.trim().toLowerCase();
-        const cat = document.getElementById('searchCategory').value;
-        const filtered = kw ? allVocabularies.filter(v=>v.category===cat&&(v.chinese.includes(kw)||v.japanese.toLowerCase().includes(kw))) : [];
-        renderSearchResults(filtered, cat);
-    };
-    window.clearSearch = function() { document.getElementById('searchWordInput').value=''; document.getElementById('wordSearchResults').innerHTML=''; };
-    function renderSearchResults(words, cat) {
-        const cont = document.getElementById('wordSearchResults');
-        if(!words.length){ cont.innerHTML='<p>未找到</p>'; return; }
-        let html = '<table class="word-table">';
-        if(cat==='word') {
-            html += '<tr><th>中文</th><th>日文</th><th>词性</th><th>助词</th><th>短句</th><th>位置</th><th>操作</th></tr>';
-            words.forEach(w=>{
-                const deck = allDecks.find(d=>d.id==w.deckId);
-                const wt = w.wordType?`<span class="type-badge${w.wordType.includes('他')?' 他':''}">${w.wordType}</span>`:'-';
-                html += `<tr><td>${w.chinese}</td><td>${w.japanese}</td><td>${wt}</td><td>${w.particle||'-'}</td><td>${w.example||'-'}</td><td>${deck?.name||'?'}</td><td><button class="btn-sm" onclick="editWord('${w.id}')">编辑</button><button class="btn-sm danger" onclick="deleteWord('${w.id}')">删</button></td></tr>`;
-            });
-        } else {
-            html += '<tr><th>中文</th><th>日语语法</th><th>例句</th><th>翻译</th><th>位置</th><th>操作</th></tr>';
-            words.forEach(w=>{
-                const deck = allDecks.find(d=>d.id==w.deckId);
-                html += `<tr><td>${w.chinese}</td><td>${w.japanese}</td><td>${w.example||'-'}</td><td>${w.exampleCn||'-'}</td><td>${deck?.name||'?'}</td><td><button class="btn-sm" onclick="editWord('${w.id}')">编辑</button><button class="btn-sm danger" onclick="deleteWord('${w.id}')">删</button></td></tr>`;
-            });
-        }
-        html += '</table>'; cont.innerHTML = html;
-    }
-
-    function renderWrongList() {
-        const cont = document.getElementById('wrongListContainer');
-        const list = getCurrentWrongList();
-        if(!list.length){ cont.innerHTML='<p>暂无错题</p>'; return; }
-        let html = '<table class="word-table"><tr><th>中文</th><th>日文/语法</th><th>错误次数</th><th>操作</th></tr>';
-        list.forEach((ww,idx)=>{
-            html += `<tr><td>${ww.chinese}</td><td>${ww.japanese}</td><td>${ww.wrongCount||1}</td><td><button class="btn-sm" onclick="removeWrongItem(${idx})">移除</button></td></tr>`;
-        });
-        html += '</table>'; cont.innerHTML = html;
-    }
-    window.removeWrongItem = function(idx) { getCurrentWrongList().splice(idx,1); saveAll(); renderWrongList(); };
-    window.clearAllWrong = function() { if(confirm('清空当前错题？')){ if(currentWrongTab==='unit') unitWrong=[]; else if(currentWrongTab==='summary') summaryWrong=[]; else if(currentWrongTab==='verb') verbWrong=[]; else if(currentWrongTab==='grammarUnit') grammarUnitWrong=[]; else grammarSummaryWrong=[]; saveAll(); renderWrongList(); } };
-    window.startPracticeFromWrong = function() {
-        if(wrongCategory==='grammar') {
-            document.getElementById('practiceCategory').value = 'grammar';
-            document.getElementById('practiceMode').value = currentWrongTab==='grammarUnit' ? 'wrong' : 'summaryWrong';
-        } else {
-            document.getElementById('practiceCategory').value = 'word';
-            if(currentWrongTab==='unit') document.getElementById('practiceMode').value = 'wrong';
-            else if(currentWrongTab==='summary') document.getElementById('practiceMode').value = 'summaryWrong';
-            else document.getElementById('practiceMode').value = 'verbWrong';
-        }
-        updatePracticeCategory();
-        showPage('practice'); startPractice();
-    };
-
-    window.updateModeUI = function() {
-        const mode = document.getElementById('practiceMode').value;
-        const unitRow = document.getElementById('unitSelectRow'), bookRow = document.getElementById('bookMultiRow'), div = document.getElementById('bookUnitSelector');
-        unitRow.style.display='none'; bookRow.style.display='none'; div.style.display='none';
-        if(mode==='unit' || mode==='verbJudge'){
-            div.style.display='block';
-            unitRow.style.display='block';
-        }
-        if(mode==='review' || mode==='verbJudge'){
-            div.style.display='block';
-            bookRow.style.display='block';
-            renderBookMultiSelect();
-        }
-    };
-
-    function cleanWrongList(list) {
-        return list.filter(ww => allVocabularies.some(v => v.chinese === ww.chinese && v.japanese === ww.japanese));
-    }
-
-    window.startPractice = function() {
-        const mode = document.getElementById('practiceMode').value;
-        currentPracticeMode = mode;
-        isGrammarPractice = (practiceCategory === 'grammar');
-        isVerbMode = (!isGrammarPractice && (mode==='verbJudge'||mode==='verbWrong'));
-        let candidates = [];
-        const cat = isGrammarPractice ? 'grammar' : 'word';
-
-        if (mode === 'wrong') {
-            let list = isGrammarPractice ? grammarUnitWrong : unitWrong;
-            list = cleanWrongList(list);
-            if (isGrammarPractice) grammarUnitWrong = list; else unitWrong = list;
-            if (isGrammarPractice) {
-                // 语法错题：提取日语，获取全部含义，以便多义输入
-                const uniqueJp = [...new Set(list.map(ww => ww.japanese))];
-                const rawQuestions = [];
-                uniqueJp.forEach(jp => {
-                    const items = allVocabularies.filter(v => v.category === 'grammar' && v.japanese === jp);
-                    if (items.length === 0) return;
-                    const meaningMap = new Map();
-                    items.forEach(item => {
-                        const aliases = item.chinese.split('/').map(s => s.trim()).filter(Boolean);
-                        const key = aliases.sort().join('||');
-                        if (!meaningMap.has(key)) meaningMap.set(key, { aliases, items: [] });
-                        meaningMap.get(key).items.push(item);
+                });
+                container.innerHTML = html;
+            }
+            window.toggleUnitList = function(bookId) {
+                const list = document.getElementById('units-' + bookId),
+                    icon = document.getElementById('icon-' + bookId);
+                if (!list) return;
+                list.classList.toggle('open');
+                icon.classList.toggle('open');
+            };
+            window.toggleWordList = function(unitId, type) {
+                const list = document.getElementById('words-' + unitId),
+                    icon = document.getElementById('word-icon-' + unitId);
+                if (!list) return;
+                if (list.classList.contains('open')) { list.classList.remove('open');
+                    icon.classList.remove('open'); return; }
+                const words = allVocabularies.filter(v => v.deckId == unitId && v.category === type);
+                let html = '<table class="word-table" style="margin-top:8px;">';
+                if (type === 'word') {
+                    html += '<tr><th>中文</th><th>日文</th><th>词性</th><th>助词</th><th>短句</th><th>操作</th></tr>';
+                    words.forEach(w => {
+                        const wt = w.wordType ?
+                            `<span class="type-badge${w.wordType.includes('他')?' 他':''}">${w.wordType}</span>` :
+                            '-';
+                        html +=
+                            `<tr><td>${w.chinese}</td><td>${w.japanese}</td><td>${wt}</td><td>${w.particle||'-'}</td><td>${w.example||'-'}</td><td><button class="btn-sm" onclick="event.stopPropagation();editWord('${w.id}')">编辑</button><button class="btn-sm danger" onclick="event.stopPropagation();deleteWord('${w.id}')">删</button></td></tr>`;
                     });
-                    const meanings = Array.from(meaningMap.values());
-                    if (meanings.length > 1) {
-                        rawQuestions.push({
-                            type: 'multi',
-                            japanese: jp,
-                            meanings: meanings,
-                            item: meanings[0].items[0]
-                        });
-                    } else if (meanings.length === 1) {
-                        const meaning = meanings[0];
-                        let dir = grammarDirectionMode;
-                        if (dir === 'random') dir = Math.random() < 0.5 ? 'cn2jp' : 'jp2cn';
-                        rawQuestions.push({
-                            type: 'single',
-                            item: meaning.items[0],
-                            direction: dir,
-                            aliases: meaning.aliases
-                        });
-                    }
-                });
-                if (!rawQuestions.length) { alert('当前没有语法错题。'); return; }
-                for (let i = rawQuestions.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [rawQuestions[i], rawQuestions[j]] = [rawQuestions[j], rawQuestions[i]];
-                }
-                let limit = settings.practiceCount;
-                if (limit > 0 && rawQuestions.length > limit) rawQuestions.length = limit;
-                practiceWords = rawQuestions;
-            } else {
-                candidates = list.map(ww => allVocabularies.find(v => v.chinese===ww.chinese && v.japanese===ww.japanese)).filter(Boolean);
-            }
-        } else if (mode === 'summaryWrong') {
-            let list = isGrammarPractice ? grammarSummaryWrong : summaryWrong;
-            list = cleanWrongList(list);
-            if (isGrammarPractice) grammarSummaryWrong = list; else summaryWrong = list;
-            if (isGrammarPractice) {
-                const uniqueJp = [...new Set(list.map(ww => ww.japanese))];
-                const rawQuestions = [];
-                uniqueJp.forEach(jp => {
-                    const items = allVocabularies.filter(v => v.category === 'grammar' && v.japanese === jp);
-                    if (items.length === 0) return;
-                    const meaningMap = new Map();
-                    items.forEach(item => {
-                        const aliases = item.chinese.split('/').map(s => s.trim()).filter(Boolean);
-                        const key = aliases.sort().join('||');
-                        if (!meaningMap.has(key)) meaningMap.set(key, { aliases, items: [] });
-                        meaningMap.get(key).items.push(item);
+                } else {
+                    html += '<tr><th>中文</th><th>日语语法</th><th>例句</th><th>翻译</th><th>操作</th></tr>';
+                    words.forEach(w => {
+                        html +=
+                            `<tr><td>${w.chinese}</td><td>${w.japanese}</td><td>${w.example||'-'}</td><td>${w.exampleCn||'-'}</td><td><button class="btn-sm" onclick="event.stopPropagation();editWord('${w.id}')">编辑</button><button class="btn-sm danger" onclick="event.stopPropagation();deleteWord('${w.id}')">删</button></td></tr>`;
                     });
-                    const meanings = Array.from(meaningMap.values());
-                    if (meanings.length > 1) {
-                        rawQuestions.push({
-                            type: 'multi',
-                            japanese: jp,
-                            meanings: meanings,
-                            item: meanings[0].items[0]
-                        });
-                    } else if (meanings.length === 1) {
-                        const meaning = meanings[0];
-                        let dir = grammarDirectionMode;
-                        if (dir === 'random') dir = Math.random() < 0.5 ? 'cn2jp' : 'jp2cn';
-                        rawQuestions.push({
-                            type: 'single',
-                            item: meaning.items[0],
-                            direction: dir,
-                            aliases: meaning.aliases
-                        });
-                    }
-                });
-                if (!rawQuestions.length) { alert('当前没有语法错题。'); return; }
-                for (let i = rawQuestions.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [rawQuestions[i], rawQuestions[j]] = [rawQuestions[j], rawQuestions[i]];
                 }
-                let limit = settings.practiceCount;
-                if (limit > 0 && rawQuestions.length > limit) rawQuestions.length = limit;
-                practiceWords = rawQuestions;
-            } else {
-                candidates = list.map(ww => allVocabularies.find(v => v.chinese===ww.chinese && v.japanese===ww.japanese)).filter(Boolean);
-            }
-        } else if (mode === 'verbWrong') {
-            let list = verbWrong;
-            list = cleanWrongList(list);
-            verbWrong = list;
-            candidates = list.map(ww => allVocabularies.find(v => v.chinese===ww.chinese && v.japanese===ww.japanese)).filter(Boolean);
-        } else if (mode === 'verbJudge') {
-            const unitId = document.getElementById('unitSelect').value;
-            if(unitId) {
-                candidates = allVocabularies.filter(v=>String(v.deckId)===String(unitId) && isVerb(v));
-            } else {
-                const checked = Array.from(document.querySelectorAll('.book-check:checked')).map(cb=>cb.value);
-                if(!checked.length){ alert('请选择单元或勾选书本'); return; }
-                const unitIds = [];
-                checked.forEach(bid=> {
-                    allDecks.filter(d=>d.type==='unit'&&String(d.parentId)===String(bid)).forEach(u=>unitIds.push(String(u.id)));
-                });
-                if(unitIds.length === 0){ alert('所选书本下没有任何单元'); return; }
-                candidates = allVocabularies.filter(v=>unitIds.includes(String(v.deckId)) && isVerb(v));
-            }
-        } else if (mode === 'all') {
-            candidates = allVocabularies.filter(v=>v.category===cat);
-        } else if (mode === 'unit') {
-            const unitId = document.getElementById('unitSelect').value;
-            if(!unitId){ alert('请选择单元'); return; }
-            candidates = allVocabularies.filter(v=>String(v.deckId)===String(unitId)&&v.category===cat);
-        } else if (mode === 'review') {
-            const checked = Array.from(document.querySelectorAll('.book-check:checked')).map(cb=>cb.value);
-            if(!checked.length){ alert('请至少勾选一个书本'); return; }
-            const unitIds = [];
-            checked.forEach(bid => {
-                allDecks.filter(d=>d.type==='unit' && String(d.parentId)===String(bid)).forEach(u => unitIds.push(String(u.id)));
-            });
-            if(unitIds.length === 0){ alert('所选书本下没有任何单元'); return; }
-            candidates = allVocabularies.filter(v=>unitIds.includes(String(v.deckId)) && v.category===cat);
-        }
+                html += '</table>';
+                list.innerHTML = html;
+                list.classList.add('open');
+                icon.classList.add('open');
+            };
 
-        if (!practiceWords && !candidates.length) {
-            alert(`当前范围内没有${isGrammarPractice?'语法':'单词'}。`);
-            return;
-        }
+            window.searchWords = function() {
+                const kw = document.getElementById('searchWordInput').value.trim().toLowerCase();
+                const cat = document.getElementById('searchCategory').value;
+                const filtered = kw ? allVocabularies.filter(v => v.category === cat && (v.chinese.includes(kw) || v
+                    .japanese.toLowerCase().includes(kw))) : [];
+                renderSearchResults(filtered, cat);
+            };
+            window.clearSearch = function() { document.getElementById('searchWordInput').value = '';
+                document.getElementById('wordSearchResults').innerHTML = ''; };
 
-        if (!isGrammarPractice || (mode !== 'wrong' && mode !== 'summaryWrong')) {
-            if (!practiceWords) {
-                for (let i = candidates.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
-                }
-                let limit = settings.practiceCount;
-                if (limit > 0 && candidates.length > limit) candidates = candidates.slice(0, limit);
-                practiceWords = candidates.map(item => ({ type: 'single', item, direction: 'cn2jp' }));
-            }
-        }
-
-        if (!practiceWords || practiceWords.length === 0) {
-            alert('没有可练习的内容。');
-            return;
-        }
-
-        currentIndex = 0;
-        stats = { total: practiceWords.length, correct: 0, wrong: 0 };
-        answerState = 'initial';
-        pendingWrongAction = { item: null, listType: null };
-        saveAll();
-        showQuestion();
-    };
-
-    function scrollToElement(el) { if(el) setTimeout(()=> el.scrollIntoView({behavior:'smooth',block:'center'}), 100); }
-    function scrollToQuestion() { scrollToElement(document.getElementById('questionWord')); }
-    function scrollToResult() { scrollToElement(document.getElementById('resultMessage')); }
-
-    function showQuestion() {
-        if (!practiceWords.length || currentIndex >= practiceWords.length) {
-            document.getElementById('questionWord').innerHTML = '无单词';
-            return;
-        }
-        const question = practiceWords[currentIndex];
-        document.getElementById('exampleCard').style.display = 'none';
-        document.getElementById('resultMessage').innerHTML = '';
-        document.getElementById('previewText').innerText = '';
-        document.getElementById('multiHint').style.display = 'none';
-        document.getElementById('answerListArea').style.display = 'none';
-        currentMultiAnswers = [];
-        answerState = 'initial';
-        currentKanaCorrect = false;
-        document.getElementById('wrongActionBar').style.display = 'none';
-        document.getElementById('answerInput').disabled = false;
-
-        if (question.type === 'multi') {
-            document.getElementById('questionWord').innerHTML = question.japanese;
-            document.getElementById('multiHint').innerHTML = `该语法有 <b>${question.meanings.length}</b> 个含义，请逐个输入`;
-            document.getElementById('multiHint').style.display = 'block';
-            document.getElementById('answerInput').placeholder = '输入其中一个中文含义';
-            answerState = 'multiMeaning';
-        } else {
-            const word = question.item;
-            if (isGrammarPractice) {
-                if (question.direction === 'cn2jp') {
-                    document.getElementById('questionWord').innerHTML = word.chinese;
-                    document.getElementById('answerInput').placeholder = '输入日语语法';
+            function renderSearchResults(words, cat) {
+                const cont = document.getElementById('wordSearchResults');
+                if (!words.length) { cont.innerHTML = '<p>未找到</p>'; return; }
+                let html = '<table class="word-table">';
+                if (cat === 'word') {
+                    html += '<tr><th>中文</th><th>日文</th><th>词性</th><th>助词</th><th>短句</th><th>位置</th><th>操作</th></tr>';
+                    words.forEach(w => {
+                        const deck = allDecks.find(d => d.id == w.deckId);
+                        const wt = w.wordType ?
+                            `<span class="type-badge${w.wordType.includes('他')?' 他':''}">${w.wordType}</span>` :
+                            '-';
+                        html +=
+                            `<tr><td>${w.chinese}</td><td>${w.japanese}</td><td>${wt}</td><td>${w.particle||'-'}</td><td>${w.example||'-'}</td><td>${deck?.name||'?'}</td><td><button class="btn-sm" onclick="editWord('${w.id}')">编辑</button><button class="btn-sm danger" onclick="deleteWord('${w.id}')">删</button></td></tr>`;
+                    });
                 } else {
-                    document.getElementById('questionWord').innerHTML = word.japanese;
-                    document.getElementById('answerInput').placeholder = '输入中文意思';
+                    html += '<tr><th>中文</th><th>日语语法</th><th>例句</th><th>翻译</th><th>位置</th><th>操作</th></tr>';
+                    words.forEach(w => {
+                        const deck = allDecks.find(d => d.id == w.deckId);
+                        html +=
+                            `<tr><td>${w.chinese}</td><td>${w.japanese}</td><td>${w.example||'-'}</td><td>${w.exampleCn||'-'}</td><td>${deck?.name||'?'}</td><td><button class="btn-sm" onclick="editWord('${w.id}')">编辑</button><button class="btn-sm danger" onclick="deleteWord('${w.id}')">删</button></td></tr>`;
+                    });
                 }
-            } else {
-                let html = word.chinese;
-                if (!isVerbMode && word.wordType) html += ` <span class="type-badge${word.wordType.includes('他')?' 他':''}">${word.wordType}</span>`;
-                document.getElementById('questionWord').innerHTML = html;
-                document.getElementById('answerInput').placeholder = '输入日语假名';
+                html += '</table>';
+                cont.innerHTML = html;
             }
-        }
-        document.getElementById('answerInput').value = '';
-        updateProgress();
-        document.getElementById('answerInput').focus();
-        if (window.innerWidth <= 768) scrollToQuestion();
-    }
 
-    function updateProgress() {
-        const total = practiceWords.length;
-        const answered = stats.correct + stats.wrong;
-        document.getElementById('progressCurr').innerText = currentIndex + 1;
-        document.getElementById('progressTotal').innerText = total;
-        document.getElementById('totalAnswered').innerText = answered;
-        document.getElementById('correctRate').innerText = answered ? Math.round(stats.correct / answered * 100) : 0;
-        document.getElementById('progressFill').style.width = (total ? ((currentIndex + 1) / total * 100) : 0) + '%';
-    }
-
-    function renderMultiAnswers() {
-        const area = document.getElementById('answerListArea');
-        if (currentMultiAnswers.length === 0) {
-            area.style.display = 'none';
-            return;
-        }
-        area.style.display = 'block';
-        area.innerHTML = '<strong>已输入含义：</strong><br>' + currentMultiAnswers.map((a, i) => `${i+1}. ${a}`).join('<br>');
-    }
-
-    function removeFromWrongList(item, listType) {
-        let target;
-        switch(listType) {
-            case 'unit': target = unitWrong; break;
-            case 'summary': target = summaryWrong; break;
-            case 'verb': target = verbWrong; break;
-            case 'grammarUnit': target = grammarUnitWrong; break;
-            case 'grammarSummary': target = grammarSummaryWrong; break;
-            default: return;
-        }
-        const idx = target.findIndex(w => w.chinese === item.chinese && w.japanese === item.japanese);
-        if (idx > -1) {
-            target.splice(idx, 1);
-            saveAll();
-        }
-    }
-
-    function handleCorrectForWrongPractice(item) {
-        if (currentPracticeMode === 'wrong') {
-            removeFromWrongList(item, isGrammarPractice ? 'grammarUnit' : 'unit');
-            return true;
-        } else if (currentPracticeMode === 'verbWrong') {
-            removeFromWrongList(item, 'verb');
-            return true;
-        } else if (currentPracticeMode === 'summaryWrong') {
-            pendingWrongAction.item = item;
-            pendingWrongAction.listType = isGrammarPractice ? 'grammarSummary' : 'summary';
-            document.getElementById('wrongActionBar').style.display = 'flex';
-            document.getElementById('answerInput').disabled = true;
-            answerState = 'pendingChoice';
-            return false;
-        }
-        return true;
-    }
-
-    window.handleWrongRemove = function() {
-        if (pendingWrongAction.item) {
-            removeFromWrongList(pendingWrongAction.item, pendingWrongAction.listType);
-        }
-        document.getElementById('answerInput').disabled = false;
-        document.getElementById('wrongActionBar').style.display = 'none';
-        pendingWrongAction = { item: null, listType: null };
-        answerState = 'completed';
-        nextWord();
-    };
-
-    window.handleWrongKeep = function() {
-        document.getElementById('answerInput').disabled = false;
-        document.getElementById('wrongActionBar').style.display = 'none';
-        pendingWrongAction = { item: null, listType: null };
-        answerState = 'completed';
-        nextWord();
-    };
-
-    window.checkAnswer = function() {
-        const question = practiceWords[currentIndex];
-        if (!question) return;
-        const ans = document.getElementById('answerInput').value.trim();
-        if (!ans) return;
-
-        if (question.type === 'multi') {
-            if (currentMultiAnswers.includes(ans)) {
-                document.getElementById('resultMessage').className = 'result-badge wrong';
-                document.getElementById('resultMessage').innerText = '⚠️ 这个含义已经输入过了';
-                document.getElementById('answerInput').value = '';
-                scrollToResult();
-                return;
+            function renderWrongList() {
+                const cont = document.getElementById('wrongListContainer');
+                const list = getCurrentWrongList();
+                if (!list.length) { cont.innerHTML = '<p>暂无错题</p>'; return; }
+                let html =
+                    '<table class="word-table"><tr><th>中文</th><th>日文/语法</th><th>错误次数</th><th>操作</th></tr>';
+                list.forEach((ww, idx) => {
+                    html +=
+                        `<tr><td>${ww.chinese}</td><td>${ww.japanese}</td><td>${ww.wrongCount||1}</td><td><button class="btn-sm" onclick="removeWrongItem(${idx})">移除</button></td></tr>`;
+                });
+                html += '</table>';
+                cont.innerHTML = html;
             }
-            currentMultiAnswers.push(ans);
-            renderMultiAnswers();
-            document.getElementById('answerInput').value = '';
-            document.getElementById('resultMessage').innerHTML = '';
-            if (currentMultiAnswers.length >= question.meanings.length) {
-                finalizeMultiAnswer(question);
-            } else {
-                document.getElementById('answerInput').focus();
-            }
-            return;
-        }
-
-        const word = question.item;
-        if (isGrammarPractice) {
-            let correct;
-            if (question.direction === 'cn2jp') {
-                correct = (ans === word.japanese);
-            } else {
-                const aliases = question.aliases || word.chinese.split('/').map(s=>s.trim());
-                correct = aliases.some(a => a === ans);
-            }
-            document.getElementById('resultMessage').className = correct ? 'result-badge correct' : 'result-badge wrong';
-            document.getElementById('resultMessage').innerText = correct ? '✓ 正确' : `✗ 错误 正确答案: ${question.direction==='cn2jp'?word.japanese:word.chinese}`;
-            if (word.example) { document.getElementById('exampleCard').innerHTML = `📖 ${word.example} ${word.exampleCn||''}`; document.getElementById('exampleCard').style.display = 'block'; }
-            if (correct) {
-                stats.correct++;
-                if (!handleCorrectForWrongPractice(word)) return;
-            } else {
-                stats.wrong++;
-                addToWrong(word);
-            }
-            answerState = 'completed';
-            updateProgress();
-            scrollToResult();
-        } else {
-            if (answerState === 'initial') {
-                const kanaOk = (ans === word.japanese);
-                currentKanaCorrect = kanaOk;
-                if (isVerbMode && isVerb(word)) {
-                    document.getElementById('previewText').innerText = kanaOk ? '✓ 假名正确，请输入助词' : '✗ 假名错误，仍需输入助词';
-                    if(word.example) { document.getElementById('exampleCard').innerHTML='📖 '+word.example.replace('___','<span>＿＿</span>'); document.getElementById('exampleCard').style.display='block'; }
-                    answerState = 'waitingParticle';
-                    document.getElementById('answerInput').value = '';
-                    document.getElementById('answerInput').placeholder = '输入助词（が/を/に）';
-                    document.getElementById('answerInput').focus();
+            window.removeWrongItem = function(idx) { getCurrentWrongList().splice(idx, 1);
+                saveAll();
+                renderWrongList(); };
+            window.clearAllWrong = function() { if (confirm('清空当前错题？')) { if (currentWrongTab === 'unit') unitWrong =
+                        []; else if (currentWrongTab === 'summary') summaryWrong = []; else if (currentWrongTab ===
+                        'verb') verbWrong = []; else if (currentWrongTab === 'grammarUnit') grammarUnitWrong = [];
+                    else if (currentWrongTab === 'grammarSummary') grammarSummaryWrong = [];
+                    else if (currentWrongTab === 'jncn') wordJnCnWrong = [];
+                    saveAll();
+                    renderWrongList(); } };
+            window.startPracticeFromWrong = function() {
+                if (wrongCategory === 'grammar') {
+                    setPracticeCategory('grammar');
+                    document.getElementById('practiceMode').value = currentWrongTab === 'grammarUnit' ? 'wrong' :
+                        'summaryWrong';
                 } else {
-                    if(kanaOk) {
-                        stats.correct++;
-                        if (!handleCorrectForWrongPractice(word)) return;
-                        document.getElementById('resultMessage').className = 'result-badge correct';
-                        document.getElementById('resultMessage').innerText = '✓ 正确';
+                    setPracticeCategory('word');
+                    if (currentWrongTab === 'unit') document.getElementById('practiceMode').value = 'wrong';
+                    else if (currentWrongTab === 'summary') document.getElementById('practiceMode').value =
+                        'summaryWrong';
+                    else if (currentWrongTab === 'verb') document.getElementById('practiceMode').value = 'verbWrong';
+                    else if (currentWrongTab === 'jncn') document.getElementById('practiceMode').value = 'jncnWrong';
+                }
+                updatePracticeCategory();
+                showPage('practice');
+                startPractice();
+            };
+
+            window.updateModeUI = function() {
+                const mode = document.getElementById('practiceMode').value;
+                const unitRow = document.getElementById('unitSelectRow'),
+                    bookRow = document.getElementById('bookMultiRow'),
+                    div = document.getElementById('bookUnitSelector');
+                unitRow.style.display = 'none';
+                bookRow.style.display = 'none';
+                div.style.display = 'none';
+                if (mode === 'unit' || mode === 'verbJudge') {
+                    div.style.display = 'block';
+                    unitRow.style.display = 'block';
+                }
+                if (mode === 'review' || mode === 'verbJudge') {
+                    div.style.display = 'block';
+                    bookRow.style.display = 'block';
+                    renderBookMultiSelect();
+                }
+            };
+
+            function cleanWrongList(list) {
+                return list.filter(ww => allVocabularies.some(v => v.chinese === ww.chinese && v.japanese === ww
+                .japanese));
+            }
+
+            window.startPractice = function() {
+                const mode = document.getElementById('practiceMode').value;
+                currentPracticeMode = mode;
+                isGrammarPractice = (practiceCategory === 'grammar');
+                isVerbMode = (!isGrammarPractice && (mode === 'verbJudge' || mode === 'verbWrong'));
+                let candidates = [];
+                const cat = isGrammarPractice ? 'grammar' : 'word';
+                practiceWords = null;
+
+                if (mode === 'wrong') {
+                    let list = isGrammarPractice ? grammarUnitWrong : unitWrong;
+                    list = cleanWrongList(list);
+                    if (isGrammarPractice) grammarUnitWrong = list;
+                    else unitWrong = list;
+                    if (isGrammarPractice) {
+                        const uniqueJp = [...new Set(list.map(ww => ww.japanese))];
+                        const rawQuestions = [];
+                        uniqueJp.forEach(jp => {
+                            const items = allVocabularies.filter(v => v.category === 'grammar' && v
+                                .japanese === jp);
+                            if (items.length === 0) return;
+                            const meaningMap = new Map();
+                            items.forEach(item => {
+                                const aliases = item.chinese.split('/').map(s => s.trim()).filter(
+                                    Boolean);
+                                const key = aliases.sort().join('||');
+                                if (!meaningMap.has(key)) meaningMap.set(key, { aliases,
+                                    items: [] });
+                                meaningMap.get(key).items.push(item);
+                            });
+                            const meanings = Array.from(meaningMap.values());
+                            if (meanings.length > 1) {
+                                if (grammarDirectionMode === 'cn2jp') {
+                                    meanings.forEach(meaning => {
+                                        meaning.items.forEach(it => {
+                                            rawQuestions.push({ type: 'single',
+                                                item: it, direction: 'cn2jp',
+                                                aliases: meaning.aliases });
+                                        });
+                                    });
+                                } else {
+                                    rawQuestions.push({ type: 'multi', japanese: jp,
+                                        meanings: meanings, item: meanings[0].items[
+                                            0] });
+                                }
+                            } else if (meanings.length === 1) {
+                                const meaning = meanings[0];
+                                let dir = grammarDirectionMode;
+                                if (dir === 'random') dir = Math.random() < 0.5 ? 'cn2jp' : 'jp2cn';
+                                rawQuestions.push({ type: 'single', item: meaning.items[0],
+                                    direction: dir, aliases: meaning.aliases });
+                            }
+                        });
+                        if (!rawQuestions.length) { alert('当前没有语法错题。'); return; }
+                        for (let i = rawQuestions.length - 1; i > 0; i--) { const j = Math.floor(Math.random() *
+                                (i + 1));
+                            [rawQuestions[i], rawQuestions[j]] = [rawQuestions[j], rawQuestions[i]]; }
+                        let limit = settings.practiceCount;
+                        if (limit > 0 && rawQuestions.length > limit) rawQuestions.length = limit;
+                        practiceWords = rawQuestions;
                     } else {
-                        stats.wrong++;
-                        document.getElementById('resultMessage').className = 'result-badge wrong';
-                        document.getElementById('resultMessage').innerText = `✗ 错误 正确答案: ${word.japanese}`;
-                        addToWrong(word);
+                        candidates = list.map(ww => allVocabularies.find(v => v.chinese === ww.chinese && v
+                            .japanese === ww.japanese)).filter(Boolean);
                     }
+                } else if (mode === 'summaryWrong') {
+                    let list = isGrammarPractice ? grammarSummaryWrong : summaryWrong;
+                    list = cleanWrongList(list);
+                    if (isGrammarPractice) grammarSummaryWrong = list;
+                    else summaryWrong = list;
+                    if (isGrammarPractice) {
+                        const uniqueJp = [...new Set(list.map(ww => ww.japanese))];
+                        const rawQuestions = [];
+                        uniqueJp.forEach(jp => {
+                            const items = allVocabularies.filter(v => v.category === 'grammar' && v
+                                .japanese === jp);
+                            if (items.length === 0) return;
+                            const meaningMap = new Map();
+                            items.forEach(item => {
+                                const aliases = item.chinese.split('/').map(s => s.trim()).filter(
+                                    Boolean);
+                                const key = aliases.sort().join('||');
+                                if (!meaningMap.has(key)) meaningMap.set(key, { aliases,
+                                    items: [] });
+                                meaningMap.get(key).items.push(item);
+                            });
+                            const meanings = Array.from(meaningMap.values());
+                            if (meanings.length > 1) {
+                                if (grammarDirectionMode === 'cn2jp') {
+                                    meanings.forEach(meaning => {
+                                        meaning.items.forEach(it => {
+                                            rawQuestions.push({ type: 'single',
+                                                item: it, direction: 'cn2jp',
+                                                aliases: meaning.aliases });
+                                        });
+                                    });
+                                } else {
+                                    rawQuestions.push({ type: 'multi', japanese: jp,
+                                        meanings: meanings, item: meanings[0].items[
+                                            0] });
+                                }
+                            } else if (meanings.length === 1) {
+                                const meaning = meanings[0];
+                                let dir = grammarDirectionMode;
+                                if (dir === 'random') dir = Math.random() < 0.5 ? 'cn2jp' : 'jp2cn';
+                                rawQuestions.push({ type: 'single', item: meaning.items[0],
+                                    direction: dir, aliases: meaning.aliases });
+                            }
+                        });
+                        if (!rawQuestions.length) { alert('当前没有语法错题。'); return; }
+                        for (let i = rawQuestions.length - 1; i > 0; i--) { const j = Math.floor(Math.random() *
+                                (i + 1));
+                            [rawQuestions[i], rawQuestions[j]] = [rawQuestions[j], rawQuestions[i]]; }
+                        let limit = settings.practiceCount;
+                        if (limit > 0 && rawQuestions.length > limit) rawQuestions.length = limit;
+                        practiceWords = rawQuestions;
+                    } else {
+                        candidates = list.map(ww => allVocabularies.find(v => v.chinese === ww.chinese && v
+                            .japanese === ww.japanese)).filter(Boolean);
+                    }
+                } else if (mode === 'verbWrong') {
+                    let list = verbWrong;
+                    list = cleanWrongList(list);
+                    verbWrong = list;
+                    candidates = list.map(ww => allVocabularies.find(v => v.chinese === ww.chinese && v.japanese ===
+                        ww.japanese)).filter(Boolean);
+                } else if (mode === 'jncnWrong') {
+                    let list = wordJnCnWrong;
+                    list = cleanWrongList(list);
+                    wordJnCnWrong = list;
+                    candidates = list.map(ww => allVocabularies.find(v => v.chinese === ww.chinese && v.japanese ===
+                        ww.japanese)).filter(Boolean);
+                } else if (mode === 'verbJudge') {
+                    const unitId = document.getElementById('unitSelect').value;
+                    if (unitId) {
+                        candidates = allVocabularies.filter(v => String(v.deckId) === String(unitId) && isVerb(v));
+                    } else {
+                        const checked = Array.from(document.querySelectorAll('.book-check:checked')).map(cb => cb
+                            .value);
+                        if (!checked.length) { alert('请选择单元或勾选书本'); return; }
+                        const unitIds = [];
+                        checked.forEach(bid => { allDecks.filter(d => d.type === 'unit' && String(d.parentId) ===
+                                String(bid)).forEach(u => unitIds.push(String(u.id))); });
+                        if (unitIds.length === 0) { alert('所选书本下没有任何单元'); return; }
+                        candidates = allVocabularies.filter(v => unitIds.includes(String(v.deckId)) && isVerb(v));
+                    }
+                } else if (mode === 'all') {
+                    candidates = allVocabularies.filter(v => v.category === cat);
+                } else if (mode === 'unit') {
+                    const unitId = document.getElementById('unitSelect').value;
+                    if (!unitId) { alert('请选择单元'); return; }
+                    candidates = allVocabularies.filter(v => String(v.deckId) === String(unitId) && v.category ===
+                    cat);
+                } else if (mode === 'review') {
+                    const checked = Array.from(document.querySelectorAll('.book-check:checked')).map(cb => cb.value);
+                    if (!checked.length) { alert('请至少勾选一个书本'); return; }
+                    const unitIds = [];
+                    checked.forEach(bid => {
+                        allDecks.filter(d => d.type === 'unit' && String(d.parentId) === String(bid)).forEach(
+                            u => unitIds.push(String(u.id)));
+                    });
+                    if (unitIds.length === 0) { alert('所选书本下没有任何单元'); return; }
+                    candidates = allVocabularies.filter(v => unitIds.includes(String(v.deckId)) && v.category ===
+                    cat);
+                }
+
+                if (!practiceWords && !candidates.length) {
+                    alert(`当前范围内没有${isGrammarPractice?'语法':'单词'}。`);
+                    return;
+                }
+
+                if (!practiceWords) {
+                    const direction = (isGrammarPractice) ? grammarDirectionMode :
+                        (mode === 'jncnWrong' ? 'jp2cn' : wordDirectionMode);
+                    for (let i = candidates.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));
+                        [candidates[i], candidates[j]] = [candidates[j], candidates[i]]; }
+                    let limit = settings.practiceCount;
+                    if (limit > 0 && candidates.length > limit) candidates = candidates.slice(0, limit);
+                    practiceWords = candidates.map(item => {
+                        let dir = direction;
+                        if (dir === 'random') dir = Math.random() < 0.5 ? 'cn2jp' : 'jp2cn';
+                        return { type: 'single', item, direction: dir };
+                    });
+                }
+
+                if (!practiceWords || practiceWords.length === 0) {
+                    alert('没有可练习的内容。');
+                    return;
+                }
+
+                currentIndex = 0;
+                stats = { total: practiceWords.length, correct: 0, wrong: 0 };
+                answerState = 'initial';
+                pendingWrongAction = { item: null, listType: null };
+                saveAll();
+                showQuestion();
+            };
+
+            function scrollToElement(el) { if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth',
+                    block: 'center' }), 100); }
+
+            function scrollToQuestion() { scrollToElement(document.getElementById('questionWord')); }
+
+            function scrollToResult() { scrollToElement(document.getElementById('resultMessage')); }
+
+            function showQuestion() {
+                if (!practiceWords.length || currentIndex >= practiceWords.length) {
+                    document.getElementById('questionWord').innerHTML = '无单词';
+                    return;
+                }
+                const question = practiceWords[currentIndex];
+                document.getElementById('exampleCard').style.display = 'none';
+                document.getElementById('resultMessage').innerHTML = '';
+                document.getElementById('previewText').innerText = '';
+                document.getElementById('multiHint').style.display = 'none';
+                document.getElementById('answerListArea').style.display = 'none';
+                currentMultiAnswers = [];
+                answerState = 'initial';
+                currentKanaCorrect = false;
+                document.getElementById('wrongActionBar').style.display = 'none';
+                document.getElementById('answerInput').disabled = false;
+
+                if (question.type === 'multi') {
+                    document.getElementById('questionWord').innerHTML = question.japanese;
+                    document.getElementById('multiHint').innerHTML =
+                        `该语法有 <b>${question.meanings.length}</b> 个含义，请逐个输入`;
+                    document.getElementById('multiHint').style.display = 'block';
+                    document.getElementById('answerInput').placeholder = '输入其中一个中文含义';
+                    answerState = 'multiMeaning';
+                } else {
+                    const word = question.item;
+                    const isJp2Cn = question.direction === 'jp2cn';
+                    if (isGrammarPractice) {
+                        if (isJp2Cn) {
+                            document.getElementById('questionWord').innerHTML = word.japanese;
+                            document.getElementById('answerInput').placeholder = '输入中文意思';
+                        } else {
+                            document.getElementById('questionWord').innerHTML = word.chinese;
+                            document.getElementById('answerInput').placeholder = '输入日语语法';
+                        }
+                    } else {
+                        if (isJp2Cn) {
+                            document.getElementById('questionWord').innerHTML = word.japanese;
+                            document.getElementById('answerInput').placeholder = '输入中文意思';
+                        } else {
+                            let html = word.chinese;
+                            if (!isVerbMode && word.wordType) html +=
+                                ` <span class="type-badge${word.wordType.includes('他')?' 他':''}">${word.wordType}</span>`;
+                            document.getElementById('questionWord').innerHTML = html;
+                            document.getElementById('answerInput').placeholder = '输入日语假名';
+                        }
+                    }
+                }
+                document.getElementById('answerInput').value = '';
+                updateProgress();
+                document.getElementById('answerInput').focus();
+                if (window.innerWidth <= 768) scrollToQuestion();
+            }
+
+            function updateProgress() {
+                const total = practiceWords.length;
+                const answered = stats.correct + stats.wrong;
+                document.getElementById('progressCurr').innerText = currentIndex + 1;
+                document.getElementById('progressTotal').innerText = total;
+                document.getElementById('totalAnswered').innerText = answered;
+                document.getElementById('correctRate').innerText = answered ? Math.round(stats.correct / answered *
+                    100) : 0;
+                document.getElementById('progressFill').style.width = (total ? ((currentIndex + 1) / total * 100) :
+                    0) + '%';
+            }
+
+            function renderMultiAnswers() {
+                const area = document.getElementById('answerListArea');
+                if (currentMultiAnswers.length === 0) { area.style.display = 'none'; return; }
+                area.style.display = 'block';
+                area.innerHTML = '<strong>已输入含义：</strong><br>' + currentMultiAnswers.map((a, i) => `${i+1}. ${a}`)
+                    .join('<br>');
+            }
+
+            function removeFromWrongList(item, listType) {
+                let target;
+                switch (listType) {
+                    case 'unit':
+                        target = unitWrong;
+                        break;
+                    case 'summary':
+                        target = summaryWrong;
+                        break;
+                    case 'verb':
+                        target = verbWrong;
+                        break;
+                    case 'grammarUnit':
+                        target = grammarUnitWrong;
+                        break;
+                    case 'grammarSummary':
+                        target = grammarSummaryWrong;
+                        break;
+                    case 'jncn':
+                        target = wordJnCnWrong;
+                        break;
+                    default:
+                        return;
+                }
+                const idx = target.findIndex(w => w.chinese === item.chinese && w.japanese === item.japanese);
+                if (idx > -1) { target.splice(idx, 1);
+                    saveAll(); }
+            }
+
+            function handleCorrectForWrongPractice(item) {
+                if (currentPracticeMode === 'wrong') {
+                    removeFromWrongList(item, isGrammarPractice ? 'grammarUnit' : 'unit');
+                    return true;
+                } else if (currentPracticeMode === 'verbWrong') {
+                    removeFromWrongList(item, 'verb');
+                    return true;
+                } else if (currentPracticeMode === 'jncnWrong') {
+                    removeFromWrongList(item, 'jncn');
+                    return true;
+                } else if (currentPracticeMode === 'summaryWrong') {
+                    pendingWrongAction.item = item;
+                    pendingWrongAction.listType = isGrammarPractice ? 'grammarSummary' : 'summary';
+                    document.getElementById('wrongActionBar').style.display = 'flex';
+                    document.getElementById('answerInput').disabled = true;
+                    answerState = 'pendingChoice';
+                    return false;
+                }
+                return true;
+            }
+
+            window.handleWrongRemove = function() {
+                if (pendingWrongAction.item) { removeFromWrongList(pendingWrongAction.item, pendingWrongAction
+                    .listType); }
+                document.getElementById('answerInput').disabled = false;
+                document.getElementById('wrongActionBar').style.display = 'none';
+                pendingWrongAction = { item: null, listType: null };
+                answerState = 'completed';
+                nextWord();
+            };
+            window.handleWrongKeep = function() {
+                document.getElementById('answerInput').disabled = false;
+                document.getElementById('wrongActionBar').style.display = 'none';
+                pendingWrongAction = { item: null, listType: null };
+                answerState = 'completed';
+                nextWord();
+            };
+
+            function extractChineseMeanings(rawChinese) {
+                // 去除【】标记，然后按分隔符拆分
+                const cleaned = rawChinese.replace(/【[^】]*】/g, '').replace(/（[^）]*）/g, '');
+                return cleaned.split(/[,;，；/、]/).map(s => s.trim()).filter(Boolean);
+            }
+
+            window.checkAnswer = function() {
+                const question = practiceWords[currentIndex];
+                if (!question) return;
+                const ans = document.getElementById('answerInput').value.trim();
+                if (!ans) return;
+
+                if (question.type === 'multi') {
+                    if (currentMultiAnswers.includes(ans)) {
+                        document.getElementById('resultMessage').className = 'result-badge wrong';
+                        document.getElementById('resultMessage').innerText = '⚠️ 这个含义已经输入过了';
+                        document.getElementById('answerInput').value = '';
+                        scrollToResult();
+                        return;
+                    }
+                    currentMultiAnswers.push(ans);
+                    renderMultiAnswers();
+                    document.getElementById('answerInput').value = '';
+                    document.getElementById('resultMessage').innerHTML = '';
+                    if (currentMultiAnswers.length >= question.meanings.length) finalizeMultiAnswer(question);
+                    else document.getElementById('answerInput').focus();
+                    return;
+                }
+
+                const word = question.item;
+                const isJp2Cn = question.direction === 'jp2cn';
+                if (isGrammarPractice || isJp2Cn) {
+                    let correct;
+                    if (isJp2Cn) {
+                        const rawChinese = word.chinese;
+                        const aliases = extractChineseMeanings(rawChinese);
+                        correct = aliases.some(a => a === ans);
+                    } else {
+                        correct = (ans === word.japanese);
+                    }
+                    document.getElementById('resultMessage').className = correct ? 'result-badge correct' :
+                        'result-badge wrong';
+                    document.getElementById('resultMessage').innerText = correct ? '✓ 正确' :
+                        `✗ 错误 正确答案: ${isJp2Cn ? word.chinese : word.japanese}`;
+                    if (word.example && !isGrammarPractice) {
+                        document.getElementById('exampleCard').innerHTML = `📖 ${word.example}`;
+                        document.getElementById('exampleCard').style.display = 'block';
+                    } else if (isGrammarPractice && word.example) {
+                        document.getElementById('exampleCard').innerHTML =
+                            `📖 ${word.example} ${word.exampleCn||''}`;
+                        document.getElementById('exampleCard').style.display = 'block';
+                    }
+                    if (correct) { stats.correct++; if (!handleCorrectForWrongPractice(word)) return; } else { stats
+                            .wrong++;
+                        addToWrong(word); }
                     answerState = 'completed';
                     updateProgress();
                     scrollToResult();
-                }
-            } else if (answerState === 'waitingParticle') {
-                const correctParticle = word.particle || '';
-                const particleOk = (ans === correctParticle);
-                if(currentKanaCorrect && particleOk) {
-                    stats.correct++;
-                    if (!handleCorrectForWrongPractice(word)) return;
-                    document.getElementById('resultMessage').className = 'result-badge correct';
-                    document.getElementById('resultMessage').innerText = `✓ 正确！「${word.japanese}」${word.wordType||''}（${correctParticle}）`;
                 } else {
-                    stats.wrong++;
-                    let msg = '✗ 错误';
-                    if(!currentKanaCorrect) msg += ` 假名: ${word.japanese}`;
-                    if(!particleOk) msg += ` 助词: ${ans} (应为 ${correctParticle||'无'})`;
-                    document.getElementById('resultMessage').className = 'result-badge wrong';
-                    document.getElementById('resultMessage').innerText = msg;
-                    addToWrong(word);
+                    if (answerState === 'initial') {
+                        const kanaOk = (ans === word.japanese);
+                        currentKanaCorrect = kanaOk;
+                        if (isVerbMode && isVerb(word)) {
+                            document.getElementById('previewText').innerText = kanaOk ? '✓ 假名正确，请输入助词' :
+                                '✗ 假名错误，仍需输入助词';
+                            if (word.example) { document.getElementById('exampleCard').innerHTML = '📖 ' + word
+                                    .example.replace('___', '<span>＿＿</span>');
+                                document.getElementById('exampleCard').style.display = 'block'; }
+                            answerState = 'waitingParticle';
+                            document.getElementById('answerInput').value = '';
+                            document.getElementById('answerInput').placeholder = '输入助词（が/を/に）';
+                            document.getElementById('answerInput').focus();
+                        } else {
+                            if (kanaOk) { stats.correct++; if (!handleCorrectForWrongPractice(word)) return;
+                                document.getElementById('resultMessage').className = 'result-badge correct';
+                                document.getElementById('resultMessage').innerText = '✓ 正确'; } else { stats
+                                    .wrong++;
+                                document.getElementById('resultMessage').className = 'result-badge wrong';
+                                document.getElementById('resultMessage').innerText =
+                                    `✗ 错误 正确答案: ${word.japanese}`;
+                                addToWrong(word); }
+                            answerState = 'completed';
+                            updateProgress();
+                            scrollToResult();
+                        }
+                    } else if (answerState === 'waitingParticle') {
+                        const correctParticle = word.particle || '';
+                        const particleOk = (ans === correctParticle);
+                        if (currentKanaCorrect && particleOk) { stats.correct++; if (!
+                                handleCorrectForWrongPractice(word)) return;
+                            document.getElementById('resultMessage').className = 'result-badge correct';
+                            document.getElementById('resultMessage').innerText =
+                                `✓ 正确！「${word.japanese}」${word.wordType||''}（${correctParticle}）`; } else {
+                            stats.wrong++;
+                            let msg = '✗ 错误'; if (!currentKanaCorrect) msg += ` 假名: ${word.japanese}`; if (!
+                                particleOk) msg += ` 助词: ${ans} (应为 ${correctParticle||'无'})`;
+                            document.getElementById('resultMessage').className = 'result-badge wrong';
+                            document.getElementById('resultMessage').innerText = msg;
+                            addToWrong(word); }
+                        answerState = 'completed';
+                        document.getElementById('answerInput').placeholder = '输入日语假名';
+                        updateProgress();
+                        scrollToResult();
+                    }
                 }
+            };
+
+            function finalizeMultiAnswer(question) {
+                const meanings = question.meanings;
+                const userSet = currentMultiAnswers;
+                let allMatched = true;
+                for (const meaning of meanings) {
+                    if (!userSet.some(ans => meaning.aliases.some(alias => alias === ans))) { allMatched = false;
+                        break; }
+                }
+                const isCorrect = allMatched && userSet.length === meanings.length;
+                let msg = `已输入含义：${userSet.join('、')}<br>`;
+                if (isCorrect) { stats.correct++;
+                    document.getElementById('resultMessage').className = 'result-badge correct';
+                    msg += '✓ 完全正确！'; } else { stats.wrong++;
+                    document.getElementById('resultMessage').className = 'result-badge wrong';
+                    const allAliases = meanings.map(m => m.aliases.join('/')).join('、');
+                    msg += `✗ 错误，正确答案：${allAliases}`;
+                    addToWrong(question.item); }
+                document.getElementById('resultMessage').innerHTML = msg;
+                const exampleSet = new Set();
+                meanings.forEach(meaning => { meaning.items.forEach(item => { if (item.example) { const exampleStr =
+                            `📖 ${item.example}${item.exampleCn ? ' ' + item.exampleCn : ''}`;
+                        exampleSet.add(exampleStr); } }); });
+                if (exampleSet.size > 0) { document.getElementById('exampleCard').innerHTML = Array.from(exampleSet)
+                        .join('<br>');
+                    document.getElementById('exampleCard').style.display = 'block'; } else document.getElementById(
+                    'exampleCard').style.display = 'none';
+                document.getElementById('multiHint').style.display = 'none';
+                document.getElementById('answerListArea').style.display = 'none';
                 answerState = 'completed';
-                document.getElementById('answerInput').placeholder = '输入日语假名';
                 updateProgress();
                 scrollToResult();
+                if (isCorrect && !handleCorrectForWrongPractice(question.item)) { answerState = 'pendingChoice'; return; }
             }
-        }
-    };
 
-    function finalizeMultiAnswer(question) {
-        const meanings = question.meanings;
-        const userSet = currentMultiAnswers;
-        let allMatched = true;
-        for (const meaning of meanings) {
-            const matched = userSet.some(ans => meaning.aliases.some(alias => alias === ans));
-            if (!matched) {
-                allMatched = false;
-                break;
-            }
-        }
-        const isCorrect = allMatched && userSet.length === meanings.length;
-
-        let msg = `已输入含义：${userSet.join('、')}<br>`;
-        if (isCorrect) {
-            stats.correct++;
-            document.getElementById('resultMessage').className = 'result-badge correct';
-            msg += '✓ 完全正确！';
-        } else {
-            stats.wrong++;
-            document.getElementById('resultMessage').className = 'result-badge wrong';
-            const allAliases = meanings.map(m => m.aliases.join('/')).join('、');
-            msg += `✗ 错误，正确答案：${allAliases}`;
-            addToWrong(question.item);
-        }
-        document.getElementById('resultMessage').innerHTML = msg;
-
-        const exampleSet = new Set();
-        meanings.forEach(meaning => {
-            meaning.items.forEach(item => {
-                if (item.example) {
-                    const exampleStr = `📖 ${item.example}${item.exampleCn ? ' ' + item.exampleCn : ''}`;
-                    exampleSet.add(exampleStr);
+            function addToWrong(word) {
+                let targetList;
+                if (isGrammarPractice) {
+                    targetList = (currentPracticeMode === 'unit' || currentPracticeMode === 'wrong') ? grammarUnitWrong :
+                        grammarSummaryWrong;
+                } else {
+                    if (isVerbMode) targetList = verbWrong;
+                    else if (wordDirectionMode === 'jp2cn' || currentPracticeMode === 'jncnWrong') targetList =
+                        wordJnCnWrong;
+                    else targetList = (currentPracticeMode === 'unit' || currentPracticeMode === 'wrong') ? unitWrong :
+                        (currentPracticeMode === 'review' || currentPracticeMode === 'summaryWrong') ? summaryWrong :
+                        unitWrong;
                 }
-            });
-        });
-        if (exampleSet.size > 0) {
-            document.getElementById('exampleCard').innerHTML = Array.from(exampleSet).join('<br>');
-            document.getElementById('exampleCard').style.display = 'block';
-        } else {
-            document.getElementById('exampleCard').style.display = 'none';
-        }
-
-        document.getElementById('multiHint').style.display = 'none';
-        document.getElementById('answerListArea').style.display = 'none';
-        answerState = 'completed';
-        updateProgress();
-        scrollToResult();
-
-        if (isCorrect && !handleCorrectForWrongPractice(question.item)) {
-            answerState = 'pendingChoice';
-            return;
-        }
-    }
-
-    function addToWrong(word) {
-        let targetList;
-        if (isGrammarPractice) {
-            targetList = (currentPracticeMode === 'unit' || currentPracticeMode === 'wrong') ? grammarUnitWrong : grammarSummaryWrong;
-        } else {
-            if (isVerbMode) {
-                targetList = verbWrong;
-            } else {
-                targetList = (currentPracticeMode === 'unit' || currentPracticeMode === 'wrong') ? unitWrong :
-                             (currentPracticeMode === 'review' || currentPracticeMode === 'summaryWrong') ? summaryWrong : unitWrong;
+                const addToList = (list) => {
+                    const existing = list.find(w => w.chinese === word.chinese && w.japanese === word.japanese);
+                    if (existing) { existing.wrongCount = (existing.wrongCount || 1) + 1; } else { list.push({ chinese: word
+                                .chinese, japanese: word.japanese, wrongCount: 1 }); }
+                };
+                addToList(targetList);
+                if ((targetList === unitWrong || targetList === grammarUnitWrong) && !isGrammarPractice) {
+                    addToList(summaryWrong);
+                } else if (targetList === grammarUnitWrong) {
+                    addToList(grammarSummaryWrong);
+                }
+                saveAll();
             }
-        }
-        const addToList = (list) => {
-            const existing = list.find(w => w.chinese === word.chinese && w.japanese === word.japanese);
-            if (existing) { existing.wrongCount = (existing.wrongCount || 1) + 1; }
-            else { list.push({ chinese: word.chinese, japanese: word.japanese, wrongCount: 1 }); }
-        };
-        addToList(targetList);
-        if (targetList === unitWrong || targetList === grammarUnitWrong) {
-            if (targetList === unitWrong) {
-                addToList(summaryWrong);
-            } else {
-                addToList(grammarSummaryWrong);
-            }
-        }
-        saveAll();
-    }
 
-    window.nextWord = function() {
-        if (pendingWrongAction.item) return;
-        const question = practiceWords[currentIndex];
-        if (!question) return;
-        if (answerState === 'pendingChoice') {
-            pendingWrongAction = { item: null, listType: null };
-            answerState = 'completed';
-        }
-        if (question.type === 'multi' && answerState === 'multiMeaning') {
-            finalizeMultiAnswer(question);
-            if (pendingWrongAction.item) return;
-        } else if (answerState !== 'completed') {
-            checkAnswer();
-            if (pendingWrongAction.item) return;
-        }
-        if (currentIndex + 1 < practiceWords.length) {
-            currentIndex++;
-            showQuestion();
-        } else {
-            alert(`练习完成！正确:${stats.correct} 错误:${stats.wrong}`);
-            practiceWords = [];
-            showQuestion();
-        }
-    };
+            window.nextWord = function() {
+                if (pendingWrongAction.item) return;
+                const question = practiceWords[currentIndex];
+                if (!question) return;
+                if (answerState === 'pendingChoice') { pendingWrongAction = { item: null, listType: null };
+                    answerState = 'completed'; }
+                if (question.type === 'multi' && answerState === 'multiMeaning') { finalizeMultiAnswer(question); if (
+                        pendingWrongAction.item) return; } else if (answerState !== 'completed') { checkAnswer(); if (
+                        pendingWrongAction.item) return; }
+                if (currentIndex + 1 < practiceWords.length) { currentIndex++;
+                    showQuestion(); } else { alert(`练习完成！正确:${stats.correct} 错误:${stats.wrong}`);
+                    practiceWords = [];
+                    showQuestion(); }
+            };
 
-    document.getElementById('answerInput').addEventListener('input', function() {
-        document.getElementById('previewText').innerText = this.value;
-    });
+            document.getElementById('answerInput').addEventListener('input', function() { document.getElementById(
+                    'previewText').innerText = this.value; });
+            document.getElementById('answerInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e
+                    .preventDefault(); if (pendingWrongAction.item) return; if (answerState === 'completed') nextWord();
+                    else checkAnswer(); } });
 
-    document.getElementById('answerInput').addEventListener('keydown', e => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            if (pendingWrongAction.item) return;
-            if (answerState === 'completed') nextWord();
-            else checkAnswer();
-        }
-    });
+            window.editDeck = (id) => { const d = allDecks.find(x => x.id == id); if (!d) return; const n = prompt('名称',
+                    d.name); if (n) { d.name = n.trim();
+                    saveAll();
+                    renderBookLists(); } };
+            window.deleteDeck = (id) => { if (!confirm('确定删除？')) return; const d = allDecks.find(x => x.id == id); if (d
+                    .type === 'book') { const uids = allDecks.filter(u => u.parentId == id).map(u => u.id);
+                    allVocabularies = allVocabularies.filter(v => !uids.includes(v.deckId));
+                    allDecks = allDecks.filter(x => !(x.parentId == id || x.id == id)); } else { allVocabularies =
+                        allVocabularies.filter(v => v.deckId != id);
+                    allDecks = allDecks.filter(x => x.id != id); }
+                saveAll();
+                renderBookLists(); };
+            window.createNewBook = function(category) { const name = prompt(
+                    `输入${category==='word'?'单词':'语法'}书本名称`); if (!name) return;
+                allDecks.push({ id: Date.now() + Math.random(), name: name.trim(), type: 'book', category: category });
+                saveAll();
+                renderBookLists(); };
+            window.addNewUnit = function(type) { const bookId = document.getElementById(type === 'word' ?
+                    'wordUnitBookSelect' : 'grammarUnitBookSelect').value; const name = document.getElementById(type ===
+                    'word' ? 'wordUnitName' : 'grammarUnitName').value.trim(); if (!bookId || !name) { alert('请填写完整'); return; }
+                allDecks.push({ id: Date.now() + Math.random(), name, type: 'unit', parentId: bookId });
+                saveAll();
+                renderBookLists(); };
+            window.editWord = function(id) { const w = allVocabularies.find(v => v.id == id); if (!w) return; const fields =
+                    w.category === 'grammar' ? [{ k: 'chinese', l: '中文' }, { k: 'japanese', l: '日语语法' }, { k: 'example',
+                        l: '例句' }, { k: 'exampleCn', l: '翻译' }] : [{ k: 'chinese', l: '中文' }, { k: 'japanese',
+                        l: '日语' }, { k: 'wordType', l: '词性' }, { k: 'particle', l: '助词' }, { k: 'example',
+                    l: '短句' }];
+                fields.forEach(f => { const v = prompt(f.l, w[f.k] || ''); if (v !== null) w[f.k] = v.trim(); });
+                saveAll();
+                clearSearch();
+                renderBookLists(); };
+            window.deleteWord = (id) => { if (!confirm('删除？')) return;
+                allVocabularies = allVocabularies.filter(v => v.id != id);
+                saveAll();
+                clearSearch();
+                renderBookLists(); };
+            window.importWords = function() { const unitId = document.getElementById('importUnit').value; if (!unitId) { alert(
+                        '选单元'); return; } const text = document.getElementById('importText').value.trim(); if (!text)
+                return; const lines = text.split('\n'); let added = 0; const cat = document.getElementById('importCategory')
+                    .value;
+                lines.forEach(line => { const parts = line.trim().split(/\s+/); if (cat === 'word' && parts.length >=
+                        2) { const [ch, ja, wt = '', pt = '', ...rest] = parts; const ex = rest.join(' '); if (!
+                            allVocabularies.some(v => v.chinese === ch && v.japanese === ja)) { allVocabularies.push({ id: Date
+                                .now() + Math.random(), chinese: ch, japanese: ja, deckId: unitId,
+                                category: 'word', wordType: wt, particle: pt, example: ex });
+                            added++; } } else if (cat === 'grammar' && parts.length >= 2) { const [ch, ja, ex = '',
+                            exCn = ''
+                        ] = parts; if (!allVocabularies.some(v => v.chinese === ch && v.japanese ===
+                        ja)) { allVocabularies.push({ id: Date.now() + Math.random(), chinese: ch, japanese: ja,
+                                deckId: unitId, category: 'grammar', wordType: '语法', particle: '',
+                                example: ex, exampleCn: exCn });
+                        added++; } } });
+                saveAll();
+                renderBookLists();
+                alert(`添加 ${added} 条`); };
 
-    window.editDeck = (id) => { const d=allDecks.find(x=>x.id==id); if(!d) return; const n=prompt('名称',d.name); if(n){d.name=n.trim(); saveAll(); renderBookLists();} };
-    window.deleteDeck = (id) => { if(!confirm('确定删除？')) return; const d=allDecks.find(x=>x.id==id); if(d.type==='book'){ const uids=allDecks.filter(u=>u.parentId==id).map(u=>u.id); allVocabularies=allVocabularies.filter(v=>!uids.includes(v.deckId)); allDecks=allDecks.filter(x=>!(x.parentId==id||x.id==id)); } else { allVocabularies=allVocabularies.filter(v=>v.deckId!=id); allDecks=allDecks.filter(x=>x.id!=id); } saveAll(); renderBookLists(); };
-    window.createNewBook = function(category) { const name = prompt(`输入${category==='word'?'单词':'语法'}书本名称`); if(!name) return; allDecks.push({ id: Date.now()+Math.random(), name: name.trim(), type: 'book', category: category }); saveAll(); renderBookLists(); };
-    window.addNewUnit = function(type) { const bookId = document.getElementById(type==='word'?'wordUnitBookSelect':'grammarUnitBookSelect').value; const name = document.getElementById(type==='word'?'wordUnitName':'grammarUnitName').value.trim(); if(!bookId||!name){ alert('请填写完整'); return; } allDecks.push({ id: Date.now()+Math.random(), name, type: 'unit', parentId: bookId }); saveAll(); renderBookLists(); };
-    window.editWord = function(id) { const w = allVocabularies.find(v=>v.id==id); if(!w) return; const fields = w.category==='grammar' ? [{k:'chinese',l:'中文'},{k:'japanese',l:'日语语法'},{k:'example',l:'例句'},{k:'exampleCn',l:'翻译'}] : [{k:'chinese',l:'中文'},{k:'japanese',l:'日语'},{k:'wordType',l:'词性'},{k:'particle',l:'助词'},{k:'example',l:'短句'}]; fields.forEach(f=>{ const v=prompt(f.l, w[f.k]||''); if(v!==null) w[f.k]=v.trim(); }); saveAll(); clearSearch(); renderBookLists(); };
-    window.deleteWord = (id) => { if(!confirm('删除？')) return; allVocabularies=allVocabularies.filter(v=>v.id!=id); saveAll(); clearSearch(); renderBookLists(); };
-    window.importWords = function() {
-        const unitId = document.getElementById('importUnit').value; if(!unitId){alert('选单元');return;}
-        const text = document.getElementById('importText').value.trim(); if(!text) return;
-        const lines = text.split('\n'); let added=0; const cat = document.getElementById('importCategory').value;
-        lines.forEach(line=>{
-            const parts = line.trim().split(/\s+/);
-            if(cat==='word' && parts.length>=2) {
-                const [ch,ja,wt='',pt='',...rest]=parts; const ex=rest.join(' ');
-                if(!allVocabularies.some(v=>v.chinese===ch&&v.japanese===ja)){ allVocabularies.push({id:Date.now()+Math.random(),chinese:ch,japanese:ja,deckId:unitId,category:'word',wordType:wt,particle:pt,example:ex}); added++; }
-            } else if(cat==='grammar' && parts.length>=2) {
-                const [ch,ja,ex='',exCn=''] = parts;
-                if(!allVocabularies.some(v=>v.chinese===ch&&v.japanese===ja)){ allVocabularies.push({id:Date.now()+Math.random(),chinese:ch,japanese:ja,deckId:unitId,category:'grammar',wordType:'语法',particle:'',example:ex,exampleCn:exCn}); added++; }
-            }
-        });
-        saveAll(); renderBookLists(); alert(`添加 ${added} 条`);
-    };
+            function fillGithubConfigToUI() { document.getElementById('githubUser').value = githubConfig.username || '';
+                document.getElementById('githubToken').value = githubConfig.token || '';
+                document.getElementById('gistIdInput').value = githubConfig.gistId || ''; }
+            window.saveGithubConfig = () => { githubConfig.username = document.getElementById('githubUser').value.trim();
+                githubConfig.token = document.getElementById('githubToken').value.trim();
+                githubConfig.gistId = document.getElementById('gistIdInput').value.trim();
+                localStorage.setItem('jp_github', JSON.stringify(githubConfig));
+                document.getElementById('configStatus').innerHTML = '✅ 已保存'; setTimeout(() => document.getElementById(
+                    'configStatus').innerHTML = '', 2000); };
+            async function githubRequest(url, opt = {}) { opt.headers = { ...opt.headers, Authorization: `token ${githubConfig.token}`,
+                    Accept: 'application/vnd.github.v3+json' }; const r = await fetch(url, opt); if (!r.ok) { const e =
+                        await r.json().catch(() => ({ message: r.statusText })); throw new Error(e.message ||
+                        `HTTP ${r.status}`); } return r.json(); }
 
-    function fillGithubConfigToUI(){ document.getElementById('githubUser').value=githubConfig.username||''; document.getElementById('githubToken').value=githubConfig.token||''; document.getElementById('gistIdInput').value=githubConfig.gistId||''; }
-    window.saveGithubConfig=()=>{ githubConfig.username=document.getElementById('githubUser').value.trim(); githubConfig.token=document.getElementById('githubToken').value.trim(); githubConfig.gistId=document.getElementById('gistIdInput').value.trim(); localStorage.setItem('jp_github',JSON.stringify(githubConfig)); document.getElementById('configStatus').innerHTML='✅ 已保存'; setTimeout(()=>document.getElementById('configStatus').innerHTML='',2000); };
-    async function githubRequest(url,opt={}){ opt.headers={...opt.headers,Authorization:`token ${githubConfig.token}`,Accept:'application/vnd.github.v3+json'}; const r=await fetch(url,opt); if(!r.ok){const e=await r.json().catch(()=>({message:r.statusText})); throw new Error(e.message||`HTTP ${r.status}`);} return r.json(); }
-    function packData() { const jsonStr = JSON.stringify({ allDecks, allVocabularies, unitWrong, summaryWrong, verbWrong, grammarUnitWrong, grammarSummaryWrong, settings, uploadHistory }); const compressed = pako.deflate(jsonStr); return btoa(String.fromCharCode.apply(null, compressed)); }
-    function unpackData(b64) { const binaryStr = atob(b64); const bytes = new Uint8Array(binaryStr.length); for (let i = 0; i < binaryStr.length; i++) { bytes[i] = binaryStr.charCodeAt(i); } const jsonStr = pako.inflate(bytes, { to: 'string' }); return JSON.parse(jsonStr); }
-    window.createNewGist = async () => { if (!githubConfig.username || !githubConfig.token) { alert('保存配置'); return; } try { const packed = packData(); const data = await githubRequest('https://api.github.com/gists', { method: 'POST', body: JSON.stringify({ description: '日语备份(压缩)', public: false, files: { 'japanese_words_backup.json': { content: packed } } }) }); githubConfig.gistId = data.id; document.getElementById('gistIdInput').value = data.id; saveGithubConfig(); alert('✅ 创建成功'); } catch (e) { alert('创建失败: ' + e.message); } };
-    window.uploadToGithub = async () => { if (!githubConfig.gistId || !githubConfig.token) { alert('配置缺失'); return; } try { const packed = packData(); await githubRequest(`https://api.github.com/gists/${githubConfig.gistId}`, { method: 'PATCH', body: JSON.stringify({ files: { 'japanese_words_backup.json': { content: packed } } }) }); alert('✅ 上传成功'); } catch (e) { alert('上传失败: ' + e.message); } };
-    window.downloadFromGithub = async () => { if (!githubConfig.gistId) { alert('填写ID'); return; } try { const gist = await githubRequest(`https://api.github.com/gists/${githubConfig.gistId}`); const file = gist.files['japanese_words_backup.json']; if (!file) throw new Error('无文件'); const data = unpackData(file.content); if (!confirm('覆盖？')) return; allDecks = data.allDecks || []; allVocabularies = data.allVocabularies || []; unitWrong = data.unitWrong || []; summaryWrong = data.summaryWrong || []; verbWrong = data.verbWrong || []; grammarUnitWrong = data.grammarUnitWrong || []; grammarSummaryWrong = data.grammarSummaryWrong || []; settings = data.settings || { practiceCount: 0 }; uploadHistory = data.uploadHistory || []; saveAll(); renderBookLists(); alert('✅ 下载成功'); } catch (e) { alert('下载失败: ' + e.message); } };
-    window.fetchGistIdFromList = async () => { if (!githubConfig.token) { alert('保存token'); return; } try { const gists = await githubRequest('https://api.github.com/gists'); const candidates = gists.filter(g => g.files['japanese_words_backup.json']); if (!candidates.length) { alert('无备份'); return; } let list = ''; candidates.forEach((g, i) => list += `${i+1}: ${g.id}\n`); const idx = prompt(list); if (idx) { const chosen = candidates[parseInt(idx)-1]; if (chosen) { githubConfig.gistId = chosen.id; document.getElementById('gistIdInput').value = chosen.id; saveGithubConfig(); } } } catch (e) { alert(e.message); } };
-    window.exportBackup = () => { const data = { allDecks, allVocabularies, unitWrong, summaryWrong, verbWrong, grammarUnitWrong, grammarSummaryWrong, settings, uploadHistory }; const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `日语备份_${new Date().toISOString().slice(0,10)}.json`; a.click(); };
-    window.importBackup = function() { const file = document.getElementById('importFile').files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { try { const data = JSON.parse(e.target.result); if (data.allDecks) allDecks = data.allDecks; if (data.allVocabularies) allVocabularies = data.allVocabularies; unitWrong = data.unitWrong || []; summaryWrong = data.summaryWrong || []; verbWrong = data.verbWrong || []; grammarUnitWrong = data.grammarUnitWrong || []; grammarSummaryWrong = data.grammarSummaryWrong || []; settings = data.settings || { practiceCount: 0 }; uploadHistory = data.uploadHistory || []; saveAll(); alert('导入完成'); renderBookLists(); renderWrongList(); fillAllSelects(); } catch (ex) { alert('解析失败: ' + ex.message); } }; reader.readAsText(file); };
-    window.resetAllData = () => { if (confirm('⚠️ 删除所有数据？')) { allDecks = []; allVocabularies = []; unitWrong = []; summaryWrong = []; verbWrong = []; grammarUnitWrong = []; grammarSummaryWrong = []; settings = { practiceCount: 0 }; uploadHistory = []; saveAll(); } };
-    window.changePracticeCount = () => { const s = document.getElementById('practiceCountSelect'); if (s.value === 'custom') document.getElementById('customCountRow').style.display = 'flex'; else { settings.practiceCount = parseInt(s.value); saveAll(); document.getElementById('customCountRow').style.display = 'none'; } };
-    window.applyCustomCount = () => { const v = parseInt(document.getElementById('customCountInput').value); if (v > 0) { settings.practiceCount = v; saveAll(); document.getElementById('customCountRow').style.display = 'none'; } };
+            function packData() { const jsonStr = JSON.stringify({ allDecks, allVocabularies, unitWrong, summaryWrong,
+                    verbWrong, grammarUnitWrong, grammarSummaryWrong, wordJnCnWrong, settings, uploadHistory }); const
+                    compressed = pako.deflate(jsonStr); return btoa(String.fromCharCode.apply(null, compressed)); }
 
-    loadFromStorage();
-    fillAllSelects();
-    renderBookLists();
-    renderWrongList();
-    fillGithubConfigToUI();
-    document.getElementById('practiceCountSelect').value = settings.practiceCount === 0 ? '0' : (settings.practiceCount > 0 ? String(settings.practiceCount) : '0');
-    updatePracticeCategory();
-    document.getElementById('answerInput').placeholder = '输入答案，回车确认';
-})();
-</script>
+            function unpackData(b64) { const binaryStr = atob(b64); const bytes = new Uint8Array(binaryStr.length); for (
+                    let i = 0; i < binaryStr.length; i++) { bytes[i] = binaryStr.charCodeAt(i); } const jsonStr = pako
+                    .inflate(bytes, { to: 'string' }); return JSON.parse(jsonStr); }
+            window.createNewGist = async () => { if (!githubConfig.username || !githubConfig.token) { alert('保存配置'); return; }
+                try { const packed = packData(); const data = await githubRequest('https://api.github.com/gists', { method: 'POST',
+                        body: JSON.stringify({ description: '日语备份(压缩)', public: false, files: { 'japanese_words_backup.json': { content: packed } } }) });
+                    githubConfig.gistId = data.id;
+                    document.getElementById('gistIdInput').value = data.id;
+                    saveGithubConfig();
+                    alert('✅ 创建成功'); } catch (e) { alert('创建失败: ' + e.message); } };
+            window.uploadToGithub = async () => { if (!githubConfig.gistId || !githubConfig.token) { alert('配置缺失'); return; }
+                try { const packed = packData(); await githubRequest(`https://api.github.com/gists/${githubConfig.gistId}`, { method: 'PATCH',
+                        body: JSON.stringify({ files: { 'japanese_words_backup.json': { content: packed } } }) });
+                    alert('✅ 上传成功'); } catch (e) { alert('上传失败: ' + e.message); } };
+            window.downloadFromGithub = async () => { if (!githubConfig.gistId) { alert('填写ID'); return; } try { const gist =
+                        await githubRequest(`https://api.github.com/gists/${githubConfig.gistId}`); const file = gist.files[
+                            'japanese_words_backup.json'
+                        ]; if (!file) throw new Error('无文件'); const data = unpackData(file.content); if (!confirm(
+                            '覆盖？')) return;
+                    allDecks = data.allDecks || [];
+                    allVocabularies = data.allVocabularies || [];
+                    unitWrong = data.unitWrong || [];
+                    summaryWrong = data.summaryWrong || [];
+                    verbWrong = data.verbWrong || [];
+                    grammarUnitWrong = data.grammarUnitWrong || [];
+                    grammarSummaryWrong = data.grammarSummaryWrong || [];
+                    wordJnCnWrong = data.wordJnCnWrong || [];
+                    settings = data.settings || { practiceCount: 0 };
+                    uploadHistory = data.uploadHistory || [];
+                    saveAll();
+                    renderBookLists();
+                    alert('✅ 下载成功'); } catch (e) { alert('下载失败: ' + e.message); } };
+            window.fetchGistIdFromList = async () => { if (!githubConfig.token) { alert('保存token'); return; } try { const gists =
+                        await githubRequest('https://api.github.com/gists'); const candidates = gists.filter(g => g.files[
+                            'japanese_words_backup.json']); if (!candidates.length) { alert('无备份'); return; } let list =
+                        '';
+                    candidates.forEach((g, i) => list += `${i+1}: ${g.id}\n`); const idx = prompt(list); if (idx) { const
+                            chosen = candidates[parseInt(idx) - 1]; if (chosen) { githubConfig.gistId = chosen.id;
+                            document.getElementById('gistIdInput').value = chosen.id;
+                            saveGithubConfig(); } } } catch (e) { alert(e.message); } };
+            window.exportBackup = () => { const data = { allDecks, allVocabularies, unitWrong, summaryWrong, verbWrong,
+                    grammarUnitWrong, grammarSummaryWrong, wordJnCnWrong, settings, uploadHistory }; const blob = new Blob(
+                    [JSON.stringify(data, null, 2)], { type: 'application/json' }); const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `日语备份_${new Date().toISOString().slice(0,10)}.json`;
+                a.click(); };
+            window.importBackup = function() { const file = document.getElementById('importFile').files[0]; if (!file)
+            return; const reader = new FileReader();
+                reader.onload = (e) => { try { const data = JSON.parse(e.target.result); if (data.allDecks) allDecks = data
+                            .allDecks; if (data.allVocabularies) allVocabularies = data.allVocabularies;
+                        unitWrong = data.unitWrong || [];
+                        summaryWrong = data.summaryWrong || [];
+                        verbWrong = data.verbWrong || [];
+                        grammarUnitWrong = data.grammarUnitWrong || [];
+                        grammarSummaryWrong = data.grammarSummaryWrong || [];
+                        wordJnCnWrong = data.wordJnCnWrong || [];
+                        settings = data.settings || { practiceCount: 0 };
+                        uploadHistory = data.uploadHistory || [];
+                        saveAll();
+                        alert('导入完成');
+                        renderBookLists();
+                        renderWrongList();
+                        fillAllSelects(); } catch (ex) { alert('解析失败: ' + ex.message); } };
+                reader.readAsText(file); };
+            window.resetAllData = () => { if (confirm('⚠️ 删除所有数据？')) { allDecks = [];
+                    allVocabularies = [];
+                    unitWrong = [];
+                    summaryWrong = [];
+                    verbWrong = [];
+                    grammarUnitWrong = [];
+                    grammarSummaryWrong = [];
+                    wordJnCnWrong = [];
+                    settings = { practiceCount: 0 };
+                    uploadHistory = [];
+                    saveAll(); } };
+            window.changePracticeCount = () => { const s = document.getElementById('practiceCountSelect'); if (s.value ===
+                    'custom') document.getElementById('customCountRow').style.display = 'flex'; else { settings
+                    .practiceCount = parseInt(s.value);
+                    saveAll();
+                    document.getElementById('customCountRow').style.display = 'none'; } };
+            window.applyCustomCount = () => { const v = parseInt(document.getElementById('customCountInput').value); if (v >
+                    0) { settings.practiceCount = v;
+                    saveAll();
+                    document.getElementById('customCountRow').style.display = 'none'; } };
+
+            loadFromStorage();
+            fillAllSelects();
+            renderBookLists();
+            renderWrongList();
+            fillGithubConfigToUI();
+            document.getElementById('practiceCountSelect').value = settings.practiceCount === 0 ? '0' : (settings
+                .practiceCount > 0 ? String(settings.practiceCount) : '0');
+            updatePracticeCategory();
+            document.getElementById('answerInput').placeholder = '输入答案，回车确认';
+        })();
+    </script>
 </body>
 </html>

@@ -434,7 +434,6 @@
             margin-top: 0;
             color: #1e3c5c;
         }
-        /* 语法模块整体底色 */
         .grammar-module-bg {
             background-color: #e2eaf5;
         }
@@ -1080,6 +1079,38 @@
                 .japanese));
             }
 
+            function buildGrammarMultiQuestions(candidates, directionMode) {
+                const questions = [];
+                const jpMap = new Map();
+                candidates.forEach(item => {
+                    let dir = directionMode;
+                    if (dir === 'random') dir = Math.random() < 0.5 ? 'cn2jp' : 'jp2cn';
+                    if (dir === 'cn2jp') {
+                        questions.push({ type: 'single', item, direction: 'cn2jp' });
+                    } else {
+                        const jp = item.japanese;
+                        if (!jpMap.has(jp)) jpMap.set(jp, []);
+                        jpMap.get(jp).push(item);
+                    }
+                });
+                for (let [jp, items] of jpMap.entries()) {
+                    const meaningMap = new Map();
+                    items.forEach(item => {
+                        const aliases = item.chinese.split('/').map(s => s.trim()).filter(Boolean);
+                        const key = aliases.sort().join('||');
+                        if (!meaningMap.has(key)) meaningMap.set(key, { aliases, items: [] });
+                        meaningMap.get(key).items.push(item);
+                    });
+                    const meanings = Array.from(meaningMap.values());
+                    if (meanings.length > 1) {
+                        questions.push({ type: 'multi', japanese: jp, meanings: meanings, item: meanings[0].items[0] });
+                    } else {
+                        questions.push({ type: 'single', item: meanings[0].items[0], direction: 'jp2cn', aliases: meanings[0].aliases });
+                    }
+                }
+                return questions;
+            }
+
             window.startPractice = function() {
                 const mode = document.getElementById('practiceMode').value;
                 currentPracticeMode = mode;
@@ -1251,17 +1282,20 @@
                 }
 
                 if (!practiceWords) {
-                    const direction = (isGrammarPractice) ? grammarDirectionMode :
-                        (mode === 'jncnWrong' ? 'jp2cn' : wordDirectionMode);
-                    for (let i = candidates.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));
-                        [candidates[i], candidates[j]] = [candidates[j], candidates[i]]; }
-                    let limit = settings.practiceCount;
-                    if (limit > 0 && candidates.length > limit) candidates = candidates.slice(0, limit);
-                    practiceWords = candidates.map(item => {
-                        let dir = direction;
-                        if (dir === 'random') dir = Math.random() < 0.5 ? 'cn2jp' : 'jp2cn';
-                        return { type: 'single', item, direction: dir };
-                    });
+                    if (isGrammarPractice) {
+                        practiceWords = buildGrammarMultiQuestions(candidates, grammarDirectionMode);
+                    } else {
+                        const direction = (mode === 'jncnWrong') ? 'jp2cn' : wordDirectionMode;
+                        for (let i = candidates.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));
+                            [candidates[i], candidates[j]] = [candidates[j], candidates[i]]; }
+                        let limit = settings.practiceCount;
+                        if (limit > 0 && candidates.length > limit) candidates = candidates.slice(0, limit);
+                        practiceWords = candidates.map(item => {
+                            let dir = direction;
+                            if (dir === 'random') dir = Math.random() < 0.5 ? 'cn2jp' : 'jp2cn';
+                            return { type: 'single', item, direction: dir };
+                        });
+                    }
                 }
 
                 if (!practiceWords || practiceWords.length === 0) {
@@ -1426,7 +1460,6 @@
             };
 
             function extractChineseMeanings(rawChinese) {
-                // 去除【】标记，然后按分隔符拆分
                 const cleaned = rawChinese.replace(/【[^】]*】/g, '').replace(/（[^）]*）/g, '');
                 return cleaned.split(/[,;，；/、]/).map(s => s.trim()).filter(Boolean);
             }
@@ -1467,8 +1500,20 @@
                     }
                     document.getElementById('resultMessage').className = correct ? 'result-badge correct' :
                         'result-badge wrong';
-                    document.getElementById('resultMessage').innerText = correct ? '✓ 正确' :
-                        `✗ 错误 正确答案: ${isJp2Cn ? word.chinese : word.japanese}`;
+                    if (correct) {
+                        stats.correct++;
+                        if (!handleCorrectForWrongPractice(word)) return;
+                        let msg = '✓ 正确';
+                        if (!isGrammarPractice && isJp2Cn) {
+                            msg += `<br>含义：${word.chinese}`;
+                        }
+                        document.getElementById('resultMessage').innerHTML = msg;
+                    } else {
+                        stats.wrong++;
+                        document.getElementById('resultMessage').innerText =
+                            `✗ 错误 正确答案: ${isJp2Cn ? word.chinese : word.japanese}`;
+                        addToWrong(word);
+                    }
                     if (word.example && !isGrammarPractice) {
                         document.getElementById('exampleCard').innerHTML = `📖 ${word.example}`;
                         document.getElementById('exampleCard').style.display = 'block';
@@ -1477,9 +1522,6 @@
                             `📖 ${word.example} ${word.exampleCn||''}`;
                         document.getElementById('exampleCard').style.display = 'block';
                     }
-                    if (correct) { stats.correct++; if (!handleCorrectForWrongPractice(word)) return; } else { stats
-                            .wrong++;
-                        addToWrong(word); }
                     answerState = 'completed';
                     updateProgress();
                     scrollToResult();

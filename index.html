@@ -1108,6 +1108,11 @@
                         questions.push({ type: 'single', item: meanings[0].items[0], direction: 'jp2cn', aliases: meanings[0].aliases });
                     }
                 }
+                // ★ 随机打乱题目顺序，确保每次练习出题不固定
+                for (let i = questions.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [questions[i], questions[j]] = [questions[j], questions[i]];
+                }
                 return questions;
             }
 
@@ -1284,6 +1289,9 @@
                 if (!practiceWords) {
                     if (isGrammarPractice) {
                         practiceWords = buildGrammarMultiQuestions(candidates, grammarDirectionMode);
+                        // ★ 根据用户设置的练习数量截取（在已随机打乱的基础上）
+                        let limit = settings.practiceCount;
+                        if (limit > 0 && practiceWords.length > limit) practiceWords = practiceWords.slice(0, limit);
                     } else {
                         const direction = (mode === 'jncnWrong') ? 'jp2cn' : wordDirectionMode;
                         for (let i = candidates.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));

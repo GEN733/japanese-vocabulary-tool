@@ -481,6 +481,83 @@
             background: #1e3c5c;
             color: white;
         }
+        .wrong-direction-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            background: #f8f9fc;
+            border-radius: 30px;
+            padding: 4px;
+        }
+        .wrong-direction-btn {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 26px;
+            background: none;
+            color: #4a5f73;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+        .wrong-direction-btn.active {
+            background: #1e3c5c;
+            color: white;
+            box-shadow: 0 2px 6px rgba(30, 60, 92, 0.3);
+        }
+        .verb-sub-tab-bar {
+            display: none;
+            gap: 8px;
+            margin-bottom: 10px;
+            padding-left: 10px;
+        }
+        .verb-sub-tab-bar.show {
+            display: flex;
+        }
+        .verb-sub-tab-btn {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 24px;
+            background: #e8ecf3;
+            color: #1e3c5c;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+        .verb-sub-tab-btn.active {
+            background: #f5b342;
+            color: #1e1e1e;
+        }
+        .practice-verb-sub-bar {
+            display: none;
+            gap: 8px;
+            margin: 10px 0;
+            background: #f0f4f9;
+            border-radius: 30px;
+            padding: 5px;
+        }
+        .practice-verb-sub-bar.show {
+            display: flex;
+        }
+        .practice-verb-sub-btn {
+            flex: 1;
+            padding: 10px 15px;
+            background: none;
+            border: none;
+            border-radius: 26px;
+            font-size: 0.9rem;
+            color: #4a5f73;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .practice-verb-sub-btn.active {
+            background: #1e3c5c;
+            color: white;
+            box-shadow: 0 2px 8px rgba(30, 60, 92, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -499,7 +576,6 @@
             <button class="sub-tab-btn" onclick="setPracticeCategory('grammar')">语法练习</button>
         </div>
         <div id="grammarDirectionBar" style="display:none;" class="sub-tab-bar">
-            <button class="sub-tab-btn" onclick="setGrammarDirection('random')">随机</button>
             <button class="sub-tab-btn" onclick="setGrammarDirection('cn2jp')">中→日</button>
             <button class="sub-tab-btn active" onclick="setGrammarDirection('jp2cn')">日→中</button>
         </div>
@@ -511,12 +587,10 @@
             <select id="practiceMode" style="width: auto; flex:2;" onchange="updateModeUI()">
                 <option value="unit">📚 单元练习</option>
                 <option value="review">📖 书本汇总</option>
-                <option value="wrong">📌 单元错题练习</option>
-                <option value="summaryWrong">📋 汇总错题练习</option>
-                <option value="verbWrong">📝 动词错题练习</option>
-                <option value="verbJudge">⚡ 自他动词判断</option>
-                <option value="all">🔤 全部单词</option>
-                <option value="jncnWrong">🌐 日中错题练习</option>
+                <option value="verbJudge">⚡ 动词练习</option>
+                <option value="wrong">📌 单元错题</option>
+                <option value="summaryWrong">📋 汇总错题</option>
+                <option value="verbWrong">📝 动词错题</option>
             </select>
             <select id="practiceCountSelect" style="width: auto; flex:1;" onchange="changePracticeCount()">
                 <option value="10">10</option>
@@ -541,6 +615,10 @@
                 <div class="section-title">📚 按书本随机抽取（可多选）</div>
                 <div id="bookMultiSelect"></div>
             </div>
+        </div>
+        <div id="practiceVerbSubBar" class="practice-verb-sub-bar">
+            <button class="practice-verb-sub-btn active" onclick="switchPracticeVerbSub('verbUnit')" id="practiceVerbUnitBtn">单元动词错题</button>
+            <button class="practice-verb-sub-btn" onclick="switchPracticeVerbSub('verbSummary')" id="practiceVerbSummaryBtn">汇总动词错题</button>
         </div>
         <button class="primary" style="width:100%;" onclick="startPractice()">▶ 开始练习</button>
         <div class="stats-grid">
@@ -570,15 +648,26 @@
             <button class="sub-tab-btn" onclick="setWrongCategory('grammar')">语法错题</button>
         </div>
         <h3>❌ 错题集 <span id="wrongCount">(0)</span></h3>
+        <div id="wordWrongDirectionBar" class="wrong-direction-bar">
+            <button class="wrong-direction-btn active" onclick="setWrongWordDirection('cn2jp')">中→日</button>
+            <button class="wrong-direction-btn" onclick="setWrongWordDirection('jp2cn')">日→中</button>
+        </div>
+        <div id="grammarWrongDirectionBar" class="wrong-direction-bar" style="display:none;">
+            <button class="wrong-direction-btn active" onclick="setWrongGrammarDirection('cn2jp')">中→日</button>
+            <button class="wrong-direction-btn" onclick="setWrongGrammarDirection('jp2cn')">日→中</button>
+        </div>
         <div id="wordWrongTabs" class="wrong-tab-bar">
             <button class="wrong-tab-btn active" onclick="switchWrongTab('unit')" id="wrongTabUnit">单元错题</button>
             <button class="wrong-tab-btn" onclick="switchWrongTab('summary')" id="wrongTabSummary">汇总错题</button>
-            <button class="wrong-tab-btn" onclick="switchWrongTab('verb')" id="wrongTabVerb">动词错题</button>
-            <button class="wrong-tab-btn" onclick="switchWrongTab('jncn')" id="wrongTabJncn">日中错题</button>
+            <button class="wrong-tab-btn" onclick="switchWrongTab('verb')" id="wrongTabVerb" style="display:flex;">动词错题</button>
+        </div>
+        <div id="verbSubTabBar" class="verb-sub-tab-bar">
+            <button class="verb-sub-tab-btn active" onclick="switchVerbSubTab('verbUnit')" id="verbSubTabUnit">单元动词</button>
+            <button class="verb-sub-tab-btn" onclick="switchVerbSubTab('verbSummary')" id="verbSubTabSummary">汇总动词</button>
         </div>
         <div id="grammarWrongTabs" class="wrong-tab-bar" style="display:none;">
-            <button class="wrong-tab-btn active" onclick="switchWrongTab('grammarUnit')" id="wrongTabGrammarUnit">单元语法错题</button>
-            <button class="wrong-tab-btn" onclick="switchWrongTab('grammarSummary')" id="wrongTabGrammarSummary">汇总语法错题</button>
+            <button class="wrong-tab-btn active" onclick="switchWrongTab('grammarUnit')" id="wrongTabGrammarUnit">单元错题</button>
+            <button class="wrong-tab-btn" onclick="switchWrongTab('grammarSummary')" id="wrongTabGrammarSummary">汇总错题</button>
         </div>
         <div id="wrongListContainer">暂无错题</div>
         <div class="flex-row" style="margin-top:20px;">
@@ -648,7 +737,14 @@
         <h3>☁️ GitHub 同步 (压缩传输)</h3>
         <div class="sync-step"><h4>1. 配置</h4><input type="text" id="githubUser" placeholder="用户名"><input type="password" id="githubToken" placeholder="Token"><button onclick="saveGithubConfig()">保存</button><span id="configStatus"></span></div>
         <div class="sync-step"><h4>2. Gist ID</h4><div class="flex-row"><input type="text" id="gistIdInput" style="flex:3;"><button onclick="fetchGistIdFromList()" style="flex:1;">选择Gist</button></div><button onclick="createNewGist()" class="warning" style="margin-top:10px;">创建新Gist</button></div>
-        <div class="sync-step"><h4>3. 同步</h4><div class="flex-row"><button onclick="uploadToGithub()" class="primary" style="flex:1;">⬆️ 上传</button><button onclick="downloadFromGithub()" class="primary" style="flex:1;">⬇️ 下载</button></div><div id="syncMessage" style="margin-top:15px;"></div></div>
+        <div class="sync-step"><h4>3. 同步</h4>
+            <div class="flex-row">
+                <button onclick="uploadToGithub()" class="primary" style="flex:1;">⬆️ 上传</button>
+                <button onclick="downloadFromGithub()" class="primary" style="flex:1;">⬇️ 下载</button>
+            </div>
+            <div id="lastSyncInfo" style="margin-top:10px; font-size:0.9rem; color:#5f738c;"></div>
+            <div id="syncMessage" style="margin-top:15px;"></div>
+        </div>
         <hr>
         <h4>💾 本地备份</h4>
         <button onclick="exportBackup()">📤 导出备份文件</button>
@@ -660,14 +756,28 @@
         (function() {
             let allDecks = [];
             let allVocabularies = [];
+            let wordUnitCnJpWrong = [];
+            let wordSummaryCnJpWrong = [];
+            let wordUnitJpCnWrong = [];
+            let wordSummaryJpCnWrong = [];
+            let verbUnitWrong = [];
+            let verbSummaryWrong = [];
+            let grammarUnitCnJpWrong = [];
+            let grammarSummaryCnJpWrong = [];
+            let grammarUnitJpCnWrong = [];
+            let grammarSummaryJpCnWrong = [];
             let unitWrong = [],
                 summaryWrong = [],
                 verbWrong = [];
             let grammarUnitWrong = [],
                 grammarSummaryWrong = [];
             let wordJnCnWrong = [];
+
             let settings = { practiceCount: 0 };
             let uploadHistory = [];
+            let lastUploadInfo = null;
+            let lastDownloadInfo = null;
+
             let currentWrongTab = 'unit';
             let wrongCategory = 'word';
             let practiceCategory = 'word';
@@ -682,35 +792,91 @@
             let wordDirectionMode = 'cn2jp';
             let currentMultiAnswers = [];
             let currentPracticeMode = 'unit';
-            let pendingWrongAction = { item: null, listType: null };
+            let pendingWrongAction = { item: null, listId: null };
             let githubConfig = { username: '', token: '', gistId: '' };
+            let wrongWordDirection = 'cn2jp';
+            let wrongGrammarDirection = 'cn2jp';
+            let verbSubTab = 'verbUnit';
+            let practiceVerbSubTab = 'verbUnit';
 
             function isVerb(word) {
                 return word.particle && word.particle.trim() !== '';
             }
 
             function getCurrentWrongList() {
-                if (wrongCategory === 'grammar') return currentWrongTab === 'grammarUnit' ? grammarUnitWrong :
-                    grammarSummaryWrong;
-                if (currentWrongTab === 'unit') return unitWrong;
-                if (currentWrongTab === 'summary') return summaryWrong;
-                if (currentWrongTab === 'verb') return verbWrong;
-                if (currentWrongTab === 'jncn') return wordJnCnWrong;
-                return unitWrong;
+                if (wrongCategory === 'grammar') {
+                    if (wrongGrammarDirection === 'cn2jp') {
+                        return currentWrongTab === 'grammarUnit' ? grammarUnitCnJpWrong : grammarSummaryCnJpWrong;
+                    } else {
+                        return currentWrongTab === 'grammarUnit' ? grammarUnitJpCnWrong : grammarSummaryJpCnWrong;
+                    }
+                }
+                if (wrongWordDirection === 'cn2jp') {
+                    if (currentWrongTab === 'unit') return wordUnitCnJpWrong;
+                    if (currentWrongTab === 'summary') return wordSummaryCnJpWrong;
+                    if (currentWrongTab === 'verb') {
+                        return verbSubTab === 'verbUnit' ? verbUnitWrong : verbSummaryWrong;
+                    }
+                } else {
+                    if (currentWrongTab === 'unit') return wordUnitJpCnWrong;
+                    if (currentWrongTab === 'summary') return wordSummaryJpCnWrong;
+                    if (currentWrongTab === 'verb') {
+                        return verbSubTab === 'verbUnit' ? verbUnitWrong : verbSummaryWrong;
+                    }
+                }
+                return wordUnitCnJpWrong;
+            }
+
+            function getWrongListById(listId) {
+                const map = {
+                    'wordUnitCnJp': wordUnitCnJpWrong,
+                    'wordSummaryCnJp': wordSummaryCnJpWrong,
+                    'wordUnitJpCn': wordUnitJpCnWrong,
+                    'wordSummaryJpCn': wordSummaryJpCnWrong,
+                    'verbUnit': verbUnitWrong,
+                    'verbSummary': verbSummaryWrong,
+                    'grammarUnitCnJp': grammarUnitCnJpWrong,
+                    'grammarSummaryCnJp': grammarSummaryCnJpWrong,
+                    'grammarUnitJpCn': grammarUnitJpCnWrong,
+                    'grammarSummaryJpCn': grammarSummaryJpCnWrong
+                };
+                return map[listId] || null;
+            }
+
+            function getDeviceName() {
+                const ua = navigator.userAgent;
+                if (/Windows/i.test(ua)) return 'Windows';
+                if (/Macintosh/i.test(ua)) return 'Mac';
+                if (/Android/i.test(ua)) return 'Android';
+                if (/iPhone|iPad|iPod/i.test(ua)) return 'iOS';
+                return '未知设备';
             }
 
             function loadFromStorage() {
                 try {
                     allDecks = JSON.parse(localStorage.getItem('jp_decks') || '[]');
                     allVocabularies = JSON.parse(localStorage.getItem('jp_vocab') || '[]');
+                    wordUnitCnJpWrong = JSON.parse(localStorage.getItem('jp_word_unit_cn_jp_wrong') || '[]');
+                    wordSummaryCnJpWrong = JSON.parse(localStorage.getItem('jp_word_summary_cn_jp_wrong') || '[]');
+                    wordUnitJpCnWrong = JSON.parse(localStorage.getItem('jp_word_unit_jp_cn_wrong') || '[]');
+                    wordSummaryJpCnWrong = JSON.parse(localStorage.getItem('jp_word_summary_jp_cn_wrong') || '[]');
+                    verbUnitWrong = JSON.parse(localStorage.getItem('jp_verb_unit_wrong') || '[]');
+                    verbSummaryWrong = JSON.parse(localStorage.getItem('jp_verb_summary_wrong') || '[]');
+                    grammarUnitCnJpWrong = JSON.parse(localStorage.getItem('jp_grammar_unit_cn_jp_wrong') || '[]');
+                    grammarSummaryCnJpWrong = JSON.parse(localStorage.getItem('jp_grammar_summary_cn_jp_wrong') || '[]');
+                    grammarUnitJpCnWrong = JSON.parse(localStorage.getItem('jp_grammar_unit_jp_cn_wrong') || '[]');
+                    grammarSummaryJpCnWrong = JSON.parse(localStorage.getItem('jp_grammar_summary_jp_cn_wrong') || '[]');
                     unitWrong = JSON.parse(localStorage.getItem('jp_unit_wrong') || '[]');
                     summaryWrong = JSON.parse(localStorage.getItem('jp_summary_wrong') || '[]');
                     verbWrong = JSON.parse(localStorage.getItem('jp_verb_wrong') || '[]');
                     grammarUnitWrong = JSON.parse(localStorage.getItem('jp_grammar_unit_wrong') || '[]');
                     grammarSummaryWrong = JSON.parse(localStorage.getItem('jp_grammar_summary_wrong') || '[]');
                     wordJnCnWrong = JSON.parse(localStorage.getItem('jp_word_jncn_wrong') || '[]');
+                    migrateOldWrongData();
                     settings = JSON.parse(localStorage.getItem('jp_settings') || '{"practiceCount":0}');
                     uploadHistory = JSON.parse(localStorage.getItem('jp_history') || '[]');
+                    lastUploadInfo = JSON.parse(localStorage.getItem('jp_last_upload_info') || 'null');
+                    lastDownloadInfo = JSON.parse(localStorage.getItem('jp_last_download_info') || 'null');
                     const gh = localStorage.getItem('jp_github');
                     if (gh) githubConfig = JSON.parse(gh);
                 } catch (e) {}
@@ -734,17 +900,54 @@
                 });
             }
 
+            function migrateOldWrongData() {
+                const allNewEmpty = wordUnitCnJpWrong.length === 0 && wordSummaryCnJpWrong.length === 0 &&
+                    wordUnitJpCnWrong.length === 0 && wordSummaryJpCnWrong.length === 0 &&
+                    verbUnitWrong.length === 0 && verbSummaryWrong.length === 0 &&
+                    grammarUnitCnJpWrong.length === 0 && grammarSummaryCnJpWrong.length === 0 &&
+                    grammarUnitJpCnWrong.length === 0 && grammarSummaryJpCnWrong.length === 0;
+                const hasOldData = unitWrong.length > 0 || summaryWrong.length > 0 || verbWrong.length > 0 ||
+                    grammarUnitWrong.length > 0 || grammarSummaryWrong.length > 0 || wordJnCnWrong.length > 0;
+                if (allNewEmpty && hasOldData) {
+                    wordUnitCnJpWrong = unitWrong.slice();
+                    wordSummaryCnJpWrong = summaryWrong.slice();
+                    verbUnitWrong = verbWrong.slice();
+                    grammarUnitCnJpWrong = grammarUnitWrong.slice();
+                    grammarSummaryCnJpWrong = grammarSummaryWrong.slice();
+                    wordUnitJpCnWrong = wordJnCnWrong.slice();
+                    unitWrong = [];
+                    summaryWrong = [];
+                    verbWrong = [];
+                    grammarUnitWrong = [];
+                    grammarSummaryWrong = [];
+                    wordJnCnWrong = [];
+                    saveAll();
+                }
+            }
+
             function saveAll() {
                 localStorage.setItem('jp_decks', JSON.stringify(allDecks));
                 localStorage.setItem('jp_vocab', JSON.stringify(allVocabularies));
-                localStorage.setItem('jp_unit_wrong', JSON.stringify(unitWrong));
-                localStorage.setItem('jp_summary_wrong', JSON.stringify(summaryWrong));
-                localStorage.setItem('jp_verb_wrong', JSON.stringify(verbWrong));
-                localStorage.setItem('jp_grammar_unit_wrong', JSON.stringify(grammarUnitWrong));
-                localStorage.setItem('jp_grammar_summary_wrong', JSON.stringify(grammarSummaryWrong));
-                localStorage.setItem('jp_word_jncn_wrong', JSON.stringify(wordJnCnWrong));
+                localStorage.setItem('jp_word_unit_cn_jp_wrong', JSON.stringify(wordUnitCnJpWrong));
+                localStorage.setItem('jp_word_summary_cn_jp_wrong', JSON.stringify(wordSummaryCnJpWrong));
+                localStorage.setItem('jp_word_unit_jp_cn_wrong', JSON.stringify(wordUnitJpCnWrong));
+                localStorage.setItem('jp_word_summary_jp_cn_wrong', JSON.stringify(wordSummaryJpCnWrong));
+                localStorage.setItem('jp_verb_unit_wrong', JSON.stringify(verbUnitWrong));
+                localStorage.setItem('jp_verb_summary_wrong', JSON.stringify(verbSummaryWrong));
+                localStorage.setItem('jp_grammar_unit_cn_jp_wrong', JSON.stringify(grammarUnitCnJpWrong));
+                localStorage.setItem('jp_grammar_summary_cn_jp_wrong', JSON.stringify(grammarSummaryCnJpWrong));
+                localStorage.setItem('jp_grammar_unit_jp_cn_wrong', JSON.stringify(grammarUnitJpCnWrong));
+                localStorage.setItem('jp_grammar_summary_jp_cn_wrong', JSON.stringify(grammarSummaryJpCnWrong));
+                localStorage.removeItem('jp_unit_wrong');
+                localStorage.removeItem('jp_summary_wrong');
+                localStorage.removeItem('jp_verb_wrong');
+                localStorage.removeItem('jp_grammar_unit_wrong');
+                localStorage.removeItem('jp_grammar_summary_wrong');
+                localStorage.removeItem('jp_word_jncn_wrong');
                 localStorage.setItem('jp_settings', JSON.stringify(settings));
                 localStorage.setItem('jp_history', JSON.stringify(uploadHistory));
+                localStorage.setItem('jp_last_upload_info', JSON.stringify(lastUploadInfo));
+                localStorage.setItem('jp_last_download_info', JSON.stringify(lastDownloadInfo));
                 localStorage.setItem('jp_github', JSON.stringify(githubConfig));
                 updateUIStats();
             }
@@ -753,6 +956,20 @@
                 document.getElementById('wrongCount').innerText = `(${getCurrentWrongList().length})`;
                 fillAllSelects();
                 if (document.getElementById('library')) renderBookLists();
+                updateSyncInfoDisplay();
+            }
+
+            function updateSyncInfoDisplay() {
+                const div = document.getElementById('lastSyncInfo');
+                if (!div) return;
+                let html = '';
+                if (lastUploadInfo) {
+                    html += `📤 上次上传：${lastUploadInfo.device} · ${lastUploadInfo.time}<br>`;
+                }
+                if (lastDownloadInfo) {
+                    html += `📥 上次下载：${lastDownloadInfo.device} · ${lastDownloadInfo.time}`;
+                }
+                div.innerHTML = html;
             }
 
             window.toggleModuleCollapse = function(moduleId) {
@@ -802,39 +1019,126 @@
                 });
                 document.getElementById('wordWrongTabs').style.display = cat === 'word' ? 'flex' : 'none';
                 document.getElementById('grammarWrongTabs').style.display = cat === 'grammar' ? 'flex' : 'none';
-                currentWrongTab = cat === 'word' ? 'unit' : 'grammarUnit';
+                document.getElementById('wordWrongDirectionBar').style.display = cat === 'word' ? 'flex' : 'none';
+                document.getElementById('grammarWrongDirectionBar').style.display = cat === 'grammar' ? 'flex' :
+                'none';
+                document.getElementById('verbSubTabBar').style.display = 'none';
+                document.getElementById('verbSubTabBar').classList.remove('show');
+                if (cat === 'word') {
+                    currentWrongTab = 'unit';
+                    updateVerbTabVisibility();
+                } else {
+                    currentWrongTab = 'grammarUnit';
+                }
                 updateUIStats();
                 renderWrongList();
+                updateWrongTabActiveStates();
+            };
+
+            window.setWrongWordDirection = function(dir) {
+                wrongWordDirection = dir;
+                document.querySelectorAll('#wordWrongDirectionBar .wrong-direction-btn').forEach(btn => {
+                    const val = btn.getAttribute('onclick').match(/'([^']+)'/)[1];
+                    btn.classList.toggle('active', val === dir);
+                });
+                currentWrongTab = 'unit';
+                verbSubTab = 'verbUnit';
+                updateVerbTabVisibility();
+                updateUIStats();
+                renderWrongList();
+                updateWrongTabActiveStates();
+            };
+
+            window.setWrongGrammarDirection = function(dir) {
+                wrongGrammarDirection = dir;
+                document.querySelectorAll('#grammarWrongDirectionBar .wrong-direction-btn').forEach(btn => {
+                    const val = btn.getAttribute('onclick').match(/'([^']+)'/)[1];
+                    btn.classList.toggle('active', val === dir);
+                });
+                currentWrongTab = 'grammarUnit';
+                updateUIStats();
+                renderWrongList();
+                updateWrongTabActiveStates();
+            };
+
+            function updateVerbTabVisibility() {
+                const verbTab = document.getElementById('wrongTabVerb');
+                const verbSubBar = document.getElementById('verbSubTabBar');
+                if (wrongCategory === 'word' && wrongWordDirection === 'cn2jp') {
+                    if (verbTab) verbTab.style.display = 'flex';
+                } else {
+                    if (verbTab) verbTab.style.display = 'none';
+                    verbSubBar.style.display = 'none';
+                    verbSubBar.classList.remove('show');
+                    if (currentWrongTab === 'verb') currentWrongTab = 'unit';
+                }
+            }
+
+            window.switchVerbSubTab = function(subTab) {
+                verbSubTab = subTab;
+                document.querySelectorAll('#verbSubTabBar .verb-sub-tab-btn').forEach(btn => {
+                    btn.classList.toggle('active',
+                        (btn.id === 'verbSubTabUnit' && subTab === 'verbUnit') ||
+                        (btn.id === 'verbSubTabSummary' && subTab === 'verbSummary'));
+                });
+                updateUIStats();
+                renderWrongList();
+            };
+
+            window.switchPracticeVerbSub = function(subTab) {
+                practiceVerbSubTab = subTab;
+                document.querySelectorAll('#practiceVerbSubBar .practice-verb-sub-btn').forEach(btn => {
+                    btn.classList.toggle('active',
+                        (btn.id === 'practiceVerbUnitBtn' && subTab === 'verbUnit') ||
+                        (btn.id === 'practiceVerbSummaryBtn' && subTab === 'verbSummary'));
+                });
             };
 
             window.updatePracticeCategory = function() {
                 const modeSel = document.getElementById('practiceMode');
                 if (practiceCategory === 'grammar') {
                     modeSel.innerHTML =
-                        `<option value="unit">📚 单元练习</option><option value="review">📖 书本汇总</option><option value="wrong">📌 单元错题练习</option><option value="summaryWrong">📋 汇总错题练习</option>`;
+                        `<option value="unit">📚 单元练习</option><option value="review">📖 书本汇总</option><option value="wrong">📌 单元错题</option><option value="summaryWrong">📋 汇总错题</option>`;
                 } else {
                     modeSel.innerHTML =
-                        `<option value="unit">📚 单元练习</option><option value="review">📖 书本汇总</option><option value="wrong">📌 单元错题练习</option><option value="summaryWrong">📋 汇总错题练习</option><option value="verbWrong">📝 动词错题练习</option><option value="verbJudge">⚡ 自他动词判断</option><option value="all">🔤 全部单词</option><option value="jncnWrong">🌐 日中错题练习</option>`;
+                        `<option value="unit">📚 单元练习</option><option value="review">📖 书本汇总</option><option value="verbJudge">⚡ 动词练习</option><option value="wrong">📌 单元错题</option><option value="summaryWrong">📋 汇总错题</option><option value="verbWrong">📝 动词错题</option>`;
                 }
                 fillAllSelects();
                 updateModeUI();
             };
 
-            window.switchWrongTab = function(tab) {
-                currentWrongTab = tab;
-                document.querySelectorAll(
-                    '#wordWrongTabs .wrong-tab-btn, #grammarWrongTabs .wrong-tab-btn').forEach(b => b.classList
-                    .remove('active'));
+            function updateWrongTabActiveStates() {
+                document.querySelectorAll('#wordWrongTabs .wrong-tab-btn, #grammarWrongTabs .wrong-tab-btn').forEach(
+                    b => b.classList.remove('active'));
                 if (wrongCategory === 'word') {
-                    const tabMap = { unit: 'Unit', summary: 'Summary', verb: 'Verb', jncn: 'Jncn' };
-                    const targetId = 'wrongTab' + (tabMap[tab] || tab.charAt(0).toUpperCase() + tab.slice(1));
+                    const tabMap = { unit: 'Unit', summary: 'Summary', verb: 'Verb' };
+                    const targetId = 'wrongTab' + (tabMap[currentWrongTab] || 'Unit');
                     const btn = document.getElementById(targetId);
                     if (btn) btn.classList.add('active');
                 } else {
-                    const tabSuffix = tab.replace('grammar', '');
-                    const btn = document.getElementById('wrongTabGrammar' + tabSuffix);
+                    const btn = document.getElementById('wrongTabGrammar' + (currentWrongTab === 'grammarUnit' ? 'Unit' :
+                        'Summary'));
                     if (btn) btn.classList.add('active');
                 }
+                const verbSubBar = document.getElementById('verbSubTabBar');
+                if (wrongCategory === 'word' && wrongWordDirection === 'cn2jp' && currentWrongTab === 'verb') {
+                    verbSubBar.style.display = 'flex';
+                    verbSubBar.classList.add('show');
+                    document.querySelectorAll('#verbSubTabBar .verb-sub-tab-btn').forEach(btn => {
+                        btn.classList.toggle('active',
+                            (btn.id === 'verbSubTabUnit' && verbSubTab === 'verbUnit') ||
+                            (btn.id === 'verbSubTabSummary' && verbSubTab === 'verbSummary'));
+                    });
+                } else {
+                    verbSubBar.style.display = 'none';
+                    verbSubBar.classList.remove('show');
+                }
+            }
+
+            window.switchWrongTab = function(tab) {
+                currentWrongTab = tab;
+                if (tab === 'verb') verbSubTab = 'verbUnit';
+                updateWrongTabActiveStates();
                 updateUIStats();
                 renderWrongList();
             };
@@ -901,12 +1205,14 @@
                 document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 document.getElementById(pid).classList.add('active');
-                event.target.classList.add('active');
+                if (event && event.target) event.target.classList.add('active');
                 if (pid === 'library') { renderBookLists();
                     clearSearch();
                     updateImportSelects(); }
-                if (pid === 'wrong') renderWrongList();
-                if (pid === 'sync') fillGithubConfigToUI();
+                if (pid === 'wrong') { updateWrongTabActiveStates();
+                    renderWrongList(); }
+                if (pid === 'sync') { fillGithubConfigToUI();
+                    updateSyncInfoDisplay(); }
             };
 
             function renderBookLists() {
@@ -1030,25 +1336,44 @@
             window.removeWrongItem = function(idx) { getCurrentWrongList().splice(idx, 1);
                 saveAll();
                 renderWrongList(); };
-            window.clearAllWrong = function() { if (confirm('清空当前错题？')) { if (currentWrongTab === 'unit') unitWrong =
-                        []; else if (currentWrongTab === 'summary') summaryWrong = []; else if (currentWrongTab ===
-                        'verb') verbWrong = []; else if (currentWrongTab === 'grammarUnit') grammarUnitWrong = [];
-                    else if (currentWrongTab === 'grammarSummary') grammarSummaryWrong = [];
-                    else if (currentWrongTab === 'jncn') wordJnCnWrong = [];
+            window.clearAllWrong = function() {
+                if (confirm('清空当前错题？')) {
+                    const list = getCurrentWrongList();
+                    list.length = 0;
                     saveAll();
-                    renderWrongList(); } };
+                    renderWrongList();
+                }
+            };
             window.startPracticeFromWrong = function() {
                 if (wrongCategory === 'grammar') {
                     setPracticeCategory('grammar');
-                    document.getElementById('practiceMode').value = currentWrongTab === 'grammarUnit' ? 'wrong' :
-                        'summaryWrong';
+                    if (wrongGrammarDirection === 'cn2jp') {
+                        document.getElementById('practiceMode').value = currentWrongTab === 'grammarUnit' ? 'wrong' :
+                            'summaryWrong';
+                        setGrammarDirection('cn2jp');
+                    } else {
+                        document.getElementById('practiceMode').value = currentWrongTab === 'grammarUnit' ? 'wrong' :
+                            'summaryWrong';
+                        setGrammarDirection('jp2cn');
+                    }
                 } else {
                     setPracticeCategory('word');
-                    if (currentWrongTab === 'unit') document.getElementById('practiceMode').value = 'wrong';
-                    else if (currentWrongTab === 'summary') document.getElementById('practiceMode').value =
-                        'summaryWrong';
-                    else if (currentWrongTab === 'verb') document.getElementById('practiceMode').value = 'verbWrong';
-                    else if (currentWrongTab === 'jncn') document.getElementById('practiceMode').value = 'jncnWrong';
+                    if (wrongWordDirection === 'cn2jp') {
+                        if (currentWrongTab === 'unit') document.getElementById('practiceMode').value = 'wrong';
+                        else if (currentWrongTab === 'summary') document.getElementById('practiceMode').value =
+                            'summaryWrong';
+                        else if (currentWrongTab === 'verb') {
+                            document.getElementById('practiceMode').value = 'verbWrong';
+                            practiceVerbSubTab = verbSubTab;
+                            switchPracticeVerbSub(verbSubTab);
+                        }
+                        setWordDirection('cn2jp');
+                    } else {
+                        if (currentWrongTab === 'unit') document.getElementById('practiceMode').value = 'wrong';
+                        else if (currentWrongTab === 'summary') document.getElementById('practiceMode').value =
+                            'summaryWrong';
+                        setWordDirection('jp2cn');
+                    }
                 }
                 updatePracticeCategory();
                 showPage('practice');
@@ -1059,10 +1384,12 @@
                 const mode = document.getElementById('practiceMode').value;
                 const unitRow = document.getElementById('unitSelectRow'),
                     bookRow = document.getElementById('bookMultiRow'),
-                    div = document.getElementById('bookUnitSelector');
+                    div = document.getElementById('bookUnitSelector'),
+                    verbSubBar = document.getElementById('practiceVerbSubBar');
                 unitRow.style.display = 'none';
                 bookRow.style.display = 'none';
                 div.style.display = 'none';
+                verbSubBar.classList.remove('show');
                 if (mode === 'unit' || mode === 'verbJudge') {
                     div.style.display = 'block';
                     unitRow.style.display = 'block';
@@ -1072,11 +1399,18 @@
                     bookRow.style.display = 'block';
                     renderBookMultiSelect();
                 }
+                if (mode === 'verbWrong') {
+                    div.style.display = 'none';
+                    verbSubBar.classList.add('show');
+                }
+                if (mode === 'wrong' || mode === 'summaryWrong') {
+                    div.style.display = 'none';
+                }
             };
 
             function cleanWrongList(list) {
                 return list.filter(ww => allVocabularies.some(v => v.chinese === ww.chinese && v.japanese === ww
-                .japanese));
+                    .japanese));
             }
 
             function buildGrammarMultiQuestions(candidates, directionMode) {
@@ -1084,7 +1418,6 @@
                 const jpMap = new Map();
                 candidates.forEach(item => {
                     let dir = directionMode;
-                    if (dir === 'random') dir = Math.random() < 0.5 ? 'cn2jp' : 'jp2cn';
                     if (dir === 'cn2jp') {
                         questions.push({ type: 'single', item, direction: 'cn2jp' });
                     } else {
@@ -1105,10 +1438,10 @@
                     if (meanings.length > 1) {
                         questions.push({ type: 'multi', japanese: jp, meanings: meanings, item: meanings[0].items[0] });
                     } else {
-                        questions.push({ type: 'single', item: meanings[0].items[0], direction: 'jp2cn', aliases: meanings[0].aliases });
+                        questions.push({ type: 'single', item: meanings[0].items[0], direction: 'jp2cn',
+                            aliases: meanings[0].aliases });
                     }
                 }
-                // ★ 随机打乱题目顺序，确保每次练习出题不固定
                 for (let i = questions.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
                     [questions[i], questions[j]] = [questions[j], questions[i]];
@@ -1125,11 +1458,58 @@
                 const cat = isGrammarPractice ? 'grammar' : 'word';
                 practiceWords = null;
 
-                if (mode === 'wrong') {
-                    let list = isGrammarPractice ? grammarUnitWrong : unitWrong;
+                function getWordWrongListForMode(m) {
+                    if (m === 'wrong') {
+                        return (wordDirectionMode === 'cn2jp') ? wordUnitCnJpWrong : wordUnitJpCnWrong;
+                    }
+                    if (m === 'summaryWrong') {
+                        return (wordDirectionMode === 'cn2jp') ? wordSummaryCnJpWrong : wordSummaryJpCnWrong;
+                    }
+                    if (m === 'verbWrong') {
+                        return practiceVerbSubTab === 'verbUnit' ? verbUnitWrong : verbSummaryWrong;
+                    }
+                    return null;
+                }
+
+                function getGrammarWrongListForMode(m) {
+                    if (m === 'wrong') {
+                        return (grammarDirectionMode === 'cn2jp') ? grammarUnitCnJpWrong : grammarUnitJpCnWrong;
+                    }
+                    if (m === 'summaryWrong') {
+                        return (grammarDirectionMode === 'cn2jp') ? grammarSummaryCnJpWrong : grammarSummaryJpCnWrong;
+                    }
+                    return null;
+                }
+
+                if (mode === 'wrong' || mode === 'summaryWrong' || mode === 'verbWrong') {
+                    let list;
+                    if (isGrammarPractice) {
+                        list = getGrammarWrongListForMode(mode);
+                    } else {
+                        list = getWordWrongListForMode(mode);
+                    }
+                    if (!list) list = [];
                     list = cleanWrongList(list);
-                    if (isGrammarPractice) grammarUnitWrong = list;
-                    else unitWrong = list;
+                    if (isGrammarPractice) {
+                        if (mode === 'wrong') {
+                            if (grammarDirectionMode === 'cn2jp') grammarUnitCnJpWrong = list;
+                            else grammarUnitJpCnWrong = list;
+                        } else {
+                            if (grammarDirectionMode === 'cn2jp') grammarSummaryCnJpWrong = list;
+                            else grammarSummaryJpCnWrong = list;
+                        }
+                    } else {
+                        if (mode === 'wrong') {
+                            if (wordDirectionMode === 'cn2jp') wordUnitCnJpWrong = list;
+                            else wordUnitJpCnWrong = list;
+                        } else if (mode === 'summaryWrong') {
+                            if (wordDirectionMode === 'cn2jp') wordSummaryCnJpWrong = list;
+                            else wordSummaryJpCnWrong = list;
+                        } else if (mode === 'verbWrong') {
+                            if (practiceVerbSubTab === 'verbUnit') verbUnitWrong = list;
+                            else verbSummaryWrong = list;
+                        }
+                    }
                     if (isGrammarPractice) {
                         const uniqueJp = [...new Set(list.map(ww => ww.japanese))];
                         const rawQuestions = [];
@@ -1163,10 +1543,8 @@
                                 }
                             } else if (meanings.length === 1) {
                                 const meaning = meanings[0];
-                                let dir = grammarDirectionMode;
-                                if (dir === 'random') dir = Math.random() < 0.5 ? 'cn2jp' : 'jp2cn';
                                 rawQuestions.push({ type: 'single', item: meaning.items[0],
-                                    direction: dir, aliases: meaning.aliases });
+                                    direction: grammarDirectionMode, aliases: meaning.aliases });
                             }
                         });
                         if (!rawQuestions.length) { alert('当前没有语法错题。'); return; }
@@ -1180,73 +1558,6 @@
                         candidates = list.map(ww => allVocabularies.find(v => v.chinese === ww.chinese && v
                             .japanese === ww.japanese)).filter(Boolean);
                     }
-                } else if (mode === 'summaryWrong') {
-                    let list = isGrammarPractice ? grammarSummaryWrong : summaryWrong;
-                    list = cleanWrongList(list);
-                    if (isGrammarPractice) grammarSummaryWrong = list;
-                    else summaryWrong = list;
-                    if (isGrammarPractice) {
-                        const uniqueJp = [...new Set(list.map(ww => ww.japanese))];
-                        const rawQuestions = [];
-                        uniqueJp.forEach(jp => {
-                            const items = allVocabularies.filter(v => v.category === 'grammar' && v
-                                .japanese === jp);
-                            if (items.length === 0) return;
-                            const meaningMap = new Map();
-                            items.forEach(item => {
-                                const aliases = item.chinese.split('/').map(s => s.trim()).filter(
-                                    Boolean);
-                                const key = aliases.sort().join('||');
-                                if (!meaningMap.has(key)) meaningMap.set(key, { aliases,
-                                    items: [] });
-                                meaningMap.get(key).items.push(item);
-                            });
-                            const meanings = Array.from(meaningMap.values());
-                            if (meanings.length > 1) {
-                                if (grammarDirectionMode === 'cn2jp') {
-                                    meanings.forEach(meaning => {
-                                        meaning.items.forEach(it => {
-                                            rawQuestions.push({ type: 'single',
-                                                item: it, direction: 'cn2jp',
-                                                aliases: meaning.aliases });
-                                        });
-                                    });
-                                } else {
-                                    rawQuestions.push({ type: 'multi', japanese: jp,
-                                        meanings: meanings, item: meanings[0].items[
-                                            0] });
-                                }
-                            } else if (meanings.length === 1) {
-                                const meaning = meanings[0];
-                                let dir = grammarDirectionMode;
-                                if (dir === 'random') dir = Math.random() < 0.5 ? 'cn2jp' : 'jp2cn';
-                                rawQuestions.push({ type: 'single', item: meaning.items[0],
-                                    direction: dir, aliases: meaning.aliases });
-                            }
-                        });
-                        if (!rawQuestions.length) { alert('当前没有语法错题。'); return; }
-                        for (let i = rawQuestions.length - 1; i > 0; i--) { const j = Math.floor(Math.random() *
-                                (i + 1));
-                            [rawQuestions[i], rawQuestions[j]] = [rawQuestions[j], rawQuestions[i]]; }
-                        let limit = settings.practiceCount;
-                        if (limit > 0 && rawQuestions.length > limit) rawQuestions.length = limit;
-                        practiceWords = rawQuestions;
-                    } else {
-                        candidates = list.map(ww => allVocabularies.find(v => v.chinese === ww.chinese && v
-                            .japanese === ww.japanese)).filter(Boolean);
-                    }
-                } else if (mode === 'verbWrong') {
-                    let list = verbWrong;
-                    list = cleanWrongList(list);
-                    verbWrong = list;
-                    candidates = list.map(ww => allVocabularies.find(v => v.chinese === ww.chinese && v.japanese ===
-                        ww.japanese)).filter(Boolean);
-                } else if (mode === 'jncnWrong') {
-                    let list = wordJnCnWrong;
-                    list = cleanWrongList(list);
-                    wordJnCnWrong = list;
-                    candidates = list.map(ww => allVocabularies.find(v => v.chinese === ww.chinese && v.japanese ===
-                        ww.japanese)).filter(Boolean);
                 } else if (mode === 'verbJudge') {
                     const unitId = document.getElementById('unitSelect').value;
                     if (unitId) {
@@ -1261,13 +1572,11 @@
                         if (unitIds.length === 0) { alert('所选书本下没有任何单元'); return; }
                         candidates = allVocabularies.filter(v => unitIds.includes(String(v.deckId)) && isVerb(v));
                     }
-                } else if (mode === 'all') {
-                    candidates = allVocabularies.filter(v => v.category === cat);
                 } else if (mode === 'unit') {
                     const unitId = document.getElementById('unitSelect').value;
                     if (!unitId) { alert('请选择单元'); return; }
                     candidates = allVocabularies.filter(v => String(v.deckId) === String(unitId) && v.category ===
-                    cat);
+                        cat);
                 } else if (mode === 'review') {
                     const checked = Array.from(document.querySelectorAll('.book-check:checked')).map(cb => cb.value);
                     if (!checked.length) { alert('请至少勾选一个书本'); return; }
@@ -1278,7 +1587,7 @@
                     });
                     if (unitIds.length === 0) { alert('所选书本下没有任何单元'); return; }
                     candidates = allVocabularies.filter(v => unitIds.includes(String(v.deckId)) && v.category ===
-                    cat);
+                        cat);
                 }
 
                 if (!practiceWords && !candidates.length) {
@@ -1289,19 +1598,18 @@
                 if (!practiceWords) {
                     if (isGrammarPractice) {
                         practiceWords = buildGrammarMultiQuestions(candidates, grammarDirectionMode);
-                        // ★ 根据用户设置的练习数量截取（在已随机打乱的基础上）
                         let limit = settings.practiceCount;
-                        if (limit > 0 && practiceWords.length > limit) practiceWords = practiceWords.slice(0, limit);
+                        if (limit > 0 && practiceWords.length > limit) practiceWords = practiceWords.slice(0,
+                        limit);
                     } else {
-                        const direction = (mode === 'jncnWrong') ? 'jp2cn' : wordDirectionMode;
-                        for (let i = candidates.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));
+                        const direction = isVerbMode ? 'cn2jp' : wordDirectionMode;
+                        for (let i = candidates.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i +
+                                1));
                             [candidates[i], candidates[j]] = [candidates[j], candidates[i]]; }
                         let limit = settings.practiceCount;
                         if (limit > 0 && candidates.length > limit) candidates = candidates.slice(0, limit);
                         practiceWords = candidates.map(item => {
-                            let dir = direction;
-                            if (dir === 'random') dir = Math.random() < 0.5 ? 'cn2jp' : 'jp2cn';
-                            return { type: 'single', item, direction: dir };
+                            return { type: 'single', item, direction: direction };
                         });
                     }
                 }
@@ -1314,7 +1622,7 @@
                 currentIndex = 0;
                 stats = { total: practiceWords.length, correct: 0, wrong: 0 };
                 answerState = 'initial';
-                pendingWrongAction = { item: null, listType: null };
+                pendingWrongAction = { item: null, listId: null };
                 saveAll();
                 showQuestion();
             };
@@ -1400,69 +1708,75 @@
                     .join('<br>');
             }
 
-            function removeFromWrongList(item, listType) {
-                let target;
-                switch (listType) {
-                    case 'unit':
-                        target = unitWrong;
-                        break;
-                    case 'summary':
-                        target = summaryWrong;
-                        break;
-                    case 'verb':
-                        target = verbWrong;
-                        break;
-                    case 'grammarUnit':
-                        target = grammarUnitWrong;
-                        break;
-                    case 'grammarSummary':
-                        target = grammarSummaryWrong;
-                        break;
-                    case 'jncn':
-                        target = wordJnCnWrong;
-                        break;
-                    default:
-                        return;
+            function getWrongListIdForCurrent() {
+                if (isGrammarPractice) {
+                    if (currentPracticeMode === 'wrong') {
+                        return grammarDirectionMode === 'cn2jp' ? 'grammarUnitCnJp' : 'grammarUnitJpCn';
+                    }
+                    if (currentPracticeMode === 'summaryWrong') {
+                        return grammarDirectionMode === 'cn2jp' ? 'grammarSummaryCnJp' : 'grammarSummaryJpCn';
+                    }
+                    return grammarDirectionMode === 'cn2jp' ? 'grammarUnitCnJp' : 'grammarUnitJpCn';
                 }
+                if (isVerbMode) {
+                    if (currentPracticeMode === 'verbWrong') {
+                        return practiceVerbSubTab === 'verbUnit' ? 'verbUnit' : 'verbSummary';
+                    }
+                    return (currentPracticeMode === 'unit' || currentPracticeMode === 'verbJudge') ? 'verbUnit' :
+                        'verbSummary';
+                }
+                if (wordDirectionMode === 'cn2jp') {
+                    if (currentPracticeMode === 'unit' || currentPracticeMode === 'wrong') return 'wordUnitCnJp';
+                    if (currentPracticeMode === 'review' || currentPracticeMode === 'summaryWrong')
+                    return 'wordSummaryCnJp';
+                    return 'wordUnitCnJp';
+                } else {
+                    if (currentPracticeMode === 'unit' || currentPracticeMode === 'wrong') return 'wordUnitJpCn';
+                    if (currentPracticeMode === 'review' || currentPracticeMode === 'summaryWrong')
+                    return 'wordSummaryJpCn';
+                    return 'wordUnitJpCn';
+                }
+            }
+
+            function removeFromWrongListById(listId, item) {
+                const target = getWrongListById(listId);
+                if (!target) return false;
                 const idx = target.findIndex(w => w.chinese === item.chinese && w.japanese === item.japanese);
                 if (idx > -1) { target.splice(idx, 1);
-                    saveAll(); }
+                    saveAll(); return true; }
+                return false;
             }
 
             function handleCorrectForWrongPractice(item) {
-                if (currentPracticeMode === 'wrong') {
-                    removeFromWrongList(item, isGrammarPractice ? 'grammarUnit' : 'unit');
+                const listId = getWrongListIdForCurrent();
+                const isUnitType = (listId.includes('Unit') || listId === 'verbUnit');
+                if (isUnitType) {
+                    removeFromWrongListById(listId, item);
                     return true;
-                } else if (currentPracticeMode === 'verbWrong') {
-                    removeFromWrongList(item, 'verb');
-                    return true;
-                } else if (currentPracticeMode === 'jncnWrong') {
-                    removeFromWrongList(item, 'jncn');
-                    return true;
-                } else if (currentPracticeMode === 'summaryWrong') {
+                } else {
                     pendingWrongAction.item = item;
-                    pendingWrongAction.listType = isGrammarPractice ? 'grammarSummary' : 'summary';
+                    pendingWrongAction.listId = listId;
                     document.getElementById('wrongActionBar').style.display = 'flex';
                     document.getElementById('answerInput').disabled = true;
                     answerState = 'pendingChoice';
                     return false;
                 }
-                return true;
             }
 
             window.handleWrongRemove = function() {
-                if (pendingWrongAction.item) { removeFromWrongList(pendingWrongAction.item, pendingWrongAction
-                    .listType); }
+                if (pendingWrongAction.item && pendingWrongAction.listId) {
+                    removeFromWrongListById(pendingWrongAction.listId, pendingWrongAction.item);
+                }
                 document.getElementById('answerInput').disabled = false;
                 document.getElementById('wrongActionBar').style.display = 'none';
-                pendingWrongAction = { item: null, listType: null };
+                pendingWrongAction = { item: null, listId: null };
                 answerState = 'completed';
                 nextWord();
             };
             window.handleWrongKeep = function() {
                 document.getElementById('answerInput').disabled = false;
                 document.getElementById('wrongActionBar').style.display = 'none';
-                pendingWrongAction = { item: null, listType: null };
+                pendingWrongAction = { item: null, listId: null };
                 answerState = 'completed';
                 nextWord();
             };
@@ -1548,7 +1862,8 @@
                             document.getElementById('answerInput').placeholder = '输入助词（が/を/に）';
                             document.getElementById('answerInput').focus();
                         } else {
-                            if (kanaOk) { stats.correct++; if (!handleCorrectForWrongPractice(word)) return;
+                            if (kanaOk) { stats.correct++; if (!handleCorrectForWrongPractice(word))
+                                return;
                                 document.getElementById('resultMessage').className = 'result-badge correct';
                                 document.getElementById('resultMessage').innerText = '✓ 正确'; } else { stats
                                     .wrong++;
@@ -1617,29 +1932,20 @@
             }
 
             function addToWrong(word) {
-                let targetList;
-                if (isGrammarPractice) {
-                    targetList = (currentPracticeMode === 'unit' || currentPracticeMode === 'wrong') ? grammarUnitWrong :
-                        grammarSummaryWrong;
-                } else {
-                    if (isVerbMode) targetList = verbWrong;
-                    else if (wordDirectionMode === 'jp2cn' || currentPracticeMode === 'jncnWrong') targetList =
-                        wordJnCnWrong;
-                    else targetList = (currentPracticeMode === 'unit' || currentPracticeMode === 'wrong') ? unitWrong :
-                        (currentPracticeMode === 'review' || currentPracticeMode === 'summaryWrong') ? summaryWrong :
-                        unitWrong;
-                }
+                const listId = getWrongListIdForCurrent();
+                const targetList = getWrongListById(listId);
+                if (!targetList) return;
                 const addToList = (list) => {
                     const existing = list.find(w => w.chinese === word.chinese && w.japanese === word.japanese);
                     if (existing) { existing.wrongCount = (existing.wrongCount || 1) + 1; } else { list.push({ chinese: word
                                 .chinese, japanese: word.japanese, wrongCount: 1 }); }
                 };
                 addToList(targetList);
-                if ((targetList === unitWrong || targetList === grammarUnitWrong) && !isGrammarPractice) {
-                    addToList(summaryWrong);
-                } else if (targetList === grammarUnitWrong) {
-                    addToList(grammarSummaryWrong);
-                }
+                if (listId === 'wordUnitCnJp') addToList(wordSummaryCnJpWrong);
+                if (listId === 'wordUnitJpCn') addToList(wordSummaryJpCnWrong);
+                if (listId === 'verbUnit') addToList(verbSummaryWrong);
+                if (listId === 'grammarUnitCnJp') addToList(grammarSummaryCnJpWrong);
+                if (listId === 'grammarUnitJpCn') addToList(grammarSummaryJpCnWrong);
                 saveAll();
             }
 
@@ -1647,7 +1953,7 @@
                 if (pendingWrongAction.item) return;
                 const question = practiceWords[currentIndex];
                 if (!question) return;
-                if (answerState === 'pendingChoice') { pendingWrongAction = { item: null, listType: null };
+                if (answerState === 'pendingChoice') { pendingWrongAction = { item: null, listId: null };
                     answerState = 'completed'; }
                 if (question.type === 'multi' && answerState === 'multiMeaning') { finalizeMultiAnswer(question); if (
                         pendingWrongAction.item) return; } else if (answerState !== 'completed') { checkAnswer(); if (
@@ -1735,9 +2041,11 @@
                         await r.json().catch(() => ({ message: r.statusText })); throw new Error(e.message ||
                         `HTTP ${r.status}`); } return r.json(); }
 
-            function packData() { const jsonStr = JSON.stringify({ allDecks, allVocabularies, unitWrong, summaryWrong,
-                    verbWrong, grammarUnitWrong, grammarSummaryWrong, wordJnCnWrong, settings, uploadHistory }); const
-                    compressed = pako.deflate(jsonStr); return btoa(String.fromCharCode.apply(null, compressed)); }
+            function packData() { const jsonStr = JSON.stringify({ allDecks, allVocabularies, wordUnitCnJpWrong,
+                    wordSummaryCnJpWrong, wordUnitJpCnWrong, wordSummaryJpCnWrong, verbUnitWrong, verbSummaryWrong,
+                    grammarUnitCnJpWrong, grammarSummaryCnJpWrong, grammarUnitJpCnWrong, grammarSummaryJpCnWrong,
+                    settings, uploadHistory }); const compressed = pako.deflate(jsonStr); return btoa(String.fromCharCode
+                    .apply(null, compressed)); }
 
             function unpackData(b64) { const binaryStr = atob(b64); const bytes = new Uint8Array(binaryStr.length); for (
                     let i = 0; i < binaryStr.length; i++) { bytes[i] = binaryStr.charCodeAt(i); } const jsonStr = pako
@@ -1749,28 +2057,69 @@
                     document.getElementById('gistIdInput').value = data.id;
                     saveGithubConfig();
                     alert('✅ 创建成功'); } catch (e) { alert('创建失败: ' + e.message); } };
-            window.uploadToGithub = async () => { if (!githubConfig.gistId || !githubConfig.token) { alert('配置缺失'); return; }
-                try { const packed = packData(); await githubRequest(`https://api.github.com/gists/${githubConfig.gistId}`, { method: 'PATCH',
-                        body: JSON.stringify({ files: { 'japanese_words_backup.json': { content: packed } } }) });
-                    alert('✅ 上传成功'); } catch (e) { alert('上传失败: ' + e.message); } };
-            window.downloadFromGithub = async () => { if (!githubConfig.gistId) { alert('填写ID'); return; } try { const gist =
-                        await githubRequest(`https://api.github.com/gists/${githubConfig.gistId}`); const file = gist.files[
-                            'japanese_words_backup.json'
-                        ]; if (!file) throw new Error('无文件'); const data = unpackData(file.content); if (!confirm(
-                            '覆盖？')) return;
+
+            window.uploadToGithub = async () => {
+                if (!githubConfig.gistId || !githubConfig.token) { alert('配置缺失'); return; }
+                let confirmMsg = '确认上传数据到云端？';
+                if (lastUploadInfo) {
+                    confirmMsg += `\n上次上传设备：${lastUploadInfo.device}\n上次上传时间：${lastUploadInfo.time}`;
+                } else {
+                    confirmMsg += '\n暂无上次上传记录';
+                }
+                if (!confirm(confirmMsg)) return;
+                try {
+                    const packed = packData();
+                    await githubRequest(`https://api.github.com/gists/${githubConfig.gistId}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ files: { 'japanese_words_backup.json': { content: packed } } })
+                    });
+                    lastUploadInfo = {
+                        device: getDeviceName(),
+                        time: new Date().toLocaleString()
+                    };
+                    saveAll();
+                    alert('✅ 上传成功');
+                } catch (e) { alert('上传失败: ' + e.message); }
+            };
+
+            window.downloadFromGithub = async () => {
+                if (!githubConfig.gistId) { alert('填写ID'); return; }
+                let confirmMsg = '确认从云端下载数据？这将会覆盖本地数据。';
+                if (lastDownloadInfo) {
+                    confirmMsg += `\n上次下载设备：${lastDownloadInfo.device}\n上次下载时间：${lastDownloadInfo.time}`;
+                } else {
+                    confirmMsg += '\n暂无上次下载记录';
+                }
+                if (!confirm(confirmMsg)) return;
+                try {
+                    const gist = await githubRequest(`https://api.github.com/gists/${githubConfig.gistId}`);
+                    const file = gist.files['japanese_words_backup.json'];
+                    if (!file) throw new Error('无文件');
+                    const data = unpackData(file.content);
                     allDecks = data.allDecks || [];
                     allVocabularies = data.allVocabularies || [];
-                    unitWrong = data.unitWrong || [];
-                    summaryWrong = data.summaryWrong || [];
-                    verbWrong = data.verbWrong || [];
-                    grammarUnitWrong = data.grammarUnitWrong || [];
-                    grammarSummaryWrong = data.grammarSummaryWrong || [];
-                    wordJnCnWrong = data.wordJnCnWrong || [];
+                    wordUnitCnJpWrong = data.wordUnitCnJpWrong || [];
+                    wordSummaryCnJpWrong = data.wordSummaryCnJpWrong || [];
+                    wordUnitJpCnWrong = data.wordUnitJpCnWrong || [];
+                    wordSummaryJpCnWrong = data.wordSummaryJpCnWrong || [];
+                    verbUnitWrong = data.verbUnitWrong || [];
+                    verbSummaryWrong = data.verbSummaryWrong || [];
+                    grammarUnitCnJpWrong = data.grammarUnitCnJpWrong || [];
+                    grammarSummaryCnJpWrong = data.grammarSummaryCnJpWrong || [];
+                    grammarUnitJpCnWrong = data.grammarUnitJpCnWrong || [];
+                    grammarSummaryJpCnWrong = data.grammarSummaryJpCnWrong || [];
                     settings = data.settings || { practiceCount: 0 };
                     uploadHistory = data.uploadHistory || [];
+                    lastDownloadInfo = {
+                        device: getDeviceName(),
+                        time: new Date().toLocaleString()
+                    };
                     saveAll();
                     renderBookLists();
-                    alert('✅ 下载成功'); } catch (e) { alert('下载失败: ' + e.message); } };
+                    alert('✅ 下载成功');
+                } catch (e) { alert('下载失败: ' + e.message); }
+            };
+
             window.fetchGistIdFromList = async () => { if (!githubConfig.token) { alert('保存token'); return; } try { const gists =
                         await githubRequest('https://api.github.com/gists'); const candidates = gists.filter(g => g.files[
                             'japanese_words_backup.json']); if (!candidates.length) { alert('无备份'); return; } let list =
@@ -1779,9 +2128,11 @@
                             chosen = candidates[parseInt(idx) - 1]; if (chosen) { githubConfig.gistId = chosen.id;
                             document.getElementById('gistIdInput').value = chosen.id;
                             saveGithubConfig(); } } } catch (e) { alert(e.message); } };
-            window.exportBackup = () => { const data = { allDecks, allVocabularies, unitWrong, summaryWrong, verbWrong,
-                    grammarUnitWrong, grammarSummaryWrong, wordJnCnWrong, settings, uploadHistory }; const blob = new Blob(
-                    [JSON.stringify(data, null, 2)], { type: 'application/json' }); const a = document.createElement('a');
+            window.exportBackup = () => { const data = { allDecks, allVocabularies, wordUnitCnJpWrong,
+                    wordSummaryCnJpWrong, wordUnitJpCnWrong, wordSummaryJpCnWrong, verbUnitWrong, verbSummaryWrong,
+                    grammarUnitCnJpWrong, grammarSummaryCnJpWrong, grammarUnitJpCnWrong, grammarSummaryJpCnWrong,
+                    settings, uploadHistory }; const blob = new Blob([JSON.stringify(data, null, 2)], { type:
+                    'application/json' }); const a = document.createElement('a');
                 a.href = URL.createObjectURL(blob);
                 a.download = `日语备份_${new Date().toISOString().slice(0,10)}.json`;
                 a.click(); };
@@ -1789,12 +2140,16 @@
             return; const reader = new FileReader();
                 reader.onload = (e) => { try { const data = JSON.parse(e.target.result); if (data.allDecks) allDecks = data
                             .allDecks; if (data.allVocabularies) allVocabularies = data.allVocabularies;
-                        unitWrong = data.unitWrong || [];
-                        summaryWrong = data.summaryWrong || [];
-                        verbWrong = data.verbWrong || [];
-                        grammarUnitWrong = data.grammarUnitWrong || [];
-                        grammarSummaryWrong = data.grammarSummaryWrong || [];
-                        wordJnCnWrong = data.wordJnCnWrong || [];
+                        wordUnitCnJpWrong = data.wordUnitCnJpWrong || [];
+                        wordSummaryCnJpWrong = data.wordSummaryCnJpWrong || [];
+                        wordUnitJpCnWrong = data.wordUnitJpCnWrong || [];
+                        wordSummaryJpCnWrong = data.wordSummaryJpCnWrong || [];
+                        verbUnitWrong = data.verbUnitWrong || [];
+                        verbSummaryWrong = data.verbSummaryWrong || [];
+                        grammarUnitCnJpWrong = data.grammarUnitCnJpWrong || [];
+                        grammarSummaryCnJpWrong = data.grammarSummaryCnJpWrong || [];
+                        grammarUnitJpCnWrong = data.grammarUnitJpCnWrong || [];
+                        grammarSummaryJpCnWrong = data.grammarSummaryJpCnWrong || [];
                         settings = data.settings || { practiceCount: 0 };
                         uploadHistory = data.uploadHistory || [];
                         saveAll();
@@ -1805,6 +2160,16 @@
                 reader.readAsText(file); };
             window.resetAllData = () => { if (confirm('⚠️ 删除所有数据？')) { allDecks = [];
                     allVocabularies = [];
+                    wordUnitCnJpWrong = [];
+                    wordSummaryCnJpWrong = [];
+                    wordUnitJpCnWrong = [];
+                    wordSummaryJpCnWrong = [];
+                    verbUnitWrong = [];
+                    verbSummaryWrong = [];
+                    grammarUnitCnJpWrong = [];
+                    grammarSummaryCnJpWrong = [];
+                    grammarUnitJpCnWrong = [];
+                    grammarSummaryJpCnWrong = [];
                     unitWrong = [];
                     summaryWrong = [];
                     verbWrong = [];
@@ -1813,6 +2178,8 @@
                     wordJnCnWrong = [];
                     settings = { practiceCount: 0 };
                     uploadHistory = [];
+                    lastUploadInfo = null;
+                    lastDownloadInfo = null;
                     saveAll(); } };
             window.changePracticeCount = () => { const s = document.getElementById('practiceCountSelect'); if (s.value ===
                     'custom') document.getElementById('customCountRow').style.display = 'flex'; else { settings
@@ -1829,10 +2196,13 @@
             renderBookLists();
             renderWrongList();
             fillGithubConfigToUI();
+            updateSyncInfoDisplay();
             document.getElementById('practiceCountSelect').value = settings.practiceCount === 0 ? '0' : (settings
                 .practiceCount > 0 ? String(settings.practiceCount) : '0');
             updatePracticeCategory();
+            updateWrongTabActiveStates();
             document.getElementById('answerInput').placeholder = '输入答案，回车确认';
+            updateVerbTabVisibility();
         })();
     </script>
 </body>

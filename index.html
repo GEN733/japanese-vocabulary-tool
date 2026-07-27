@@ -1791,20 +1791,24 @@
             }
 
             function handleCorrectForWrongPractice(item) {
-                const listId = getWrongListIdForCurrent();
-                const isUnitType = (listId.includes('Unit') || listId === 'verbUnit');
-                if (isUnitType) {
-                    removeFromWrongListById(listId, item);
-                    return true;
-                } else {
-                    pendingWrongAction.item = item;
-                    pendingWrongAction.listId = listId;
-                    document.getElementById('wrongActionBar').style.display = 'flex';
-                    document.getElementById('answerInput').disabled = true;
-                    answerState = 'pendingChoice';
-                    return false;
-                }
-            }
+    // 非错题模式（单元练习、书本汇总、动词练习）直接进入下一题，不操作错题集
+    if (currentPracticeMode !== 'wrong' && currentPracticeMode !== 'summaryWrong' && currentPracticeMode !== 'verbWrong') {
+        return true;
+    }
+    const listId = getWrongListIdForCurrent();
+    const isUnitType = (listId.includes('Unit') || listId === 'verbUnit');
+    if (isUnitType) {
+        removeFromWrongListById(listId, item);
+        return true;
+    } else {
+        pendingWrongAction.item = item;
+        pendingWrongAction.listId = listId;
+        document.getElementById('wrongActionBar').style.display = 'flex';
+        document.getElementById('answerInput').disabled = true;
+        answerState = 'pendingChoice';
+        return false;
+    }
+}
 
             window.handleWrongRemove = function() {
                 if (pendingWrongAction.item && pendingWrongAction.listId) {

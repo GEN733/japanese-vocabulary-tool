@@ -1869,14 +1869,21 @@
                     }
                     document.getElementById('resultMessage').className = correct ? 'result-badge correct' :
                         'result-badge wrong';
-                    if (correct) {
-                        stats.correct++;
-                        if (!handleCorrectForWrongPractice(word)) return;
-                        let msg = '✓ 正确';
-                        if (!isGrammarPractice && isJp2Cn) {
-                            msg += `<br>含义：${word.chinese}`;
-                        }
-                        document.getElementById('resultMessage').innerHTML = msg;
+                               if (correct) {
+                stats.correct++;
+                let msg = '✓ 正确';
+                if (!isGrammarPractice && isJp2Cn) {
+                    const allChineseSet = new Set();
+                    allVocabularies.filter(v => v.japanese === word.japanese).forEach(v => {
+                        extractChineseMeanings(v.chinese).forEach(meaning => allChineseSet.add(meaning));
+                    });
+                    const allChinese = Array.from(allChineseSet).join(' / ');
+                    msg += `<br>含义：${allChinese}`;
+                }
+                document.getElementById('resultMessage').innerHTML = msg;
+                document.getElementById('resultMessage').className = 'result-badge correct';
+                if (!handleCorrectForWrongPractice(word)) return;
+            }
                     } else {
                         stats.wrong++;
                         document.getElementById('resultMessage').innerText =

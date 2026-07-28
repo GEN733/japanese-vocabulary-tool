@@ -1871,12 +1871,12 @@
                         'result-badge wrong';
                     if (correct) {
                         stats.correct++;
-                        if (!handleCorrectForWrongPractice(word)) return;
                         let msg = '✓ 正确';
                         if (!isGrammarPractice && isJp2Cn) {
                             msg += `<br>含义：${word.chinese}`;
                         }
                         document.getElementById('resultMessage').innerHTML = msg;
+                        if (!handleCorrectForWrongPractice(word)) return;
                     } else {
                         stats.wrong++;
                         document.getElementById('resultMessage').innerText =

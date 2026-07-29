@@ -70,7 +70,7 @@
         .page.active {
             display: block;
         }
-        #practice {
+        #practice, #spaced {
             padding-bottom: 180px;
         }
         button {
@@ -340,7 +340,7 @@
             font-size: 0.9rem;
             color: #5f738c;
         }
-        #fixedInputArea {
+        #fixedInputArea, #spacedFixedInputArea {
             position: fixed;
             bottom: 0;
             left: 50%;
@@ -353,7 +353,7 @@
             z-index: 100;
             border-radius: 24px 24px 0 0;
         }
-        #fixedInputArea .flex-row {
+        #fixedInputArea .flex-row, #spacedFixedInputArea .flex-row {
             margin-top: 0;
         }
         .unit-list {
@@ -419,7 +419,7 @@
             padding: 12px;
             margin: 10px 0;
         }
-        #wrongActionBar button {
+        #wrongActionBar button, #spacedWrongActionBar button {
             flex: 1;
         }
         .module-card {
@@ -567,6 +567,42 @@
             color: #1e3c5c;
             border: 1px solid #e2eaf3;
         }
+
+        /* ========== 遗忘曲线专用样式 ========== */
+        .spaced-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin: 16px 0;
+        }
+        .spaced-card {
+            background: #f2f6fc;
+            border-radius: 24px;
+            padding: 16px;
+            text-align: center;
+        }
+        .spaced-word-list {
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+        .spaced-badge {
+            font-size: 0.8rem;
+            background: #cfe2ff;
+            color: #0d47a1;
+            padding: 2px 8px;
+            border-radius: 20px;
+            margin-left: 6px;
+        }
+        .spaced-badge.mastered {
+            background: #d4edda;
+            color: #155724;
+        }
+        .spaced-action-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
     </style>
 </head>
 <body>
@@ -576,6 +612,7 @@
         <button class="tab-btn active" onclick="showPage('practice')">练习</button>
         <button class="tab-btn" onclick="showPage('wrong')">错题</button>
         <button class="tab-btn" onclick="showPage('library')">题库</button>
+        <button class="tab-btn" onclick="showPage('spaced')">遗忘曲线</button>
         <button class="tab-btn" onclick="showPage('sync')">同步</button>
     </div>
 
@@ -742,6 +779,55 @@
         </div>
     </div>
 
+    <div id="spaced" class="page">
+        <h3>📈 遗忘曲线</h3>
+        <div class="sub-tab-bar" id="spacedSubTabBar">
+            <button class="sub-tab-btn active" onclick="switchSpacedSubTab('practice')">练习</button>
+            <button class="sub-tab-btn" onclick="switchSpacedSubTab('library')">题库</button>
+        </div>
+
+        <!-- 练习子页面 -->
+        <div id="spacedPracticeTab">
+            <div class="spaced-stats">
+                <div class="spaced-card">
+                    <div class="stat-num" id="spacedTodayCount">0</div>
+                    <div>今日待复习</div>
+                </div>
+                <div class="spaced-card">
+                    <div class="stat-num" id="spacedTotalCount">0</div>
+                    <div>总词数</div>
+                </div>
+            </div>
+            <button class="primary" style="width:100%;" onclick="startSpacedPractice()">▶ 开始遗忘曲线练习</button>
+            
+            <div id="spacedPracticeArea" style="display:none; margin-top:20px;">
+                <div class="word-display" id="spacedQuestionWord"></div>
+                <div class="answer-preview">答案：<span id="spacedPreviewText"></span></div>
+                <div class="result-badge" id="spacedResultMessage"></div>
+            </div>
+        </div>
+
+        <!-- 题库子页面 -->
+        <div id="spacedLibraryTab" style="display:none;">
+            <div class="spaced-action-row">
+                <button onclick="importSummaryToSpaced()">📥 从汇总错题导入</button>
+                <button class="danger" onclick="clearSpacedData()">🗑️ 清空遗忘数据库</button>
+            </div>
+            <div class="spaced-word-list" id="spacedWordList">暂无单词</div>
+        </div>
+
+        <!-- 固定底部输入区（独立于子标签） -->
+        <div id="spacedFixedInputArea" style="display:none;">
+            <form id="spacedAnswerForm" onsubmit="return false;">
+                <input type="text" id="spacedAnswerInput" placeholder="输入日语假名，回车确认" autocomplete="off">
+            </form>
+            <div class="flex-row" id="spacedWrongActionBar" style="display:none;">
+                <button onclick="handleSpacedRemove()">🗑️ 移出</button>
+                <button class="warning" onclick="handleSpacedKeep()">💾 保留</button>
+            </div>
+        </div>
+    </div>
+
     <div id="sync" class="page">
         <h3>☁️ GitHub 同步 (压缩传输)</h3>
         <div class="sync-step"><h4>1. 配置</h4><input type="text" id="githubUser" placeholder="用户名"><input type="password" id="githubToken" placeholder="Token"><button onclick="saveGithubConfig()">保存</button><span id="configStatus"></span></div>
@@ -785,6 +871,9 @@
                 grammarSummaryWrong = [];
             let wordJnCnWrong = [];
 
+            let spacedRepetitionData = []; // 遗忘曲线专属数据
+            let spacedSubTab = 'practice'; // 遗忘曲线子标签
+
             let settings = { practiceCount: 0 };
             let uploadHistory = [];
             let lastUploadInfo = null;
@@ -811,6 +900,9 @@
             let wrongGrammarDirection = 'cn2jp';
             let verbSubTab = 'verbUnit';
             let practiceVerbSubTab = 'verbUnit';
+
+            // 遗忘曲线专用状态
+            let spacedAnswerState = 'answering'; // 'answering' 或 'reviewing'（等待回车）
 
             function isVerb(word) {
                 return word.particle && word.particle.trim() !== '';
@@ -886,6 +978,15 @@
                     grammarSummaryWrong = JSON.parse(localStorage.getItem('jp_grammar_summary_wrong') || '[]');
                     wordJnCnWrong = JSON.parse(localStorage.getItem('jp_word_jncn_wrong') || '[]');
                     migrateOldWrongData();
+                    spacedRepetitionData = JSON.parse(localStorage.getItem('jp_spaced_repetition_data') || '[]');
+                    // 补全 SM-2 字段
+                    spacedRepetitionData = spacedRepetitionData.map(item => {
+                        if (item.repetitions === undefined) item.repetitions = 0;
+                        if (item.easeFactor === undefined) item.easeFactor = 2.5;
+                        if (item.interval === undefined) item.interval = 0;
+                        if (!item.nextReviewDate) item.nextReviewDate = new Date().toISOString().slice(0,10);
+                        return item;
+                    });
                     settings = JSON.parse(localStorage.getItem('jp_settings') || '{"practiceCount":0}');
                     uploadHistory = JSON.parse(localStorage.getItem('jp_history') || '[]');
                     lastUploadInfo = JSON.parse(localStorage.getItem('jp_last_upload_info') || 'null');
@@ -958,6 +1059,7 @@
                 localStorage.removeItem('jp_grammar_unit_wrong');
                 localStorage.removeItem('jp_grammar_summary_wrong');
                 localStorage.removeItem('jp_word_jncn_wrong');
+                localStorage.setItem('jp_spaced_repetition_data', JSON.stringify(spacedRepetitionData));
                 localStorage.setItem('jp_settings', JSON.stringify(settings));
                 localStorage.setItem('jp_history', JSON.stringify(uploadHistory));
                 localStorage.setItem('jp_last_upload_info', JSON.stringify(lastUploadInfo));
@@ -972,6 +1074,7 @@
                 fillAllSelects();
                 if (document.getElementById('library')) renderBookLists();
                 updateSyncInfoDisplay();
+                if (document.getElementById('spaced').classList.contains('active')) updateSpacedUI();
             }
 
             function updateSyncInfoDisplay() {
@@ -1254,6 +1357,7 @@
                     updateImportSelects(); }
                 if (pid === 'wrong') { updateWrongTabActiveStates();
                     renderWrongList(); }
+                if (pid === 'spaced') { updateSpacedUI(); }
                 if (pid === 'sync') { fillGithubConfigToUI();
                     fetchCloudSyncMeta().then(() => updateSyncInfoDisplay()); }
             };
@@ -1791,24 +1895,23 @@
             }
 
             function handleCorrectForWrongPractice(item) {
-    // 非错题模式（单元练习、书本汇总、动词练习）直接进入下一题，不操作错题集
-    if (currentPracticeMode !== 'wrong' && currentPracticeMode !== 'summaryWrong' && currentPracticeMode !== 'verbWrong') {
-        return true;
-    }
-    const listId = getWrongListIdForCurrent();
-    const isUnitType = (listId.includes('Unit') || listId === 'verbUnit');
-    if (isUnitType) {
-        removeFromWrongListById(listId, item);
-        return true;
-    } else {
-        pendingWrongAction.item = item;
-        pendingWrongAction.listId = listId;
-        document.getElementById('wrongActionBar').style.display = 'flex';
-        document.getElementById('answerInput').disabled = true;
-        answerState = 'pendingChoice';
-        return false;
-    }
-}
+                if (currentPracticeMode !== 'wrong' && currentPracticeMode !== 'summaryWrong' && currentPracticeMode !== 'verbWrong') {
+                    return true;
+                }
+                const listId = getWrongListIdForCurrent();
+                const isUnitType = (listId.includes('Unit') || listId === 'verbUnit');
+                if (isUnitType) {
+                    removeFromWrongListById(listId, item);
+                    return true;
+                } else {
+                    pendingWrongAction.item = item;
+                    pendingWrongAction.listId = listId;
+                    document.getElementById('wrongActionBar').style.display = 'flex';
+                    document.getElementById('answerInput').disabled = true;
+                    answerState = 'pendingChoice';
+                    return false;
+                }
+            }
 
             window.handleWrongRemove = function() {
                 if (pendingWrongAction.item && pendingWrongAction.listId) {
@@ -1870,12 +1973,18 @@
                     document.getElementById('resultMessage').className = correct ? 'result-badge correct' :
                         'result-badge wrong';
                     if (correct) {
-                        stats.correct++;                        
+                        stats.correct++;
                         let msg = '✓ 正确';
                         if (!isGrammarPractice && isJp2Cn) {
-                            msg += `<br>含义：${word.chinese}`;
+                            const allChineseSet = new Set();
+                            allVocabularies.filter(v => v.japanese === word.japanese).forEach(v => {
+                                extractChineseMeanings(v.chinese).forEach(meaning => allChineseSet.add(meaning));
+                            });
+                            const allChinese = Array.from(allChineseSet).join(' / ');
+                            msg += `<br>含义：${allChinese}`;
                         }
                         document.getElementById('resultMessage').innerHTML = msg;
+                        document.getElementById('resultMessage').className = 'result-badge correct';
                         if (!handleCorrectForWrongPractice(word)) return;
                     } else {
                         stats.wrong++;
@@ -1993,6 +2102,13 @@
                 if (listId === 'verbUnit') addToList(verbSummaryWrong);
                 if (listId === 'grammarUnitCnJp') addToList(grammarSummaryCnJpWrong);
                 if (listId === 'grammarUnitJpCn') addToList(grammarSummaryJpCnWrong);
+                
+                // 自动加入遗忘曲线数据库（仅限中→日方向的单词错题）
+                if (listId === 'wordUnitCnJp' || listId === 'wordSummaryCnJp') {
+                    if (!spacedRepetitionData.some(s => s.chinese === word.chinese && s.japanese === word.japanese)) {
+                        spacedRepetitionData.push({ chinese: word.chinese, japanese: word.japanese, repetitions: 0, easeFactor: 2.5, interval: 0, nextReviewDate: getTodayStr() });
+                    }
+                }
                 saveAll();
             }
 
@@ -2106,6 +2222,7 @@
                     grammarSummaryCnJpWrong,
                     grammarUnitJpCnWrong,
                     grammarSummaryJpCnWrong,
+                    spacedRepetitionData,
                     settings,
                     uploadHistory,
                     _syncMeta: syncMeta
@@ -2133,7 +2250,6 @@
 
             window.uploadToGithub = async () => {
                 if (!githubConfig.gistId || !githubConfig.token) { alert('配置缺失'); return; }
-                // 先获取云端备份信息
                 const remoteMeta = await fetchCloudSyncMeta();
                 let confirmMsg = '确认上传数据到云端？';
                 if (remoteMeta) {
@@ -2163,7 +2279,6 @@
 
             window.downloadFromGithub = async () => {
                 if (!githubConfig.gistId) { alert('填写ID'); return; }
-                // 获取云端信息
                 const remoteMeta = await fetchCloudSyncMeta();
                 let confirmMsg = '确认从云端下载数据？这将会覆盖本地数据。';
                 if (remoteMeta) {
@@ -2192,6 +2307,7 @@
                     grammarSummaryCnJpWrong = data.grammarSummaryCnJpWrong || [];
                     grammarUnitJpCnWrong = data.grammarUnitJpCnWrong || [];
                     grammarSummaryJpCnWrong = data.grammarSummaryJpCnWrong || [];
+                    spacedRepetitionData = data.spacedRepetitionData || [];
                     settings = data.settings || { practiceCount: 0 };
                     uploadHistory = data.uploadHistory || [];
                     if (data._syncMeta) {
@@ -2220,6 +2336,7 @@
             window.exportBackup = () => { const data = { allDecks, allVocabularies, wordUnitCnJpWrong,
                     wordSummaryCnJpWrong, wordUnitJpCnWrong, wordSummaryJpCnWrong, verbUnitWrong, verbSummaryWrong,
                     grammarUnitCnJpWrong, grammarSummaryCnJpWrong, grammarUnitJpCnWrong, grammarSummaryJpCnWrong,
+                    spacedRepetitionData,
                     settings, uploadHistory, _syncMeta: { device: getDeviceName(), time: new Date().toISOString() } }; const blob = new Blob([JSON.stringify(data, null, 2)], { type:
                     'application/json' }); const a = document.createElement('a');
                 a.href = URL.createObjectURL(blob);
@@ -2239,6 +2356,7 @@
                         grammarSummaryCnJpWrong = data.grammarSummaryCnJpWrong || [];
                         grammarUnitJpCnWrong = data.grammarUnitJpCnWrong || [];
                         grammarSummaryJpCnWrong = data.grammarSummaryJpCnWrong || [];
+                        spacedRepetitionData = data.spacedRepetitionData || [];
                         settings = data.settings || { practiceCount: 0 };
                         uploadHistory = data.uploadHistory || [];
                         saveAll();
@@ -2259,6 +2377,7 @@
                     grammarSummaryCnJpWrong = [];
                     grammarUnitJpCnWrong = [];
                     grammarSummaryJpCnWrong = [];
+                    spacedRepetitionData = [];
                     unitWrong = [];
                     summaryWrong = [];
                     verbWrong = [];
@@ -2281,6 +2400,256 @@
                     saveAll();
                     document.getElementById('customCountRow').style.display = 'none'; } };
 
+            /* ==================== 遗忘曲线功能函数 (SM-2) ==================== */
+            function getTodayStr() {
+                return new Date().toISOString().slice(0,10);
+            }
+
+            window.switchSpacedSubTab = function(tab) {
+                spacedSubTab = tab;
+                document.querySelectorAll('#spacedSubTabBar .sub-tab-btn').forEach(btn => btn.classList.remove('active'));
+                if (tab === 'practice') {
+                    document.getElementById('spacedPracticeTab').style.display = 'block';
+                    document.getElementById('spacedLibraryTab').style.display = 'none';
+                    document.querySelector('#spacedSubTabBar .sub-tab-btn:first-child').classList.add('active');
+                } else {
+                    document.getElementById('spacedPracticeTab').style.display = 'none';
+                    document.getElementById('spacedLibraryTab').style.display = 'block';
+                    document.querySelector('#spacedSubTabBar .sub-tab-btn:last-child').classList.add('active');
+                }
+                updateSpacedUI();
+            };
+
+            function updateSpacedUI() {
+                const today = getTodayStr();
+                const dueItems = spacedRepetitionData.filter(item => item.nextReviewDate <= today);
+                document.getElementById('spacedTodayCount').innerText = dueItems.length;
+                document.getElementById('spacedTotalCount').innerText = spacedRepetitionData.length;
+                if (spacedSubTab === 'library') {
+                    renderSpacedWordList();
+                }
+            }
+
+            function renderSpacedWordList() {
+                const container = document.getElementById('spacedWordList');
+                if (!spacedRepetitionData.length) {
+                    container.innerHTML = '<p>暂无单词，请从汇总错题导入</p>';
+                    return;
+                }
+                const today = getTodayStr();
+                let html = '<table class="word-table"><tr><th>中文</th><th>日文</th><th>复习次数</th><th>间隔</th><th>下次复习</th><th>操作</th></tr>';
+                spacedRepetitionData.forEach((item, idx) => {
+                    const dueSoon = item.nextReviewDate <= today ? ' (今日)' : '';
+                    html += `<tr>
+                        <td>${item.chinese}</td>
+                        <td>${item.japanese}</td>
+                        <td>${item.repetitions}</td>
+                        <td>${item.interval}天</td>
+                        <td>${item.nextReviewDate}${dueSoon}</td>
+                        <td><button class="btn-sm danger" onclick="removeSpacedItem(${idx})">移除</button></td>
+                    </tr>`;
+                });
+                html += '</table>';
+                container.innerHTML = html;
+            }
+
+            window.removeSpacedItem = function(idx) {
+                if (confirm('确定从遗忘曲线数据库中移除此词？')) {
+                    spacedRepetitionData.splice(idx, 1);
+                    saveAll();
+                    updateSpacedUI();
+                }
+            };
+
+            window.importSummaryToSpaced = function() {
+                const source = wordSummaryCnJpWrong;
+                if (!source.length) {
+                    alert('汇总错题集（中→日）中没有单词可导入');
+                    return;
+                }
+                let added = 0;
+                source.forEach(ww => {
+                    if (!spacedRepetitionData.some(s => s.chinese === ww.chinese && s.japanese === ww.japanese)) {
+                        spacedRepetitionData.push({
+                            chinese: ww.chinese,
+                            japanese: ww.japanese,
+                            repetitions: 0,
+                            easeFactor: 2.5,
+                            interval: 0,
+                            nextReviewDate: getTodayStr()
+                        });
+                        added++;
+                    }
+                });
+                if (added > 0) {
+                    saveAll();
+                    updateSpacedUI();
+                    alert(`已导入 ${added} 个新单词到遗忘曲线数据库`);
+                } else {
+                    alert('没有新单词可导入（可能已全部存在）');
+                }
+            };
+
+            window.clearSpacedData = function() {
+                if (confirm('确定清空整个遗忘曲线数据库？此操作不可恢复。')) {
+                    spacedRepetitionData = [];
+                    saveAll();
+                    updateSpacedUI();
+                }
+            };
+
+            window.startSpacedPractice = function() {
+                const today = getTodayStr();
+                const dueItems = spacedRepetitionData.filter(item => item.nextReviewDate <= today);
+                if (!dueItems.length) {
+                    alert('今天没有需要复习的单词，休息一下吧！');
+                    return;
+                }
+                for (let i = dueItems.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [dueItems[i], dueItems[j]] = [dueItems[j], dueItems[i]];
+                }
+                spacedPracticeWords = dueItems;
+                spacedIndex = 0;
+                spacedStats = { total: dueItems.length, correct: 0, wrong: 0 };
+                spacedPendingAction = null;
+                spacedCurrentItem = null;
+                document.getElementById('spacedSubTabBar').style.display = 'none';
+                document.getElementById('spacedPracticeArea').style.display = 'block';
+                document.getElementById('spacedFixedInputArea').style.display = 'block';
+                document.getElementById('spacedWrongActionBar').style.display = 'none';
+                showSpacedQuestion();
+            };
+
+            function showSpacedQuestion() {
+                if (!spacedPracticeWords.length || spacedIndex >= spacedPracticeWords.length) {
+                    document.getElementById('spacedSubTabBar').style.display = 'flex';
+                    document.getElementById('spacedPracticeArea').style.display = 'none';
+                    document.getElementById('spacedFixedInputArea').style.display = 'none';
+                    updateSpacedUI();
+                    alert(`复习完成！正确:${spacedStats.correct} 错误:${spacedStats.wrong}`);
+                    return;
+                }
+                const item = spacedPracticeWords[spacedIndex];
+                spacedCurrentItem = item;
+                spacedAnswerState = 'answering';
+                document.getElementById('spacedQuestionWord').innerHTML = item.chinese;
+                document.getElementById('spacedResultMessage').innerHTML = '';
+                document.getElementById('spacedPreviewText').innerText = '';
+                document.getElementById('spacedWrongActionBar').style.display = 'none';
+                document.getElementById('spacedAnswerInput').disabled = false;
+                document.getElementById('spacedAnswerInput').value = '';
+                document.getElementById('spacedAnswerInput').focus();
+            }
+
+            document.getElementById('spacedAnswerInput').addEventListener('input', function() {
+                document.getElementById('spacedPreviewText').innerText = this.value;
+            });
+
+            document.getElementById('spacedAnswerInput').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (spacedPendingAction) return;
+                    if (spacedAnswerState === 'reviewing') {
+                        spacedIndex++;
+                        showSpacedQuestion();
+                        return;
+                    }
+                    const userAnswer = document.getElementById('spacedAnswerInput').value.trim();
+                    if (!userAnswer) return;
+                    checkSpacedAnswer(userAnswer);
+                }
+            });
+
+            function sm2Update(item, quality) {
+                if (quality < 3) {
+                    item.repetitions = 0;
+                    item.interval = 1;
+                    item.easeFactor = Math.max(1.3, item.easeFactor - 0.2);
+                } else {
+                    if (item.repetitions === 0) {
+                        item.interval = 1;
+                    } else if (item.repetitions === 1) {
+                        item.interval = 6;
+                    } else {
+                        item.interval = Math.round(item.interval * item.easeFactor);
+                    }
+                    item.repetitions += 1;
+                    item.easeFactor = item.easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+                    if (item.easeFactor < 1.3) item.easeFactor = 1.3;
+                }
+                const nextDate = new Date();
+                nextDate.setDate(nextDate.getDate() + item.interval);
+                item.nextReviewDate = nextDate.toISOString().slice(0,10);
+            }
+
+            function checkSpacedAnswer(userAnswer) {
+                const item = spacedCurrentItem;
+                if (!item) return;
+                const isCorrect = (userAnswer === item.japanese);
+                const quality = isCorrect ? 5 : 1; // 简单评分：正确5，错误1
+
+                spacedStats.correct += isCorrect ? 1 : 0;
+                spacedStats.wrong += isCorrect ? 0 : 1;
+
+                sm2Update(item, quality);
+
+                if (isCorrect && item.interval >= 30) {
+                    document.getElementById('spacedResultMessage').className = 'result-badge correct';
+                    document.getElementById('spacedResultMessage').innerHTML = `🎉 已掌握！<br>是否从遗忘曲线数据库移出？`;
+                    document.getElementById('spacedWrongActionBar').style.display = 'flex';
+                    document.getElementById('spacedAnswerInput').disabled = true;
+                    spacedPendingAction = { type: 'mastered', item };
+                } else if (isCorrect) {
+                    document.getElementById('spacedResultMessage').className = 'result-badge correct';
+                    document.getElementById('spacedResultMessage').innerHTML = `✓ 正确！下次复习：${item.nextReviewDate}（间隔${item.interval}天）`;
+                    document.getElementById('spacedAnswerInput').disabled = false;
+                    document.getElementById('spacedWrongActionBar').style.display = 'none';
+                    spacedPendingAction = null;
+                } else {
+                    document.getElementById('spacedResultMessage').className = 'result-badge wrong';
+                    document.getElementById('spacedResultMessage').innerHTML = `✗ 错误！正确答案：${item.japanese}。已重置，明天再复习。`;
+                    document.getElementById('spacedAnswerInput').disabled = false;
+                    document.getElementById('spacedWrongActionBar').style.display = 'none';
+                    spacedPendingAction = null;
+                }
+
+                spacedAnswerState = 'reviewing';
+                saveAll();
+            }
+
+            window.handleSpacedRemove = function() {
+                if (spacedPendingAction && spacedPendingAction.type === 'mastered') {
+                    const item = spacedPendingAction.item;
+                    const idx = spacedRepetitionData.findIndex(s => s.chinese === item.chinese && s.japanese === item.japanese);
+                    if (idx > -1) spacedRepetitionData.splice(idx, 1);
+                }
+                spacedPendingAction = null;
+                document.getElementById('spacedWrongActionBar').style.display = 'none';
+                document.getElementById('spacedAnswerInput').disabled = false;
+                saveAll();
+                spacedIndex++;
+                showSpacedQuestion();
+            };
+
+            window.handleSpacedKeep = function() {
+                if (spacedPendingAction && spacedPendingAction.type === 'mastered') {
+                    const item = spacedPendingAction.item;
+                    // 保留时将容易度设为最低 2.5，间隔设为 30 天，避免短期内再弹出
+                    item.easeFactor = Math.max(2.5, item.easeFactor);
+                    item.interval = 30;
+                    const nextDate = new Date();
+                    nextDate.setDate(nextDate.getDate() + item.interval);
+                    item.nextReviewDate = nextDate.toISOString().slice(0,10);
+                }
+                spacedPendingAction = null;
+                document.getElementById('spacedWrongActionBar').style.display = 'none';
+                document.getElementById('spacedAnswerInput').disabled = false;
+                saveAll();
+                spacedIndex++;
+                showSpacedQuestion();
+            };
+
             loadFromStorage();
             fillAllSelects();
             renderBookLists();
@@ -2292,7 +2661,6 @@
             updateWrongTabActiveStates();
             document.getElementById('answerInput').placeholder = '输入答案，回车确认';
             updateVerbTabVisibility();
-            // 初始加载时获取云端信息
             if (githubConfig.gistId && githubConfig.token) {
                 fetchCloudSyncMeta().then(() => updateSyncInfoDisplay());
             }

@@ -914,6 +914,13 @@
                 return word.particle && word.particle.trim() !== '';
             }
 
+            // 新增规范化函数：去除空格和常见中英文标点
+            function normalizeString(str) {
+                let s = str.replace(/\s+/g, '');
+                s = s.replace(/[，,。.、；;：:！!？?（）()【】\[\]『』「」""''\/\\·\-—]+/g, '');
+                return s;
+            }
+
             function getCurrentWrongList() {
                 if (wrongCategory === 'grammar') {
                     if (wrongGrammarDirection === 'cn2jp') {
@@ -1969,7 +1976,13 @@
                 const isJp2Cn = question.direction === 'jp2cn';
                 if (isGrammarPractice || isJp2Cn) {
                     let correct;
-                    if (isJp2Cn) {
+                    if (isJp2Cn && isGrammarPractice) {
+                        // 新增：语法日→中整句规范化 + 斜杠分隔
+                        const candidates = word.chinese.split('/').map(s => s.trim()).filter(Boolean);
+                        const normalizedAns = normalizeString(ans);
+                        correct = candidates.some(c => normalizeString(c) === normalizedAns);
+                    } else if (isJp2Cn && !isGrammarPractice) {
+                        // 单词日→中：保留原有拆分判断
                         const rawChinese = word.chinese;
                         const aliases = extractChineseMeanings(rawChinese);
                         correct = aliases.some(a => a === ans);
@@ -1981,30 +1994,43 @@
                     if (correct) {
                         stats.correct++;
                         let msg = '✓ 正确';
+                        if (isGrammarPractice && isJp2Cn) {
+                            // 语法日→中正确：显示完整中文含义
+                            msg += `<br>完整释义：${word.chinese}`;
+                        }
                         if (!isGrammarPractice && isJp2Cn) {
-                            const allChineseSet = new Set();
-                            allVocabularies.filter(v => v.japanese === word.japanese).forEach(v => {
-                                extractChineseMeanings(v.chinese).forEach(meaning => allChineseSet.add(meaning));
-                            });
-                            const allChinese = Array.from(allChineseSet).join(' / ');
-                            msg += `<br>含义：${allChinese}`;
+                            // 单词日→中正确：显示原始中文字段（不拆分）
+                            const allRawChinese = allVocabularies
+                                .filter(v => v.japanese === word.japanese)
+                                .map(v => v.chinese)
+                                .join(' / ');
+                            msg += `<br>含义：${allRawChinese}`;
                         }
                         document.getElementById('resultMessage').innerHTML = msg;
-                        document.getElementById('resultMessage').className = 'result-badge correct';
+                        // 显示例句
+                        if (word.example) {
+                            if (isGrammarPractice) {
+                                document.getElementById('exampleCard').innerHTML = `📖 ${word.example} ${word.exampleCn||''}`;
+                            } else {
+                                document.getElementById('exampleCard').innerHTML = `📖 ${word.example}`;
+                            }
+                            document.getElementById('exampleCard').style.display = 'block';
+                        }
                         if (!handleCorrectForWrongPractice(word)) return;
                     } else {
                         stats.wrong++;
                         document.getElementById('resultMessage').innerText =
                             `✗ 错误 正确答案: ${isJp2Cn ? word.chinese : word.japanese}`;
+                        // 添加例句显示（语法和单词均适用）
+                        if (word.example) {
+                            if (isGrammarPractice) {
+                                document.getElementById('exampleCard').innerHTML = `📖 ${word.example} ${word.exampleCn || ''}`;
+                            } else {
+                                              document.getElementById('exampleCard').innerHTML = `📖 ${word.example}`;
+                            }
+                           document.getElementById('exampleCard').style.display = 'block';
+}
                         addToWrong(word);
-                    }
-                    if (word.example && !isGrammarPractice) {
-                        document.getElementById('exampleCard').innerHTML = `📖 ${word.example}`;
-                        document.getElementById('exampleCard').style.display = 'block';
-                    } else if (isGrammarPractice && word.example) {
-                        document.getElementById('exampleCard').innerHTML =
-                            `📖 ${word.example} ${word.exampleCn||''}`;
-                        document.getElementById('exampleCard').style.display = 'block';
                     }
                     answerState = 'completed';
                     updateProgress();
@@ -2413,7 +2439,7 @@
                 const month = String(d.getMonth() + 1).padStart(2, '0');
                 const day = String(d.getDate()).padStart(2, '0');
                 return `${year}-${month}-${day}`;
-                        }
+            }
 
             window.switchSpacedSubTab = function(tab) {
                 spacedSubTab = tab;
@@ -2426,7 +2452,6 @@
                     document.getElementById('spacedPracticeTab').style.display = 'none';
                     document.getElementById('spacedLibraryTab').style.display = 'block';
                     document.querySelector('#spacedSubTabBar .sub-tab-btn:last-child').classList.add('active');
-                    // 切换到题库时重置搜索
                     spacedSearchKeyword = '';
                     document.getElementById('spacedSearchInput').value = '';
                 }
@@ -2489,7 +2514,6 @@
                 container.innerHTML = html;
             }
 
-            // 通过原始索引删除，确保搜索模式下也能正确删除
             window.removeSpacedItemByFilter = function(idx) {
                 if (confirm('确定从遗忘曲线数据库中移除此词？')) {
                     spacedRepetitionData.splice(idx, 1);
@@ -2578,7 +2602,14 @@
                 const item = spacedPracticeWords[spacedIndex];
                 spacedCurrentItem = item;
                 spacedAnswerState = 'answering';
-                document.getElementById('spacedQuestionWord').innerHTML = item.chinese;
+                // 显示词性
+                const vocab = allVocabularies.find(v => v.chinese === item.chinese && v.japanese === item.japanese);
+                let displayHtml = item.chinese;
+                if (vocab && vocab.wordType) {
+                    const typeClass = vocab.wordType.includes('他') ? ' 他' : '';
+                    displayHtml += ` <span class="type-badge${typeClass}">${vocab.wordType}</span>`;
+                }
+                document.getElementById('spacedQuestionWord').innerHTML = displayHtml;
                 document.getElementById('spacedResultMessage').innerHTML = '';
                 document.getElementById('spacedPreviewText').innerText = '';
                 document.getElementById('spacedWrongActionBar').style.display = 'none';
@@ -2632,7 +2663,7 @@
                 const item = spacedCurrentItem;
                 if (!item) return;
                 const isCorrect = (userAnswer === item.japanese);
-                const quality = isCorrect ? 5 : 1; // 简单评分：正确5，错误1
+                const quality = isCorrect ? 5 : 1;
 
                 spacedStats.correct += isCorrect ? 1 : 0;
                 spacedStats.wrong += isCorrect ? 0 : 1;
@@ -2680,7 +2711,6 @@
             window.handleSpacedKeep = function() {
                 if (spacedPendingAction && spacedPendingAction.type === 'mastered') {
                     const item = spacedPendingAction.item;
-                    // 保留时将容易度设为最低 2.5，间隔设为 30 天，避免短期内再弹出
                     item.easeFactor = Math.max(2.5, item.easeFactor);
                     item.interval = 30;
                     const nextDate = new Date();

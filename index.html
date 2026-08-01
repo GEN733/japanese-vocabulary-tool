@@ -1611,7 +1611,7 @@
                     document.getElementById('spacedSubTabBar').style.display = 'flex';
                     document.getElementById('spacedPracticeArea').style.display = 'none';
                     document.getElementById('spacedFixedInputArea').style.display = 'none';
-                    // 强制刷新题库表格，确保复习后的间隔数据可见
+                    // 强制切换到“题库”标签，让更新后的日期立刻可见
                     state.spaced.subTab = 'library';
                     document.getElementById('spacedPracticeTab').style.display = 'none';
                     document.getElementById('spacedLibraryTab').style.display = 'block';
@@ -1645,6 +1645,7 @@
                 s.stats.correct += isCorrect ? 1 : 0;
                 s.stats.wrong += isCorrect ? 0 : 1;
                 sm2Update(item, quality);
+                updateSpacedUI();
                 if (isCorrect && item.interval >= 30) {
                     document.getElementById('spacedResultMessage').className = 'result-badge correct';
                     document.getElementById('spacedResultMessage').innerHTML = `🎉 已掌握！<br>是否从遗忘曲线数据库移出？`;

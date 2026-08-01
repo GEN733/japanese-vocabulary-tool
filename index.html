@@ -1608,6 +1608,7 @@
             };
 
             function showSpacedQuestion() {
+                 state.spaced.answerState = 'answering'; 
                 if (!state.spaced.practiceWords.length || state.spaced.index >= state.spaced.practiceWords.length) {
                     document.getElementById('spacedSubTabBar').style.display = 'flex';
                     document.getElementById('spacedPracticeArea').style.display = 'none';
@@ -1659,7 +1660,7 @@
                }
                // 关键：无论什么情况，只要不是“已掌握”待确认，就设置为 reviewing 状态，等待回车切题
                if (!s.pendingAction || s.pendingAction.type !== 'mastered') {
-                   s.answerState = 'reviewing';
+                   s.answerState = 'completed';
                }
                saveAll();
            }
@@ -1942,7 +1943,7 @@
                     e.preventDefault();
                     const s = state.spaced;
                     if (s.pendingAction) return;
-                    if (s.answerState === 'reviewing') {
+                    if (s.answerState === 'completed') {
                         s.index++;
                         showSpacedQuestion();
                         return;

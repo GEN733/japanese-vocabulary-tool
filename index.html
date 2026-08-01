@@ -1688,25 +1688,31 @@
 
             function packData() {
                 const syncMeta = { device: getDeviceName(), time: new Date().toISOString() };
-                const data = {
-                    allDecks: state.decks,
-                    allVocabularies: state.vocabs,
-                    wordUnitCnJpWrong: state.wrong.wordUnitCnJp,
-                    wordSummaryCnJpWrong: state.wrong.wordSummaryCnJp,
-                    wordUnitJpCnWrong: state.wrong.wordUnitJpCn,
-                    wordSummaryJpCnWrong: state.wrong.wordSummaryJpCn,
-                    verbUnitWrong: state.wrong.verbUnit,
-                    verbSummaryWrong: state.wrong.verbSummary,
-                    grammarUnitCnJpWrong: state.wrong.grammarUnitCnJp,
-                    grammarSummaryCnJpWrong: state.wrong.grammarSummaryCnJp,
-                    grammarUnitJpCnWrong: state.wrong.grammarUnitJpCn,
-                    grammarSummaryJpCnWrong: state.wrong.grammarSummaryJpCn,
-                    spacedRepetitionData: state.spaced,
-                    settings: state.settings,
-                    uploadHistory: state.uploadHistory,
-                    _syncMeta: syncMeta,
-                };
-                const jsonStr = safeStringify(data);
+                let cleanData;
+                try {
+                    cleanData = JSON.parse(JSON.stringify({
+                        allDecks: state.decks,
+                        allVocabularies: state.vocabs,
+                        wordUnitCnJpWrong: state.wrong.wordUnitCnJp,
+                        wordSummaryCnJpWrong: state.wrong.wordSummaryCnJp,
+                        wordUnitJpCnWrong: state.wrong.wordUnitJpCn,
+                        wordSummaryJpCnWrong: state.wrong.wordSummaryJpCn,
+                        verbUnitWrong: state.wrong.verbUnit,
+                        verbSummaryWrong: state.wrong.verbSummary,
+                        grammarUnitCnJpWrong: state.wrong.grammarUnitCnJp,
+                        grammarSummaryCnJpWrong: state.wrong.grammarSummaryCnJp,
+                        grammarUnitJpCnWrong: state.wrong.grammarUnitJpCn,
+                        grammarSummaryJpCnWrong: state.wrong.grammarSummaryJpCn,
+                        spacedRepetitionData: state.spaced,
+                        settings: state.settings,
+                        uploadHistory: state.uploadHistory,
+                        _syncMeta: syncMeta
+                    }));
+                } catch (e) {
+                    alert('数据序列化失败，可能是数据损坏。请先导出备份，清空数据后再导入。');
+                    throw e;
+                }
+                const jsonStr = JSON.stringify(cleanData);
                 const compressed = pako.deflate(jsonStr);
                 return { packed: btoa(String.fromCharCode.apply(null, compressed)), meta: syncMeta };
             }

@@ -1936,12 +1936,17 @@
             document.getElementById('spacedAnswerInput').addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    if (state.spaced.pendingAction) return;
-                    if (state.spaced.answerState === 'reviewing') { state.spaced.index++; showSpacedQuestion(); return; }
+                    const s = state.spaced;
+                    if (s.pendingAction) return;
+                    if (s.answerState === 'reviewing') {
+                        s.index++;
+                        showSpacedQuestion();
+                        return;
+                    }
                     const userAnswer = document.getElementById('spacedAnswerInput').value.trim();
                     if (!userAnswer) return;
                     checkSpacedAnswer(userAnswer);
-                }
+                   }
             });
             document.getElementById('importBook').addEventListener('change', updateImportUnits);
 

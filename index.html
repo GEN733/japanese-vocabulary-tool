@@ -282,14 +282,7 @@
             </div>
             <button class="primary" style="width:100%;" onclick="startSpacedPractice()">▶ 开始遗忘曲线练习</button>
             <div id="spacedPracticeArea" style="display:none; margin-top:20px;">
-                <div id="spacedPracticeArea" style="display:none; margin-top:20px;">
-    <div class="stats-grid">
-        <div class="stat-card"><span class="stat-num" id="spacedProgressCurr">0</span>/<span id="spacedProgressTotal">0</span><br>进度</div>
-        <div class="stat-card"><span class="stat-num" id="spacedCorrectRate">0</span>%<br>正确率</div>
-        <div class="stat-card"><span class="stat-num" id="spacedTotalAnswered">0</span><br>已答</div>
-    </div>
-    <div class="progress-bar"><div class="progress-fill" id="spacedProgressFill" style="width:0%"></div></div>
-    <div class="word-display" id="spacedQuestionWord"></div>
+                <div class="word-display" id="spacedQuestionWord"></div>
                 <div class="answer-preview">答案：<span id="spacedPreviewText"></span></div>
                 <div class="result-badge" id="spacedResultMessage"></div>
             </div>
@@ -301,15 +294,11 @@
                 <button class="danger" onclick="clearSpacedData()">🗑️ 清空遗忘数据库</button>
             </div>
             <div class="flex-row" style="margin:10px 0;">
-    <input type="text" id="spacedSearchInput" placeholder="搜索中文/日文" style="flex:3;">
-    <button onclick="searchSpacedWords()" style="flex:1;">搜索</button>
-    <button onclick="clearSpacedSearch()" style="flex:1;">重置</button>
-</div>
-<div class="flex-row" style="margin:5px 0;">
-    <input type="number" id="spacedFilterRep" placeholder="复习次数≥" style="flex:1;" onchange="renderSpacedWordList()">
-    <input type="number" id="spacedFilterInterval" placeholder="间隔≥" style="flex:1;" onchange="renderSpacedWordList()">
-</div>
-<div class="spaced-word-list" id="spacedWordList">暂无单词</div>
+                <input type="text" id="spacedSearchInput" placeholder="搜索中文/日文" style="flex:3;">
+                <button onclick="searchSpacedWords()" style="flex:1;">搜索</button>
+                <button onclick="clearSpacedSearch()" style="flex:1;">重置</button>
+            </div>
+            <div class="spaced-word-list" id="spacedWordList">暂无单词</div>
         </div>
 
         <div id="spacedFixedInputArea" style="display:none;">
@@ -397,15 +386,13 @@
                 library: {},
                 spaced: {
                     subTab: 'practice',
-    searchKeyword: '',
-    practiceWords: [],
-    index: 0,
-    stats: { total: 0, correct: 0, wrong: 0 },
-    answerState: 'answering',
-    pendingAction: null,
-    currentItem: null,
-    sortKey: null,        // 'chinese', 'japanese', 'repetitions', 'interval', 'nextReviewDate'
-    sortOrder: 'asc',     // 'asc' 或 'desc'
+                    searchKeyword: '',
+                    practiceWords: [],
+                    index: 0,
+                    stats: { total: 0, correct: 0, wrong: 0 },
+                    answerState: 'answering', // 'answering','reviewing'
+                    pendingAction: null,
+                    currentItem: null,
                 },
                 sync: {},
             };
@@ -1526,93 +1513,28 @@
             };
 
             window.clearSpacedSearch = function() {
-              document.getElementById('spacedSearchInput').value = '';
-    state.spaced.searchKeyword = '';
-    const repEl = document.getElementById('spacedFilterRep');
-    const intEl = document.getElementById('spacedFilterInterval');
-    if (repEl) repEl.value = '';
-    if (intEl) intEl.value = '';
-    renderSpacedWordList();
+                document.getElementById('spacedSearchInput').value = '';
+                state.spaced.searchKeyword = '';
+                renderSpacedWordList();
             };
-            window.toggleSort = function(key) {
-    const s = state.spaced;
-    if (s.sortKey === key) {
-        s.sortOrder = s.sortOrder === 'asc' ? 'desc' : 'asc';
-    } else {
-        s.sortKey = key;
-        s.sortOrder = 'asc';
-    }
-    renderSpacedWordList();
-};
 
             function renderSpacedWordList() {
-               const container = document.getElementById('spacedWordList');
-    if (!state.spaced.length) { container.innerHTML = '<p>暂无单词，请从汇总错题导入</p>'; return; }
-    const today = getTodayStr();
-    let filtered = state.spaced.slice();
-
-    // 文本搜索
-    if (state.spaced.searchKeyword) {
-        const kw = state.spaced.searchKeyword;
-        filtered = filtered.filter(item => 
-            item.chinese.toLowerCase().includes(kw) || item.japanese.toLowerCase().includes(kw)
-        );
-    }
-
-    // 数值筛选
-    const repMin = parseInt(document.getElementById('spacedFilterRep')?.value);
-    const intMin = parseInt(document.getElementById('spacedFilterInterval')?.value);
-    if (!isNaN(repMin)) {
-        filtered = filtered.filter(item => item.repetitions >= repMin);
-    }
-    if (!isNaN(intMin)) {
-        filtered = filtered.filter(item => item.interval >= intMin);
-    }
-
-    // 排序
-    const key = state.spaced.sortKey;
-    if (key) {
-        const order = state.spaced.sortOrder === 'desc' ? -1 : 1;
-        filtered.sort((a, b) => {
-            let valA = a[key], valB = b[key];
-            if (typeof valA === 'string') valA = valA.toLowerCase();
-            if (typeof valB === 'string') valB = valB.toLowerCase();
-            if (valA < valB) return -1 * order;
-            if (valA > valB) return 1 * order;
-            return 0;
-        });
-    }
-
-    if (!filtered.length) { container.innerHTML = '<p>无匹配单词</p>'; return; }
-
-    // 生成排序图标的辅助函数
-    const getSortIcon = (colKey) => {
-        if (state.spaced.sortKey !== colKey) return ' ↕';
-        return state.spaced.sortOrder === 'asc' ? ' ↑' : ' ↓';
-    };
-
-    let html = '<table class="word-table"><tr>';
-    html += `<th style="cursor:pointer;" onclick="toggleSort('chinese')">中文${getSortIcon('chinese')}</th>`;
-    html += `<th style="cursor:pointer;" onclick="toggleSort('japanese')">日文${getSortIcon('japanese')}</th>`;
-    html += `<th style="cursor:pointer;" onclick="toggleSort('repetitions')">复习次数${getSortIcon('repetitions')}</th>`;
-    html += `<th style="cursor:pointer;" onclick="toggleSort('interval')">间隔${getSortIcon('interval')}</th>`;
-    html += `<th style="cursor:pointer;" onclick="toggleSort('nextReviewDate')">下次复习${getSortIcon('nextReviewDate')}</th>`;
-    html += '<th>操作</th></tr>';
-
-    filtered.forEach((item) => {
-        const originalIdx = state.spaced.indexOf(item);
-        const dueSoon = item.nextReviewDate <= today ? ' (今日)' : '';
-        html += `<tr>
-            <td>${item.chinese}</td>
-            <td>${item.japanese}</td>
-            <td>${item.repetitions}</td>
-            <td>${item.interval}天</td>
-            <td>${item.nextReviewDate}${dueSoon}</td>
-            <td><button class="btn-sm danger" onclick="removeSpacedItemByFilter(${originalIdx})">移除</button></td>
-        </tr>`;
-    });
-    html += '</table>';
-    container.innerHTML = html;
+                const container = document.getElementById('spacedWordList');
+                if (!state.spaced.length) { container.innerHTML = '<p>暂无单词，请从汇总错题导入</p>'; return; }
+                const today = getTodayStr();
+                let filtered = state.spaced;
+                if (state.spaced.searchKeyword) {
+                    filtered = state.spaced.filter(item => item.chinese.toLowerCase().includes(state.spaced.searchKeyword) || item.japanese.toLowerCase().includes(state.spaced.searchKeyword));
+                }
+                if (!filtered.length) { container.innerHTML = '<p>无匹配单词</p>'; return; }
+                let html = '<table class="word-table"><tr><th>中文</th><th>日文</th><th>复习次数</th><th>间隔</th><th>下次复习</th><th>操作</th></tr>';
+                filtered.forEach((item, idx) => {
+                    const originalIdx = state.spaced.indexOf(item);
+                    const dueSoon = item.nextReviewDate <= today ? ' (今日)' : '';
+                    html += `<tr><td>${item.chinese}</td><td>${item.japanese}</td><td>${item.repetitions}</td><td>${item.interval}天</td><td>${item.nextReviewDate}${dueSoon}</td><td><button class="btn-sm danger" onclick="removeSpacedItemByFilter(${originalIdx})">移除</button></td></tr>`;
+                });
+                html += '</table>';
+                container.innerHTML = html;
             }
 
             window.removeSpacedItemByFilter = function(idx) {
@@ -1690,37 +1612,27 @@
 
             function showSpacedQuestion() {
                  state.spaced.answerState = 'answering'; 
-    const s = state.spaced;
-    const total = s.practiceWords.length;
-    const answered = s.stats.correct + s.stats.wrong;
-    const current = s.index + 1;
-    document.getElementById('spacedProgressCurr').innerText = current;
-    document.getElementById('spacedProgressTotal').innerText = total;
-    document.getElementById('spacedTotalAnswered').innerText = answered;
-    document.getElementById('spacedCorrectRate').innerText = answered ? Math.round(s.stats.correct / answered * 100) : 0;
-    document.getElementById('spacedProgressFill').style.width = total ? ((current / total) * 100) + '%' : '0%';
-
-    if (!s.practiceWords.length || s.index >= s.practiceWords.length) {
-        document.getElementById('spacedSubTabBar').style.display = 'flex';
-        document.getElementById('spacedPracticeArea').style.display = 'none';
-        document.getElementById('spacedFixedInputArea').style.display = 'none';
-        updateSpacedUI();
-        alert(`复习完成！正确:${s.stats.correct} 错误:${s.stats.wrong}`);
-        return;
-    }
-    const item = s.practiceWords[s.index];
-    s.currentItem = item;
-    s.answerState = 'answering';
-    const vocab = state.vocabs.find(v => v.chinese === item.chinese && v.japanese === item.japanese);
-    let displayHtml = item.chinese;
-    if (vocab && vocab.wordType) displayHtml += ` <span class="type-badge${vocab.wordType.includes('他')?' 他':''}">${vocab.wordType}</span>`;
-    document.getElementById('spacedQuestionWord').innerHTML = displayHtml;
-    document.getElementById('spacedResultMessage').innerHTML = '';
-    document.getElementById('spacedPreviewText').innerText = '';
-    document.getElementById('spacedWrongActionBar').style.display = 'none';
-    document.getElementById('spacedAnswerInput').disabled = false;
-    document.getElementById('spacedAnswerInput').value = '';
-    document.getElementById('spacedAnswerInput').focus();
+                if (!state.spaced.practiceWords.length || state.spaced.index >= state.spaced.practiceWords.length) {
+                    document.getElementById('spacedSubTabBar').style.display = 'flex';
+                    document.getElementById('spacedPracticeArea').style.display = 'none';
+                    document.getElementById('spacedFixedInputArea').style.display = 'none';
+                    updateSpacedUI();
+                    alert(`复习完成！正确:${state.spaced.stats.correct} 错误:${state.spaced.stats.wrong}`);
+                    return;
+                }
+                const item = state.spaced.practiceWords[state.spaced.index];
+                state.spaced.currentItem = item;
+                state.spaced.answerState = 'answering';
+                const vocab = state.vocabs.find(v => v.chinese === item.chinese && v.japanese === item.japanese);
+                let displayHtml = item.chinese;
+                if (vocab && vocab.wordType) displayHtml += ` <span class="type-badge${vocab.wordType.includes('他')?' 他':''}">${vocab.wordType}</span>`;
+                document.getElementById('spacedQuestionWord').innerHTML = displayHtml;
+                document.getElementById('spacedResultMessage').innerHTML = '';
+                document.getElementById('spacedPreviewText').innerText = '';
+                document.getElementById('spacedWrongActionBar').style.display = 'none';
+                document.getElementById('spacedAnswerInput').disabled = false;
+                document.getElementById('spacedAnswerInput').value = '';
+                document.getElementById('spacedAnswerInput').focus();
             }
 
            function checkSpacedAnswer(userAnswer) {

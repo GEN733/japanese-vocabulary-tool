@@ -1727,7 +1727,11 @@
                 }
                 const jsonStr = JSON.stringify(cleanData);
                 const compressed = pako.deflate(jsonStr);
-                return { packed: btoa(String.fromCharCode.apply(null, compressed)), meta: syncMeta };
+                let binaryStr = '';
+            for (let i = 0; i < compressed.length; i++) {
+                binaryStr += String.fromCharCode(compressed[i]);
+            }
+            return { packed: btoa(binaryStr), meta: syncMeta };
             }
 
             function unpackData(b64) {

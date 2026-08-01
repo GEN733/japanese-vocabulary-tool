@@ -1611,6 +1611,12 @@
                     document.getElementById('spacedSubTabBar').style.display = 'flex';
                     document.getElementById('spacedPracticeArea').style.display = 'none';
                     document.getElementById('spacedFixedInputArea').style.display = 'none';
+                    // 强制刷新题库表格，确保复习后的间隔数据可见
+                    state.spaced.subTab = 'library';
+                    document.getElementById('spacedPracticeTab').style.display = 'none';
+                    document.getElementById('spacedLibraryTab').style.display = 'block';
+                    document.querySelectorAll('#spacedSubTabBar .sub-tab-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelector('#spacedSubTabBar .sub-tab-btn:last-child').classList.add('active');
                     updateSpacedUI();
                     alert(`复习完成！正确:${s.stats.correct} 错误:${s.stats.wrong}`);
                     return;

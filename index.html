@@ -488,6 +488,19 @@
 
             // ========== 数据持久化 ==========
             function saveAll() {
+                // 强制深拷贝清洗所有数据，去除循环引用和不可序列化对象
+                try {
+                    state.decks = JSON.parse(JSON.stringify(state.decks));
+                    state.vocabs = JSON.parse(JSON.stringify(state.vocabs));
+                    state.spaced = JSON.parse(JSON.stringify(state.spaced));
+                    state.uploadHistory = JSON.parse(JSON.stringify(state.uploadHistory));
+                    for (let k in state.wrong) {
+                         state.wrong[k] = JSON.parse(JSON.stringify(state.wrong[k]));
+                    }
+                   state.settings = JSON.parse(JSON.stringify(state.settings));
+                 } catch (e) {
+                      alert('数据清洗失败，可能数据已损坏。建议导出备份后清空数据重新导入。');
+                 }
                 const { wrong: w } = state;
                 localStorage.setItem('jp_decks', JSON.stringify(state.decks));
                 localStorage.setItem('jp_vocab', JSON.stringify(state.vocabs));

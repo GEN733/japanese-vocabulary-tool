@@ -154,6 +154,10 @@
             <button class="practice-verb-sub-btn active" onclick="switchPracticeVerbSub('verbUnit')" id="practiceVerbUnitBtn">单元动词错题</button>
             <button class="practice-verb-sub-btn" onclick="switchPracticeVerbSub('verbSummary')" id="practiceVerbSummaryBtn">汇总动词错题</button>
         </div>
+        <div id="practiceWrongSubBar" class="practice-verb-sub-bar">
+            <button class="practice-verb-sub-btn active" onclick="switchPracticeWrongSub('unit')" id="practiceWrongUnitBtn">单元错题</button>
+            <button class="practice-verb-sub-btn" onclick="switchPracticeWrongSub('summary')" id="practiceWrongSummaryBtn">汇总错题</button>
+        </div>
         <button class="primary" style="width:100%;" onclick="startPractice()">▶ 开始练习</button>
         <div class="stats-grid">
             <div class="stat-card"><span class="stat-num" id="progressCurr">0</span>/<span id="progressTotal">0</span><br>进度</div>
@@ -376,6 +380,8 @@
                     answerState: 'initial',
                     kanaCorrect: false,
                     verbMode: false,
+                    wrongSubTab: 'unit',
+                    verbSubTab: 'verbUnit',   
                     grammarDirection: 'jp2cn',
                     wordDirection: 'cn2jp',
                     mode: 'unit',
@@ -383,7 +389,7 @@
                     pendingWrong: null,
                     currentItem: null,
                 },
-                wrong: {
+                wrongUI: {
                     category: 'word',
                     currentTab: 'unit',
                     wordDirection: 'cn2jp',
@@ -452,25 +458,26 @@
             }
 
             function getCurrentWrongList() {
-                const { wrong: wState } = state;
+                const { wrongUI: wState } = state;
+                const wrongData = state.wrong;   // 错题数组在 state.wrong 里，不在 wrongUI 里
                 const { category, currentTab, wordDirection, grammarDirection, verbSubTab } = wState;
                 if (category === 'grammar') {
                     if (grammarDirection === 'cn2jp') {
-                        return currentTab === 'grammarUnit' ? wState.grammarUnitCnJp : wState.grammarSummaryCnJp;
+                        return currentTab === 'grammarUnit' ? wrongData.grammarUnitCnJp : wrongData.grammarSummaryCnJp;
                     } else {
-                        return currentTab === 'grammarUnit' ? wState.grammarUnitJpCn : wState.grammarSummaryJpCn;
+                        return currentTab === 'grammarUnit' ? wrongData.grammarUnitJpCn : wrongData.grammarSummaryJpCn;
                     }
                 }
                 if (wordDirection === 'cn2jp') {
-                    if (currentTab === 'unit') return wState.wordUnitCnJp;
-                    if (currentTab === 'summary') return wState.wordSummaryCnJp;
-                    if (currentTab === 'verb') return verbSubTab === 'verbUnit' ? wState.verbUnit : wState.verbSummary;
+                    if (currentTab === 'unit') return wrongData.wordUnitCnJp;
+                    if (currentTab === 'summary') return wrongData.wordSummaryCnJp;
+                    if (currentTab === 'verb') return verbSubTab === 'verbUnit' ? wrongData.verbUnit : wrongData.verbSummary;
                 } else {
-                    if (currentTab === 'unit') return wState.wordUnitJpCn;
-                    if (currentTab === 'summary') return wState.wordSummaryJpCn;
-                    if (currentTab === 'verb') return verbSubTab === 'verbUnit' ? wState.verbUnit : wState.verbSummary;
+                    if (currentTab === 'unit') return wrongData.wordUnitJpCn;
+                    if (currentTab === 'summary') return wrongData.wordSummaryJpCn;
+                    if (currentTab === 'verb') return verbSubTab === 'verbUnit' ? wrongData.verbUnit : wrongData.verbSummary;
                 }
-                return wState.wordUnitCnJp;
+                return wrongData.wordUnitCnJp;
             }
 
             function getWrongListById(listId) {
@@ -675,23 +682,26 @@
             function getWrongListIdForCurrentPractice() {
                 const { practice: p } = state;
                 if (p.category === 'grammar') {
-                    if (p.mode === 'wrong') return p.grammarDirection === 'cn2jp' ? 'grammarUnitCnJp' : 'grammarUnitJpCn';
-                    if (p.mode === 'summaryWrong') return p.grammarDirection === 'cn2jp' ? 'grammarSummaryCnJp' : 'grammarSummaryJpCn';
+                    if (p.mode === 'wrong') {
+                        if (p.wrongSubTab === 'unit') return p.grammarDirection === 'cn2jp' ? 'grammarUnitCnJp' : 'grammarUnitJpCn';
+                        else return p.grammarDirection === 'cn2jp' ? 'grammarSummaryCnJp' : 'grammarSummaryJpCn';
+                    }
                     return p.grammarDirection === 'cn2jp' ? 'grammarUnitCnJp' : 'grammarUnitJpCn';
                 }
-                if (p.verbMode) {
-                    if (p.mode === 'verbWrong') return state.practice.verbSubTab === 'verbUnit' ? 'verbUnit' : 'verbSummary';
-                    return (p.mode === 'unit' || p.mode === 'verbJudge') ? 'verbUnit' : 'verbSummary';
+                if (p.mode === 'verbWrong') {
+                    return p.verbSubTab === 'verbUnit' ? 'verbUnit' : 'verbSummary';
                 }
-                if (p.wordDirection === 'cn2jp') {
-                    if (p.mode === 'unit' || p.mode === 'wrong') return 'wordUnitCnJp';
-                    if (p.mode === 'review' || p.mode === 'summaryWrong') return 'wordSummaryCnJp';
-                    return 'wordUnitCnJp';
-                } else {
-                    if (p.mode === 'unit' || p.mode === 'wrong') return 'wordUnitJpCn';
-                    if (p.mode === 'review' || p.mode === 'summaryWrong') return 'wordSummaryJpCn';
-                    return 'wordUnitJpCn';
+                if (p.mode === 'wrong') {
+                    // 单词常规错题
+                    if (p.wordDirection === 'cn2jp') {
+                        return p.wrongSubTab === 'unit' ? 'wordUnitCnJp' : 'wordSummaryCnJp';
+                    } else {
+                        return p.wrongSubTab === 'unit' ? 'wordUnitJpCn' : 'wordSummaryJpCn';
+                    }
                 }
+                // 其他模式（常规练习、动词练习等）默认单元错题
+                if (p.wordDirection === 'cn2jp') return 'wordUnitCnJp';
+                else return 'wordUnitJpCn';
             }
 
             function addToWrongList(word) {
@@ -726,7 +736,7 @@
             }
 
             function handleCorrectForWrongPractice(item) {
-                if (state.practice.mode !== 'wrong' && state.practice.mode !== 'summaryWrong' && state.practice.mode !== 'verbWrong') return true;
+                if (state.practice.mode !== 'wrong' && state.practice.mode !== 'verbWrong') return true;
                 const listId = getWrongListIdForCurrentPractice();
                 const isUnitType = (listId.includes('Unit') || listId === 'verbUnit');
                 if (isUnitType) {
@@ -1013,6 +1023,7 @@
                 if (pid === 'wrong') { updateWrongTabActiveStates(); renderWrongList(); }
                 if (pid === 'spaced') { updateSpacedUI(); }
                 if (pid === 'sync') { fillGithubConfigToUI(); fetchCloudSyncMeta().then(() => updateSyncInfoDisplay()); }
+                if (pid === 'practice') updateModeUI(); 
             };
 
             window.setPracticeCategory = function(cat) {
@@ -1026,15 +1037,17 @@
             window.setGrammarDirection = function(dir) {
                 state.practice.grammarDirection = dir;
                 document.querySelectorAll('#grammarDirectionBar .sub-tab-btn').forEach(btn => btn.classList.toggle('active', btn.getAttribute('onclick').includes(`'${dir}'`)));
+                updatePracticeCategory(); 
             };
 
             window.setWordDirection = function(dir) {
                 state.practice.wordDirection = dir;
                 document.querySelectorAll('#wordDirectionBar .sub-tab-btn').forEach(btn => btn.classList.toggle('active', btn.getAttribute('onclick').includes(`'${dir}'`)));
+                updatePracticeCategory();  
             };
 
             window.setWrongCategory = function(cat) {
-                state.wrong.category = cat;
+                state.wrongUI.category = cat;
                 document.querySelectorAll('#wrong .sub-tab-bar .sub-tab-btn').forEach((btn, idx) => btn.classList.toggle('active', (idx===0 && cat==='word')||(idx===1 && cat==='grammar')));
                 document.getElementById('wordWrongTabs').style.display = cat === 'word' ? 'flex' : 'none';
                 document.getElementById('grammarWrongTabs').style.display = cat === 'grammar' ? 'flex' : 'none';
@@ -1042,18 +1055,18 @@
                 document.getElementById('grammarWrongDirectionBar').style.display = cat === 'grammar' ? 'flex' : 'none';
                 document.getElementById('verbSubTabBar').style.display = 'none';
                 document.getElementById('verbSubTabBar').classList.remove('show');
-                if (cat === 'word') { state.wrong.currentTab = 'unit'; updateVerbTabVisibility(); }
-                else { state.wrong.currentTab = 'grammarUnit'; }
+                if (cat === 'word') { state.wrongUI.currentTab = 'unit'; updateVerbTabVisibility(); }
+                else { state.wrongUI.currentTab = 'grammarUnit'; }
                 updateUIStats();
                 renderWrongList();
                 updateWrongTabActiveStates();
             };
 
             window.setWrongWordDirection = function(dir) {
-                state.wrong.wordDirection = dir;
+                state.wrongUI.wordDirection = dir;
                 document.querySelectorAll('#wordWrongDirectionBar .wrong-direction-btn').forEach(btn => btn.classList.toggle('active', btn.getAttribute('onclick').includes(`'${dir}'`)));
-                state.wrong.currentTab = 'unit';
-                state.wrong.verbSubTab = 'verbUnit';
+                state.wrongUI.currentTab = 'unit';
+                state.wrongUI.verbSubTab = 'verbUnit';
                 updateVerbTabVisibility();
                 updateUIStats();
                 renderWrongList();
@@ -1061,9 +1074,9 @@
             };
 
             window.setWrongGrammarDirection = function(dir) {
-                state.wrong.grammarDirection = dir;
+                state.wrongUI.grammarDirection = dir;
                 document.querySelectorAll('#grammarWrongDirectionBar .wrong-direction-btn').forEach(btn => btn.classList.toggle('active', btn.getAttribute('onclick').includes(`'${dir}'`)));
-                state.wrong.currentTab = 'grammarUnit';
+                state.wrongUI.currentTab = 'grammarUnit';
                 updateUIStats();
                 renderWrongList();
                 updateWrongTabActiveStates();
@@ -1072,18 +1085,18 @@
             function updateVerbTabVisibility() {
                 const verbTab = document.getElementById('wrongTabVerb');
                 const verbSubBar = document.getElementById('verbSubTabBar');
-                if (state.wrong.category === 'word' && state.wrong.wordDirection === 'cn2jp') {
+                if (state.wrongUI.category === 'word' && state.wrongUI.wordDirection === 'cn2jp') {
                     if (verbTab) verbTab.style.display = 'flex';
                 } else {
                     if (verbTab) verbTab.style.display = 'none';
                     verbSubBar.style.display = 'none';
                     verbSubBar.classList.remove('show');
-                    if (state.wrong.currentTab === 'verb') state.wrong.currentTab = 'unit';
+                    if (state.wrongUI.currentTab === 'verb') state.wrongUI.currentTab = 'unit';
                 }
             }
 
             window.switchVerbSubTab = function(subTab) {
-                state.wrong.verbSubTab = subTab;
+                state.wrongUI.verbSubTab = subTab;
                 document.querySelectorAll('#verbSubTabBar .verb-sub-tab-btn').forEach(btn => btn.classList.toggle('active', (btn.id==='verbSubTabUnit' && subTab==='verbUnit')||(btn.id==='verbSubTabSummary' && subTab==='verbSummary')));
                 updateUIStats();
                 renderWrongList();
@@ -1091,15 +1104,41 @@
 
             window.switchPracticeVerbSub = function(subTab) {
                 state.practice.verbSubTab = subTab;
-                document.querySelectorAll('#practiceVerbSubBar .practice-verb-sub-btn').forEach(btn => btn.classList.toggle('active', (btn.id==='practiceVerbUnitBtn' && subTab==='verbUnit')||(btn.id==='practiceVerbSummaryBtn' && subTab==='verbSummary')));
+                document.querySelectorAll('#practiceVerbSubBar .practice-verb-sub-btn').forEach(btn => {
+                    const isActive = (btn.id === 'practiceVerbUnitBtn' && subTab === 'verbUnit') ||
+                                     (btn.id === 'practiceVerbSummaryBtn' && subTab === 'verbSummary');
+                    if (isActive) btn.classList.add('active');
+                    else btn.classList.remove('active');
+                });
+            };
+            window.switchPracticeWrongSub = function(subTab) {
+                state.practice.wrongSubTab = subTab;
+                document.querySelectorAll('#practiceWrongSubBar .practice-verb-sub-btn').forEach(btn => {
+                          const isActive = (btn.id === 'practiceWrongUnitBtn' && state.practice.wrongSubTab === 'unit') ||
+                                                        (btn.id === 'practiceWrongSummaryBtn' && state.practice.wrongSubTab === 'summary');
+                          if (isActive) btn.classList.add('active');
+                          else btn.classList.remove('active');
+                  });
             };
 
             window.updatePracticeCategory = function() {
                 const modeSel = document.getElementById('practiceMode');
-                if (state.practice.category === 'grammar') {
-                    modeSel.innerHTML = `<option value="unit">📚 单元练习</option><option value="review">📖 书本汇总</option><option value="wrong">📌 单元错题</option><option value="summaryWrong">📋 汇总错题</option>`;
+                const p = state.practice;
+                const oldMode = modeSel.value;   // 记住之前选的模式
+                if (p.category === 'grammar') {
+                    modeSel.innerHTML = `<option value="normal">📚 日常练习</option><option value="wrong">📌 错题重练</option>`;
+                } else { // 单词
+                    if (p.wordDirection === 'cn2jp') {
+                        modeSel.innerHTML = `<option value="normal">📚 标准练习</option><option value="verbJudge">⚡ 动词练习</option><option value="wrong">📌 标准错题</option><option value="verbWrong">📝 动词错题</option>`;
+                    } else { // 日→中
+                        modeSel.innerHTML = `<option value="normal">📚 日常练习</option><option value="wrong">📌 错题重练</option>`;
+                    }
+                }
+                // 如果之前的模式在新列表中还存在，就保持；否则回退到第一个
+                if ([...modeSel.options].some(opt => opt.value === oldMode)) {
+                    modeSel.value = oldMode;
                 } else {
-                    modeSel.innerHTML = `<option value="unit">📚 单元练习</option><option value="review">📖 书本汇总</option><option value="verbJudge">⚡ 动词练习</option><option value="wrong">📌 单元错题</option><option value="summaryWrong">📋 汇总错题</option><option value="verbWrong">📝 动词错题</option>`;
+                    modeSel.value = modeSel.options[0].value;
                 }
                 fillAllSelects();
                 updateModeUI();
@@ -1107,20 +1146,20 @@
 
             function updateWrongTabActiveStates() {
                 document.querySelectorAll('#wordWrongTabs .wrong-tab-btn, #grammarWrongTabs .wrong-tab-btn').forEach(b => b.classList.remove('active'));
-                if (state.wrong.category === 'word') {
+                if (state.wrongUI.category === 'word') {
                     const tabMap = { unit: 'Unit', summary: 'Summary', verb: 'Verb' };
-                    const targetId = 'wrongTab' + (tabMap[state.wrong.currentTab] || 'Unit');
+                    const targetId = 'wrongTab' + (tabMap[state.wrongUI.currentTab] || 'Unit');
                     const btn = document.getElementById(targetId);
                     if (btn) btn.classList.add('active');
                 } else {
-                    const btn = document.getElementById('wrongTabGrammar' + (state.wrong.currentTab === 'grammarUnit' ? 'Unit' : 'Summary'));
+                    const btn = document.getElementById('wrongTabGrammar' + (state.wrongUI.currentTab === 'grammarUnit' ? 'Unit' : 'Summary'));
                     if (btn) btn.classList.add('active');
                 }
                 const verbSubBar = document.getElementById('verbSubTabBar');
-                if (state.wrong.category === 'word' && state.wrong.wordDirection === 'cn2jp' && state.wrong.currentTab === 'verb') {
+                if (state.wrongUI.category === 'word' && state.wrongUI.wordDirection === 'cn2jp' && state.wrongUI.currentTab === 'verb') {
                     verbSubBar.style.display = 'flex';
                     verbSubBar.classList.add('show');
-                    document.querySelectorAll('#verbSubTabBar .verb-sub-tab-btn').forEach(btn => btn.classList.toggle('active', (btn.id==='verbSubTabUnit' && state.wrong.verbSubTab==='verbUnit')||(btn.id==='verbSubTabSummary' && state.wrong.verbSubTab==='verbSummary')));
+                    document.querySelectorAll('#verbSubTabBar .verb-sub-tab-btn').forEach(btn => btn.classList.toggle('active', (btn.id==='verbSubTabUnit' && state.wrongUI.verbSubTab==='verbUnit')||(btn.id==='verbSubTabSummary' && state.wrongUI.verbSubTab==='verbSummary')));
                 } else {
                     verbSubBar.style.display = 'none';
                     verbSubBar.classList.remove('show');
@@ -1128,8 +1167,8 @@
             }
 
             window.switchWrongTab = function(tab) {
-                state.wrong.currentTab = tab;
-                if (tab === 'verb') state.wrong.verbSubTab = 'verbUnit';
+                state.wrongUI.currentTab = tab;
+                if (tab === 'verb') state.wrongUI.verbSubTab = 'verbUnit';
                 updateWrongTabActiveStates();
                 updateUIStats();
                 renderWrongList();
@@ -1297,19 +1336,19 @@
             };
 
             window.startPracticeFromWrong = function() {
-                if (state.wrong.category === 'grammar') {
+                if (state.wrongUI.category === 'grammar') {
                     setPracticeCategory('grammar');
-                    document.getElementById('practiceMode').value = state.wrong.currentTab === 'grammarUnit' ? 'wrong' : 'summaryWrong';
-                    setGrammarDirection(state.wrong.grammarDirection);
+                    document.getElementById('practiceMode').value = state.wrongUI.currentTab === 'grammarUnit' ? 'wrong' : 'summaryWrong';
+                    setGrammarDirection(state.wrongUI.grammarDirection);
                 } else {
                     setPracticeCategory('word');
-                    if (state.wrong.wordDirection === 'cn2jp') {
-                        if (state.wrong.currentTab === 'unit') document.getElementById('practiceMode').value = 'wrong';
-                        else if (state.wrong.currentTab === 'summary') document.getElementById('practiceMode').value = 'summaryWrong';
-                        else if (state.wrong.currentTab === 'verb') { document.getElementById('practiceMode').value = 'verbWrong'; state.practice.verbSubTab = state.wrong.verbSubTab; switchPracticeVerbSub(state.wrong.verbSubTab); }
+                    if (state.wrongUI.wordDirection === 'cn2jp') {
+                        if (state.wrongUI.currentTab === 'unit') document.getElementById('practiceMode').value = 'wrong';
+                        else if (state.wrongUI.currentTab === 'summary') document.getElementById('practiceMode').value = 'summaryWrong';
+                        else if (state.wrongUI.currentTab === 'verb') { document.getElementById('practiceMode').value = 'verbWrong'; state.practice.verbSubTab = state.wrongUI.verbSubTab; switchPracticeVerbSub(state.wrongUI.verbSubTab); }
                         setWordDirection('cn2jp');
                     } else {
-                        document.getElementById('practiceMode').value = state.wrong.currentTab === 'unit' ? 'wrong' : 'summaryWrong';
+                        document.getElementById('practiceMode').value = state.wrongUI.currentTab === 'unit' ? 'wrong' : 'summaryWrong';
                         setWordDirection('jp2cn');
                     }
                 }
@@ -1320,12 +1359,44 @@
 
             window.updateModeUI = function() {
                 const mode = document.getElementById('practiceMode').value;
-                const unitRow = document.getElementById('unitSelectRow'), bookRow = document.getElementById('bookMultiRow'), div = document.getElementById('bookUnitSelector'), verbSubBar = document.getElementById('practiceVerbSubBar');
-                unitRow.style.display = 'none'; bookRow.style.display = 'none'; div.style.display = 'none'; verbSubBar.classList.remove('show');
-                if (mode === 'unit' || mode === 'verbJudge') { div.style.display = 'block'; unitRow.style.display = 'block'; }
-                if (mode === 'review' || mode === 'verbJudge') { div.style.display = 'block'; bookRow.style.display = 'block'; renderBookMultiSelect(); }
-                if (mode === 'verbWrong') { div.style.display = 'none'; verbSubBar.classList.add('show'); }
-                if (mode === 'wrong' || mode === 'summaryWrong') { div.style.display = 'none'; }
+                const unitRow = document.getElementById('unitSelectRow');
+                const bookRow = document.getElementById('bookMultiRow');
+                const div = document.getElementById('bookUnitSelector');
+                const verbSubBar = document.getElementById('practiceVerbSubBar');
+                const wrongSubBar = document.getElementById('practiceWrongSubBar');
+
+                // 先全部隐藏
+                unitRow.style.display = 'none';
+                bookRow.style.display = 'none';
+                div.style.display = 'none';
+                verbSubBar.classList.remove('show');
+                wrongSubBar.classList.remove('show');
+
+                if (mode === 'normal' || mode === 'verbJudge') {
+                    // 标准练习、动词练习：显示单元选择 + 书本多选
+                    div.style.display = 'block';
+                    unitRow.style.display = 'block';
+                    bookRow.style.display = 'block';
+                    renderBookMultiSelect();
+                } else if (mode === 'wrong') {
+                    // 标准错题（单词中→日，或日→中，或语法）：显示错题子栏（单元/汇总）
+                    wrongSubBar.classList.add('show');
+                    // 初始化子栏按钮状态
+                    document.querySelectorAll('#practiceWrongSubBar .practice-verb-sub-btn').forEach(btn => {
+                              const isActive = (btn.id === 'practiceWrongUnitBtn' && state.practice.wrongSubTab === 'unit') ||
+                                                            (btn.id === 'practiceWrongSummaryBtn' && state.practice.wrongSubTab === 'summary');
+                               if (isActive) btn.classList.add('active');
+                               else btn.classList.remove('active');
+                      });
+                } else if (mode === 'verbWrong') {
+                    verbSubBar.classList.add('show');
+                    document.querySelectorAll('#practiceVerbSubBar .practice-verb-sub-btn').forEach(btn => {
+                        const isActive = (btn.id === 'practiceVerbUnitBtn' && state.practice.verbSubTab === 'verbUnit') ||
+                                         (btn.id === 'practiceVerbSummaryBtn' && state.practice.verbSubTab === 'verbSummary');
+                        if (isActive) btn.classList.add('active');
+                        else btn.classList.remove('active');
+                    });
+                }
             };
 
             window.startPractice = function() {
@@ -1333,23 +1404,27 @@
                 const p = state.practice;
                 p.mode = mode;
                 p.category = state.practice.category;
-                p.verbMode = (p.category === 'word' && (mode === 'verbJudge' || mode === 'verbWrong'));
+                p.verbMode = (p.category === 'word' && p.wordDirection === 'cn2jp' && (mode === 'verbJudge' || mode === 'verbWrong'));
+
                 let candidates = [];
                 p.words = null;
-                if (mode === 'wrong' || mode === 'summaryWrong' || mode === 'verbWrong') {
+
+                // 标准错题、动词错题、语法错题
+                if (mode === 'wrong' || mode === 'verbWrong') {
                     let list;
-                    if (p.category === 'grammar') list = getGrammarWrongListForMode(mode);
-                    else list = getPracticeWrongListForMode(mode);
-                    if (!list) list = [];
-                    list = cleanWrongList(list);
                     if (p.category === 'grammar') {
-                        if (mode === 'wrong') {
+                        list = (p.wrongSubTab === 'unit') 
+                            ? (p.grammarDirection === 'cn2jp' ? state.wrong.grammarUnitCnJp : state.wrong.grammarUnitJpCn)
+                            : (p.grammarDirection === 'cn2jp' ? state.wrong.grammarSummaryCnJp : state.wrong.grammarSummaryJpCn);
+                        list = cleanWrongList(list);
+                        if (p.wrongSubTab === 'unit') {
                             if (p.grammarDirection === 'cn2jp') state.wrong.grammarUnitCnJp = list;
                             else state.wrong.grammarUnitJpCn = list;
                         } else {
                             if (p.grammarDirection === 'cn2jp') state.wrong.grammarSummaryCnJp = list;
                             else state.wrong.grammarSummaryJpCn = list;
                         }
+                        // 语法错题构建多义题
                         const uniqueJp = [...new Set(list.map(ww => ww.japanese))];
                         const rawQuestions = [];
                         uniqueJp.forEach(jp => {
@@ -1377,33 +1452,64 @@
                         let limit = state.settings.practiceCount;
                         if (limit > 0 && rawQuestions.length > limit) rawQuestions.length = limit;
                         p.words = rawQuestions;
+                    } else if (mode === 'verbWrong') {
+                        list = (p.verbSubTab === 'verbUnit') ? state.wrong.verbUnit : state.wrong.verbSummary;
+                        list = cleanWrongList(list);
+                        if (p.verbSubTab === 'verbUnit') state.wrong.verbUnit = list;
+                        else state.wrong.verbSummary = list;
+                        candidates = list.map(ww => state.vocabs.find(v => v.chinese === ww.chinese && v.japanese === ww.japanese)).filter(Boolean);
                     } else {
+                        // 单词标准错题
+                        if (p.wordDirection === 'cn2jp') {
+                            list = (p.wrongSubTab === 'unit') ? state.wrong.wordUnitCnJp : state.wrong.wordSummaryCnJp;
+                        } else {
+                            list = (p.wrongSubTab === 'unit') ? state.wrong.wordUnitJpCn : state.wrong.wordSummaryJpCn;
+                        }
+                        list = cleanWrongList(list);
+                        if (p.wordDirection === 'cn2jp') {
+                            if (p.wrongSubTab === 'unit') state.wrong.wordUnitCnJp = list;
+                            else state.wrong.wordSummaryCnJp = list;
+                        } else {
+                            if (p.wrongSubTab === 'unit') state.wrong.wordUnitJpCn = list;
+                            else state.wrong.wordSummaryJpCn = list;
+                        }
                         candidates = list.map(ww => state.vocabs.find(v => v.chinese === ww.chinese && v.japanese === ww.japanese)).filter(Boolean);
                     }
-                } else if (mode === 'verbJudge') {
+                } else if (mode === 'normal') {
+                    // 日常练习 / 标准练习：优先单元，否则书本多选
                     const unitId = document.getElementById('unitSelect').value;
-                    if (unitId) candidates = state.vocabs.filter(v => String(v.deckId) === String(unitId) && isVerb(v));
-                    else {
+                    if (unitId) {
+                        candidates = state.vocabs.filter(v => String(v.deckId) === String(unitId) && v.category === p.category);
+                    } else {
+                        const checked = Array.from(document.querySelectorAll('.book-check:checked')).map(cb => cb.value);
+                        if (!checked.length) { alert('请选择一个单元或勾选至少一个书本'); return; }
+                        const unitIds = [];
+                        checked.forEach(bid => {
+                            state.decks.filter(d => d.type === 'unit' && String(d.parentId) === String(bid)).forEach(u => unitIds.push(String(u.id)));
+                        });
+                        if (unitIds.length === 0) { alert('所选书本下没有任何单元'); return; }
+                        candidates = state.vocabs.filter(v => unitIds.includes(String(v.deckId)) && v.category === p.category);
+                    }
+                } else if (mode === 'verbJudge') {
+                    // 动词练习
+                    const unitId = document.getElementById('unitSelect').value;
+                    if (unitId) {
+                        candidates = state.vocabs.filter(v => String(v.deckId) === String(unitId) && isVerb(v));
+                    } else {
                         const checked = Array.from(document.querySelectorAll('.book-check:checked')).map(cb => cb.value);
                         if (!checked.length) { alert('请选择单元或勾选书本'); return; }
                         const unitIds = [];
-                        checked.forEach(bid => { state.decks.filter(d => d.type === 'unit' && String(d.parentId) === String(bid)).forEach(u => unitIds.push(String(u.id))); });
+                        checked.forEach(bid => {
+                            state.decks.filter(d => d.type === 'unit' && String(d.parentId) === String(bid)).forEach(u => unitIds.push(String(u.id)));
+                        });
                         if (unitIds.length === 0) { alert('所选书本下没有任何单元'); return; }
                         candidates = state.vocabs.filter(v => unitIds.includes(String(v.deckId)) && isVerb(v));
                     }
-                } else if (mode === 'unit') {
-                    const unitId = document.getElementById('unitSelect').value;
-                    if (!unitId) { alert('请选择单元'); return; }
-                    candidates = state.vocabs.filter(v => String(v.deckId) === String(unitId) && v.category === p.category);
-                } else if (mode === 'review') {
-                    const checked = Array.from(document.querySelectorAll('.book-check:checked')).map(cb => cb.value);
-                    if (!checked.length) { alert('请至少勾选一个书本'); return; }
-                    const unitIds = [];
-                    checked.forEach(bid => { state.decks.filter(d => d.type === 'unit' && String(d.parentId) === String(bid)).forEach(u => unitIds.push(String(u.id))); });
-                    if (unitIds.length === 0) { alert('所选书本下没有任何单元'); return; }
-                    candidates = state.vocabs.filter(v => unitIds.includes(String(v.deckId)) && v.category === p.category);
                 }
+
                 if (!p.words && !candidates.length) { alert(`当前范围内没有${p.category==='grammar'?'语法':'单词'}。`); return; }
+
+                // 以下和原来一样，生成题目数组
                 if (!p.words) {
                     if (p.category === 'grammar') {
                         p.words = buildGrammarMultiQuestions(candidates, p.grammarDirection);

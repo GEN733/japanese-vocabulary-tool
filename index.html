@@ -498,9 +498,6 @@
                 try {
                     state.decks = JSON.parse(JSON.stringify(state.decks));
                     state.vocabs = JSON.parse(JSON.stringify(state.vocabs));
-                    state.spaced.forEach((item, idx, arr) => {
-                        arr[idx] = JSON.parse(JSON.stringify(item));
-                    });
                     state.uploadHistory = JSON.parse(JSON.stringify(state.uploadHistory));
                     for (let k in state.wrong) {
                         state.wrong[k] = JSON.parse(JSON.stringify(state.wrong[k]));

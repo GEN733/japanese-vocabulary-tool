@@ -787,7 +787,7 @@
                 document.getElementById('answerInput').value = '';
                 updateProgress();
                 document.getElementById('answerInput').focus();
-                if (window.innerWidth <= 768) document.getElementById('questionWord').scrollIntoView({ behavior: 'smooth', block: 'center' });
+               document.getElementById('questionWord').scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
 
             function updateProgress() {
@@ -846,6 +846,7 @@
                             msg += `<br>含义：${allRaw}`;
                         }
                         msgDiv.innerHTML = msg;
+                        msgDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                         if (word.example) {
                             document.getElementById('exampleCard').innerHTML = p.category === 'grammar' ? `📖 ${word.example} ${word.exampleCn||''}` : `📖 ${word.example}`;
                             document.getElementById('exampleCard').style.display = 'block';
@@ -860,6 +861,7 @@
                         }
                         addToWrongList(word);
                     }
+                    document.getElementById('resultMessage').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                     p.answerState = 'completed';
                     updateProgress();
                 } else {
@@ -887,6 +889,7 @@
                                 document.getElementById('resultMessage').innerText = `✗ 错误 正确答案: ${word.japanese}`;
                                 addToWrongList(word);
                             }
+                            document.getElementById('resultMessage').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                             p.answerState = 'completed';
                             updateProgress();
                         }
@@ -908,6 +911,7 @@
                             msgDiv.innerText = msg;
                             addToWrongList(word);
                         }
+                        document.getElementById('resultMessage').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                         p.answerState = 'completed';
                         document.getElementById('answerInput').placeholder = '输入日语假名';
                         updateProgress();
@@ -937,6 +941,7 @@
                     addToWrongList(question.item);
                 }
                 msgDiv.innerHTML = msg;
+                msgDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 const exampleSet = new Set();
                 meanings.forEach(meaning => { meaning.items.forEach(item => { if (item.example) { const ex = `📖 ${item.example}${item.exampleCn ? ' ' + item.exampleCn : ''}`; exampleSet.add(ex); } }); });
                 if (exampleSet.size > 0) {

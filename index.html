@@ -13,124 +13,215 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
     <style>
         * { box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
-        body { background: #f4f7fb; margin: 0; padding: 12px; max-width: 800px; margin: 0 auto; position: relative; overscroll-behavior: none; }
-        h1 { font-size: 1.7rem; margin: 0 0 10px; color: #1e3c5c; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-        .tab-bar { display: flex; flex-wrap: wrap; gap: 5px; background: white; border-radius: 40px; padding: 6px; margin-bottom: 18px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); position: sticky; top: 10px; z-index: 10; }
-        .tab-btn { flex: 1 0 auto; background: none; border: none; padding: 10px 8px; font-size: 0.95rem; border-radius: 30px; color: #4a5f73; font-weight: 500; transition: 0.2s; cursor: pointer; }
-        .tab-btn.active { background: #1e3c5c; color: white; box-shadow: 0 2px 8px rgba(30,60,92,0.3); }
-        .page { display: none; background: white; border-radius: 24px; padding: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.02); margin-bottom: 20px; }
+        html { -webkit-text-size-adjust: 100%; }
+        body {
+            background: #f4f7fb;
+            margin: 0 auto;
+            max-width: 800px;
+            position: relative;
+            overscroll-behavior: none;
+            padding: calc(10px + env(safe-area-inset-top, 0px)) 12px calc(78px + env(safe-area-inset-bottom, 0px));
+        }
+        h1 { font-size: 1.35rem; margin: 0 0 12px; color: #1e3c5c; font-weight: 700; }
+        .page { display: none; background: white; border-radius: 20px; padding: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.02); margin-bottom: 16px; }
         .page.active { display: block; }
-        #practice, #spaced { padding-bottom: 180px; }
-        button { background: #eef3f9; border: none; border-radius: 60px; padding: 12px 18px; font-size: 1rem; color: #1e3c5c; font-weight: 500; cursor: pointer; transition: 0.15s; box-shadow: 0 2px 4px rgba(0,0,0,0.03); }
+        button { background: #eef3f9; border: none; border-radius: 16px; padding: 12px 16px; font-size: 1rem; color: #1e3c5c; font-weight: 500; cursor: pointer; transition: 0.15s; min-height: 44px; touch-action: manipulation; }
+        button:active { transform: scale(0.98); }
         button.primary { background: #1e3c5c; color: white; }
         button.warning { background: #f5b342; color: #1e1e1e; }
         button.danger { background: #d9534f; color: white; }
-        input,select,textarea { width: 100%; padding: 14px 16px; border: 1px solid #d9e1ec; border-radius: 60px; font-size: 1rem; margin: 8px 0; background: white; }
-        textarea { border-radius: 24px; resize: vertical; }
+        button.text-btn { background: none; box-shadow: none; color: #5f738c; min-height: 44px; }
+        input,select,textarea { width: 100%; padding: 14px 16px; border: 1px solid #d9e1ec; border-radius: 14px; font-size: 1rem; margin: 8px 0; background: white; }
+        textarea { border-radius: 16px; resize: vertical; }
         .flex-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-        .word-display { font-size: 2.4rem; font-weight: 700; text-align: center; margin: 20px 0 10px; color: #11324d; line-height: 1.3; }
-        .type-badge { font-size: 1rem; font-weight: 500; background: #cfe2ff; color: #0d47a1; padding: 2px 10px; border-radius: 20px; margin-left: 10px; vertical-align: middle; }
+        .word-display {
+            font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", "YuGothic", "Meiryo", sans-serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            text-align: center;
+            margin: 16px 0 8px;
+            color: #11324d;
+            line-height: 1.35;
+            word-break: break-word;
+        }
+        @media (min-width: 400px) { .word-display { font-size: 2.2rem; } }
+        .word-display .type-badge { display: inline-block; margin: 8px 0 0; font-family: system-ui, sans-serif; }
+        .type-badge { font-size: 0.85rem; font-weight: 500; background: #cfe2ff; color: #0d47a1; padding: 2px 10px; border-radius: 8px; margin-left: 8px; vertical-align: middle; }
         .type-badge.他 { background: #ffd6d6; color: #a10d0d; }
-        .result-badge { text-align: center; padding: 16px; border-radius: 60px; font-size: 1.3rem; font-weight: 600; margin: 12px 0; scroll-margin-bottom: 200px; }
+        .result-badge { text-align: center; padding: 12px; border-radius: 14px; font-size: 1.15rem; font-weight: 600; margin: 12px 0; scroll-margin-bottom: 160px; }
         .correct { background: #e1f7e3; color: #1e7a44; }
         .wrong { background: #ffe9e9; color: #b33; }
-        .progress-bar { height: 12px; background: #e2eaf3; border-radius: 40px; overflow: hidden; margin: 15px 0; }
+        .progress-bar { height: 8px; background: #e2eaf3; border-radius: 8px; overflow: hidden; margin: 10px 0 14px; }
         .progress-fill { height: 100%; background: #1e3c5c; width: 0%; transition: 0.2s; }
-        .stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin: 16px 0; }
-        .stat-card { background: #f2f6fc; border-radius: 24px; padding: 16px 8px; text-align: center; }
-        .stat-num { font-size: 2rem; font-weight: 700; color: #1e3c5c; }
-        .deck-card { background: #f6faff; border-radius: 24px; padding: 16px; border: 1px solid #dbe4f0; margin-bottom: 12px; cursor: pointer; }
-        .deck-title { font-size: 1.3rem; font-weight: 600; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+        .stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin: 12px 0; }
+        .stat-card { background: #f2f6fc; border-radius: 16px; padding: 12px 6px; text-align: center; }
+        .stat-num { font-size: 1.5rem; font-weight: 700; color: #1e3c5c; }
+        .deck-card { background: #f6faff; border-radius: 16px; padding: 14px; border: 1px solid #dbe4f0; margin-bottom: 12px; cursor: pointer; }
+        .deck-title { font-size: 1.15rem; font-weight: 600; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
         .deck-meta { color: #5f738c; font-size: 0.9rem; }
-        .sync-step { background: #f2f6fc; border-radius: 24px; padding: 16px; margin: 18px 0; }
+        .sync-step { background: #f2f6fc; border-radius: 16px; padding: 16px; margin: 18px 0; }
         .sync-step h4 { margin: 0 0 12px; color: #1e3c5c; }
-        .error-msg { color: #b33; background: #ffe6e6; padding: 10px 16px; border-radius: 60px; font-size: 0.9rem; }
-        .success-msg { color: #1e7a44; background: #e1f7e3; padding: 10px 16px; border-radius: 60px; }
+        .error-msg { color: #b33; background: #ffe6e6; padding: 10px 16px; border-radius: 12px; font-size: 0.9rem; }
+        .success-msg { color: #1e7a44; background: #e1f7e3; padding: 10px 16px; border-radius: 12px; }
         .tiny-note { font-size: 0.8rem; color: #7a8b9f; margin-top: 5px; }
         .search-box { margin: 15px 0; }
         .word-table { width: 100%; border-collapse: collapse; }
-        .word-table th { background: #1e3c5c; color: white; padding: 12px; border-radius: 20px 20px 0 0; }
+        .word-table th { background: #1e3c5c; color: white; padding: 12px; }
         .word-table td { padding: 12px; border-bottom: 1px solid #e2eaf3; }
+        .item-card { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; background: #f7fafd; border: 1px solid #e2eaf3; border-radius: 14px; padding: 12px; margin-bottom: 8px; }
+        .item-card-body { flex: 1; min-width: 0; }
+        .item-jp { font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif; font-size: 1.15rem; font-weight: 700; color: #11324d; word-break: break-word; }
+        .item-cn { color: #5f738c; margin-top: 4px; word-break: break-word; }
+        .item-meta { font-size: 0.8rem; color: #7a8b9f; margin-top: 6px; }
+        .item-card-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
         .wrong-count-badge { background: #d9534f; color: white; border-radius: 40px; padding: 3px 10px; font-size: 0.8rem; margin-left: 6px; }
-        .btn-sm { padding: 6px 14px; font-size: 0.85rem; margin: 2px; }
-        #backToTop { position: fixed; bottom: 20px; right: 20px; background: #1e3c5c; color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; box-shadow: 0 4px 10px rgba(0,0,0,0.2); cursor: pointer; border: none; z-index: 999; }
-        .answer-preview { font-size: 1.3rem; margin: 10px 0; padding: 8px 16px; background: #f2f6fc; border-radius: 20px; word-break: break-all; text-align: center; color: #1e3c5c; }
-        .checkbox-group { display: flex; flex-wrap: wrap; gap: 12px; background: #f8f9fc; padding: 12px; border-radius: 20px; margin: 10px 0; }
-        .checkbox-group label { display: flex; align-items: center; gap: 5px; font-size: 0.95rem; }
-        .example-box { background: #eef3f9; border-radius: 20px; padding: 12px; margin: 10px 0; font-size: 1.2rem; text-align: center; color: #11324d; animation: slideIn 0.3s ease-out; }
-        .example-box span { background: white; padding: 2px 8px; border-radius: 10px; margin: 0 4px; }
+        .btn-sm { padding: 8px 12px; font-size: 0.85rem; margin: 0; min-height: 40px; }
+        #backToTop { position: fixed; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); right: 16px; background: #1e3c5c; color: white; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; cursor: pointer; border: none; z-index: 90; min-height: 44px; }
+        .answer-preview { font-size: 1.1rem; margin: 10px 0; padding: 8px 14px; background: #f2f6fc; border-radius: 12px; word-break: break-all; text-align: center; color: #1e3c5c; }
+        .preview-label { color: #7a8b9f; font-size: 0.85rem; }
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 12px; background: #f8f9fc; padding: 12px; border-radius: 12px; margin: 10px 0; }
+        .checkbox-group label { display: flex; align-items: center; gap: 5px; font-size: 0.95rem; min-height: 44px; }
+        .example-box { background: #eef3f9; border-radius: 14px; padding: 12px; margin: 10px 0; font-size: 1.1rem; text-align: center; color: #11324d; animation: slideIn 0.3s ease-out; }
+        .example-box span { background: white; padding: 2px 8px; border-radius: 8px; margin: 0 4px; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        @media (prefers-reduced-motion: reduce) { .example-box { animation: none; } }
         .section-title { font-weight: 600; margin: 8px 0 4px; font-size: 0.9rem; color: #5f738c; }
-        #fixedInputArea, #spacedFixedInputArea { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 800px; background: white; padding: 10px 12px 16px; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); z-index: 100; border-radius: 24px 24px 0 0; }
+        #fixedInputArea, #spacedFixedInputArea {
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: var(--kb, 0px);
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            padding: 10px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+            box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
+            z-index: 100;
+            border-radius: 16px 16px 0 0;
+        }
+        #fixedInputArea { display: none; }
+        body.session-practice #fixedInputArea { display: block; }
         #fixedInputArea .flex-row, #spacedFixedInputArea .flex-row { margin-top: 0; }
-        .unit-list { display: none; padding-left: 15px; margin-bottom: 10px; }
+        body.session-practice #practice, body.session-spaced #spaced { padding-bottom: 148px; }
+        .unit-list { display: none; padding-left: 8px; margin-bottom: 10px; }
         .unit-list.open { display: block; }
-        .word-list { display: none; padding-left: 20px; margin-top: 5px; }
+        .word-list { display: none; margin-top: 8px; }
         .word-list.open { display: block; }
         .collapse-icon { font-size: 1.2rem; transition: transform 0.2s; }
         .collapse-icon.open { transform: rotate(90deg); }
-        .unit-card { background: #f9fafc; border: 1px solid #e2eaf3; border-radius: 16px; padding: 12px; margin-bottom: 8px; }
-        .unit-title { font-size: 1rem; font-weight: 600; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-        .grammar-badge { background: #e8daef; color: #6a1b9a; padding: 2px 8px; border-radius: 20px; font-size: 0.8rem; }
-        .create-unit-box { background: #f2f6fc; border-radius: 24px; padding: 16px; margin: 20px 0; }
-        .multi-meaning-hint { font-size: 0.95rem; color: #6a1b9a; margin-top: 5px; }
-        .answer-list { font-size: 1.1rem; background: #f8f9fc; border-radius: 20px; padding: 12px; margin: 10px 0; }
+        .unit-card { background: #f9fafc; border: 1px solid #e2eaf3; border-radius: 14px; padding: 12px; margin-bottom: 8px; }
+        .unit-title { font-size: 1rem; font-weight: 600; display: flex; justify-content: space-between; align-items: center; cursor: pointer; min-height: 44px; }
+        .grammar-badge { background: #e8daef; color: #6a1b9a; padding: 2px 8px; border-radius: 8px; font-size: 0.8rem; }
+        .create-unit-box { background: #f2f6fc; border-radius: 16px; padding: 16px; margin: 20px 0; }
+        .multi-meaning-hint { font-size: 0.95rem; color: #6a1b9a; margin-top: 5px; text-align: center; }
+        .answer-list { font-size: 1.05rem; background: #f8f9fc; border-radius: 14px; padding: 12px; margin: 10px 0; }
         #wrongActionBar button, #spacedWrongActionBar button { flex: 1; }
-        .module-card { background: #ffffff; border-radius: 24px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); border: 1px solid #eef2f7; }
-        .module-card h3 { margin-top: 0; color: #1e3c5c; }
-        .grammar-module-bg { background-color: #e2eaf5; }
-        .sub-tab-bar { display: flex; gap: 8px; margin-bottom: 12px; background: #f0f4f9; border-radius: 40px; padding: 5px; }
-        .sub-tab-btn { flex: 1; padding: 10px 15px; background: none; border: none; border-radius: 30px; font-size: 0.95rem; color: #4a5f73; cursor: pointer; transition: 0.2s; }
-        .sub-tab-btn.active { background: #1e3c5c; color: white; box-shadow: 0 2px 8px rgba(30,60,92,0.3); }
-        .wrong-tab-bar { display: flex; gap: 8px; margin-bottom: 15px; }
-        .wrong-tab-btn { flex: 1; padding: 10px 15px; border: none; border-radius: 30px; background: #eef3f9; color: #1e3c5c; cursor: pointer; font-weight: 500; transition: 0.2s; }
+        .module-card { background: #ffffff; border-radius: 16px; padding: 16px; margin-bottom: 16px; border: 1px solid #eef2f7; }
+        .module-card h3 { margin-top: 0; color: #1e3c5c; font-size: 1.05rem; }
+        .grammar-module-bg { background-color: #eef2f8; }
+        .sub-tab-bar { display: flex; gap: 6px; margin-bottom: 12px; background: #f0f4f9; border-radius: 14px; padding: 4px; }
+        .sub-tab-btn { flex: 1; padding: 10px 8px; background: none; border: none; border-radius: 12px; font-size: 0.9rem; color: #4a5f73; cursor: pointer; min-height: 44px; }
+        .sub-tab-btn.active { background: #1e3c5c; color: white; }
+        .wrong-tab-bar { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+        .wrong-tab-btn { flex: 1; padding: 10px 8px; border: none; border-radius: 12px; background: #eef3f9; color: #1e3c5c; cursor: pointer; font-weight: 500; min-height: 44px; }
         .wrong-tab-btn.active { background: #1e3c5c; color: white; }
-        .wrong-direction-bar { display: flex; gap: 8px; margin-bottom: 10px; background: #f8f9fc; border-radius: 30px; padding: 4px; }
-        .wrong-direction-btn { flex: 1; padding: 8px 12px; border: none; border-radius: 26px; background: none; color: #4a5f73; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: 0.2s; }
-        .wrong-direction-btn.active { background: #1e3c5c; color: white; box-shadow: 0 2px 6px rgba(30,60,92,0.3); }
-        .verb-sub-tab-bar { display: none; gap: 8px; margin-bottom: 10px; padding-left: 10px; }
+        .wrong-direction-bar { display: flex; gap: 6px; margin-bottom: 10px; background: #f8f9fc; border-radius: 12px; padding: 4px; }
+        .wrong-direction-btn { flex: 1; padding: 10px 8px; border: none; border-radius: 10px; background: none; color: #4a5f73; cursor: pointer; font-size: 0.9rem; font-weight: 500; min-height: 44px; }
+        .wrong-direction-btn.active { background: #1e3c5c; color: white; }
+        .verb-sub-tab-bar { display: none; gap: 6px; margin-bottom: 10px; }
         .verb-sub-tab-bar.show { display: flex; }
-        .verb-sub-tab-btn { flex: 1; padding: 8px 12px; border: none; border-radius: 24px; background: #e8ecf3; color: #1e3c5c; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: 0.2s; }
+        .verb-sub-tab-btn { flex: 1; padding: 10px 8px; border: none; border-radius: 12px; background: #e8ecf3; color: #1e3c5c; cursor: pointer; font-size: 0.85rem; font-weight: 500; min-height: 44px; }
         .verb-sub-tab-btn.active { background: #f5b342; color: #1e1e1e; }
-        .practice-verb-sub-bar { display: none; gap: 8px; margin: 10px 0; background: #f0f4f9; border-radius: 30px; padding: 5px; }
+        .practice-verb-sub-bar { display: none; gap: 6px; margin: 10px 0; background: #f0f4f9; border-radius: 14px; padding: 4px; }
         .practice-verb-sub-bar.show { display: flex; }
-        .practice-verb-sub-btn { flex: 1; padding: 10px 15px; background: none; border: none; border-radius: 26px; font-size: 0.9rem; color: #4a5f73; cursor: pointer; transition: 0.2s; }
-        .practice-verb-sub-btn.active { background: #1e3c5c; color: white; box-shadow: 0 2px 8px rgba(30,60,92,0.3); }
-        .sync-info-box { background: #f8f9fc; border-radius: 16px; padding: 12px; margin: 10px 0; font-size: 0.9rem; color: #1e3c5c; border: 1px solid #e2eaf3; }
-        .spaced-stats { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin: 16px 0; }
-        .spaced-card { background: #f2f6fc; border-radius: 24px; padding: 16px; text-align: center; }
-        .spaced-word-list { max-height: 400px; overflow-y: auto; margin: 15px 0; }
-        .spaced-badge { font-size: 0.8rem; background: #cfe2ff; color: #0d47a1; padding: 2px 8px; border-radius: 20px; margin-left: 6px; }
+        .practice-verb-sub-btn { flex: 1; padding: 10px 8px; background: none; border: none; border-radius: 12px; font-size: 0.9rem; color: #4a5f73; cursor: pointer; min-height: 44px; }
+        .practice-verb-sub-btn.active { background: #1e3c5c; color: white; }
+        .sync-info-box { background: #f8f9fc; border-radius: 14px; padding: 12px; margin: 10px 0; font-size: 0.9rem; color: #1e3c5c; border: 1px solid #e2eaf3; }
+        .spaced-stats { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 16px 0; }
+        @media (min-width: 560px) { .spaced-stats { grid-template-columns: 1fr 1fr; } }
+        .spaced-card { background: #f2f6fc; border-radius: 16px; padding: 16px; text-align: center; }
+        .spaced-word-list { max-height: 400px; overflow-y: auto; margin: 15px 0; -webkit-overflow-scrolling: touch; }
+        .spaced-badge { font-size: 0.8rem; background: #cfe2ff; color: #0d47a1; padding: 2px 8px; border-radius: 8px; margin-left: 6px; }
         .spaced-badge.mastered { background: #d4edda; color: #155724; }
-        .spaced-action-row { display: flex; gap: 10px; margin-top: 15px; }
-        .edit-overlay { display: none; position: fixed; inset: 0; background: rgba(17,32,48,0.45); z-index: 2000; align-items: flex-end; justify-content: center; padding: 12px; }
+        .spaced-action-row { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
+        .edit-overlay { display: none; position: fixed; inset: 0; background: rgba(17,32,48,0.45); z-index: 2000; align-items: flex-end; justify-content: center; padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px)); }
         .edit-overlay.show { display: flex; }
-        .edit-panel { background: white; width: 100%; max-width: 800px; border-radius: 24px 24px 16px 16px; padding: 18px 18px 24px; max-height: 88vh; overflow-y: auto; box-shadow: 0 -8px 30px rgba(0,0,0,0.15); }
+        .edit-panel { background: white; width: 100%; max-width: 800px; border-radius: 20px 20px 16px 16px; padding: 18px 18px 24px; max-height: 88vh; overflow-y: auto; box-shadow: 0 -8px 30px rgba(0,0,0,0.15); }
         .edit-panel h3 { margin: 0 0 12px; color: #1e3c5c; }
         .edit-panel label { display: block; font-size: 0.85rem; color: #5f738c; margin: 8px 0 0; }
-        .toast { position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); background: #1e3c5c; color: white; padding: 12px 16px; border-radius: 40px; z-index: 2100; display: none; align-items: center; gap: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.2); max-width: 92%; }
+        .toast { position: fixed; left: 50%; bottom: calc(86px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: #1e3c5c; color: white; padding: 12px 16px; border-radius: 16px; z-index: 2100; display: none; align-items: center; gap: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.2); max-width: 92%; }
         .toast.show { display: flex; }
-        .toast button { background: #f5b342; color: #1e1e1e; padding: 6px 14px; font-size: 0.9rem; }
-        .grade-bar { display: none; gap: 8px; margin-top: 8px; }
+        .toast button { background: #f5b342; color: #1e1e1e; padding: 8px 14px; font-size: 0.9rem; }
+        .grade-bar { display: none; gap: 6px; margin-top: 8px; flex-wrap: nowrap; }
         .grade-bar.show { display: flex; }
-        .grade-bar button { flex: 1; font-size: 0.9rem; padding: 12px 8px; }
-        .stats-hero { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin: 12px 0 18px; }
-        .pwa-note { font-size: 0.85rem; color: #5f738c; background: #f2f6fc; border-radius: 16px; padding: 12px; margin-top: 12px; }
+        .grade-bar button { flex: 1; font-size: 0.8rem; padding: 10px 4px; }
+        .stats-hero { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; margin: 12px 0 18px; }
+        .pwa-note { font-size: 0.85rem; color: #5f738c; background: #f2f6fc; border-radius: 14px; padding: 12px; margin-top: 12px; }
+        .bottom-nav {
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 0;
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            background: #fff;
+            border-top: 1px solid #e2eaf3;
+            z-index: 150;
+            padding: 4px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+        }
+        .nav-item {
+            flex: 1;
+            background: none;
+            border: none;
+            box-shadow: none;
+            border-radius: 12px;
+            min-height: 48px;
+            padding: 6px 2px;
+            font-size: 0.78rem;
+            color: #5f738c;
+            font-weight: 600;
+        }
+        .nav-item.active { color: #1e3c5c; background: #eef3f9; }
+        .more-overlay { display: none; position: fixed; inset: 0; background: rgba(17,32,48,0.4); z-index: 180; align-items: flex-end; justify-content: center; }
+        .more-overlay.show { display: flex; }
+        .more-sheet { background: white; width: 100%; max-width: 800px; border-radius: 20px 20px 0 0; padding: 12px 12px calc(16px + env(safe-area-inset-bottom, 0px)); }
+        .more-sheet button { width: 100%; margin: 6px 0; }
+        .session-bar { display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: white; z-index: 11; padding: 0 0 8px; }
+        .session-meta { font-size: 0.9rem; color: #5f738c; font-weight: 600; }
+        #practiceSession { display: none; }
+        body.session-active #appTitle,
+        body.session-active #bottomNav,
+        body.session-active #backToTop { display: none !important; }
+        body.session-active { padding-bottom: 12px; }
+        body.session-active .toast { bottom: calc(16px + env(safe-area-inset-bottom, 0px) + var(--kb, 0px)); }
+        body.session-practice #practice { padding: 12px; }
+        body.session-spaced #spaced { padding: 12px; }
+        @media (max-height: 640px) {
+            #fixedInputArea, #spacedFixedInputArea {
+                position: relative;
+                left: auto;
+                transform: none;
+                bottom: auto;
+                max-width: none;
+                box-shadow: none;
+                border-radius: 12px;
+                padding: 8px 0 0;
+            }
+            body.session-practice #practice, body.session-spaced #spaced { padding-bottom: 12px; }
+            .word-display { font-size: 1.55rem; margin: 10px 0 6px; }
+            .stats-grid { margin: 6px 0; }
+            .stat-num { font-size: 1.2rem; }
+            .stat-card { padding: 8px 4px; }
+        }
     </style>
 </head>
 <body>
     <button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
-    <h1>📗 日语学习 · 完全体</h1>
-    <div class="tab-bar">
-        <button class="tab-btn active" onclick="showPage('spaced')">遗忘曲线</button>
-        <button class="tab-btn" onclick="showPage('practice')">练习</button>
-        <button class="tab-btn" onclick="showPage('wrong')">错题</button>
-        <button class="tab-btn" onclick="showPage('library')">题库</button>
-        <button class="tab-btn" onclick="showPage('stats')">统计</button>
-        <button class="tab-btn" onclick="showPage('sync')">同步</button>
-    </div>
+    <h1 id="appTitle">日语学习</h1>
 
     <div id="practice" class="page">
+        <div id="practiceSetup">
         <div class="sub-tab-bar">
             <button class="sub-tab-btn active" onclick="setPracticeCategory('word')">单词练习</button>
             <button class="sub-tab-btn" onclick="setPracticeCategory('grammar')">语法练习</button>
@@ -145,12 +236,12 @@
         </div>
         <div class="flex-row" style="justify-content: space-between;">
             <select id="practiceMode" style="width: auto; flex:2;" onchange="updateModeUI()">
-                <option value="unit">📚 单元练习</option>
-                <option value="review">📖 书本汇总</option>
-                <option value="verbJudge">⚡ 动词练习</option>
-                <option value="wrong">📌 单元错题</option>
-                <option value="summaryWrong">📋 汇总错题</option>
-                <option value="verbWrong">📝 动词错题</option>
+                <option value="unit">单元练习</option>
+                <option value="review">书本汇总</option>
+                <option value="verbJudge">动词练习</option>
+                <option value="wrong">单元错题</option>
+                <option value="summaryWrong">汇总错题</option>
+                <option value="verbWrong">动词错题</option>
             </select>
             <select id="practiceCountSelect" style="width: auto; flex:1;" onchange="changePracticeCount()">
                 <option value="10">10</option><option value="20">20</option><option value="30">30</option><option value="50">50</option><option value="100">100</option><option value="0" selected>全部</option><option value="custom">自定义</option>
@@ -159,14 +250,14 @@
         <div id="customCountRow" style="display:none;margin:10px 0"><input type="number" id="customCountInput" min="1" max="999" placeholder="数量" value="30"><button onclick="applyCustomCount()" class="primary">应用</button></div>
         <div id="bookUnitSelector" style="margin:15px 0;">
             <div id="unitSelectRow" style="display:none;margin-bottom:10px;">
-                <div class="section-title">🎯 按单元精确练习</div>
+                <div class="section-title">按单元精确练习</div>
                 <div class="flex-row">
                     <select id="bookSelect" style="flex:1;" onchange="loadUnitsForBook()"><option value="">选择书本</option></select>
                     <select id="unitSelect" style="flex:1;"><option value="">选择单元</option></select>
                 </div>
             </div>
             <div id="bookMultiRow" style="display:none;">
-                <div class="section-title">📚 按书本随机抽取（可多选）</div>
+                <div class="section-title">按书本随机抽取（可多选）</div>
                 <div id="bookMultiSelect"></div>
             </div>
         </div>
@@ -178,7 +269,13 @@
             <button class="practice-verb-sub-btn active" onclick="switchPracticeWrongSub('unit')" id="practiceWrongUnitBtn">单元错题</button>
             <button class="practice-verb-sub-btn" onclick="switchPracticeWrongSub('summary')" id="practiceWrongSummaryBtn">汇总错题</button>
         </div>
-        <button class="primary" style="width:100%;" onclick="startPractice()">▶ 开始练习</button>
+        <button class="primary" style="width:100%;" onclick="startPractice()">开始练习</button>
+        </div>
+        <div id="practiceSession">
+        <div class="session-bar">
+            <button class="text-btn" onclick="exitPracticeSession()">结束</button>
+            <span class="session-meta" id="practiceSessionMeta"></span>
+        </div>
         <div class="stats-grid">
             <div class="stat-card"><span class="stat-num" id="progressCurr">0</span>/<span id="progressTotal">0</span><br>进度</div>
             <div class="stat-card"><span class="stat-num" id="correctRate">0</span>%<br>正确率</div>
@@ -187,16 +284,17 @@
         <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
         <div class="word-display" id="questionWord">请开始练习</div>
         <div id="multiHint" class="multi-meaning-hint" style="display:none;"></div>
-        <div class="answer-preview">答案：<span id="previewText"></span></div>
+        <div class="answer-preview"><span class="preview-label">输入</span> <span id="previewText"></span></div>
         <div id="exampleCard" style="display:none;" class="example-box"></div>
         <div id="resultMessage" class="result-badge"></div>
         <div id="answerListArea" class="answer-list" style="display:none;"></div>
         <div id="fixedInputArea">
-            <form id="answerForm" onsubmit="return false;"><input type="text" id="answerInput" placeholder="输入答案，回车确认" autocomplete="off" autofocus></form>
+            <form id="answerForm" onsubmit="return false;"><input type="text" id="answerInput" placeholder="输入答案，回车确认" autocomplete="off" lang="ja" autocapitalize="off" autocorrect="off" spellcheck="false"></form>
             <div class="flex-row" id="wrongActionBar" style="display:none;">
-                <button onclick="handleWrongKeep()">💾 保留</button>
-                <button class="warning" onclick="handleWrongRemove()">🗑️ 从错题集移除</button>
+                <button onclick="handleWrongKeep()">保留</button>
+                <button class="warning" onclick="handleWrongRemove()">从错题集移除</button>
             </div>
+        </div>
         </div>
     </div>
 
@@ -205,7 +303,7 @@
             <button class="sub-tab-btn active" onclick="setWrongCategory('word')">单词错题</button>
             <button class="sub-tab-btn" onclick="setWrongCategory('grammar')">语法错题</button>
         </div>
-        <h3>❌ 错题集 <span id="wrongCount">(0)</span></h3>
+        <h3>错题集 <span id="wrongCount">(0)</span></h3>
         <div id="wordWrongDirectionBar" class="wrong-direction-bar">
             <button class="wrong-direction-btn active" onclick="setWrongWordDirection('cn2jp')">中→日</button>
             <button class="wrong-direction-btn" onclick="setWrongWordDirection('jp2cn')">日→中</button>
@@ -236,7 +334,7 @@
 
     <div id="library" class="page">
         <div class="module-card">
-            <h3>🔍 搜索</h3>
+            <h3>搜索</h3>
             <div class="flex-row" style="margin-bottom:10px;">
                 <select id="searchCategory" style="width:auto;"><option value="word">单词</option><option value="grammar">语法</option></select>
                 <input type="text" id="searchWordInput" placeholder="输入中文/日文" style="flex:3;">
@@ -247,12 +345,12 @@
         </div>
 
         <div class="module-card">
-            <h3 style="cursor:pointer;" onclick="toggleModuleCollapse('wordBookModule')">📚 单词书本列表 <span class="collapse-icon open" id="wordBookModuleIcon">▼</span></h3>
+            <h3 style="cursor:pointer;" onclick="toggleModuleCollapse('wordBookModule')">单词书本列表 <span class="collapse-icon open" id="wordBookModuleIcon">▼</span></h3>
             <div id="wordBookModuleContent">
                 <div id="wordBookListContainer"></div>
                 <button onclick="createNewBook('word')" class="primary" style="margin:10px 0;">+ 新建单词书本</button>
                 <div class="create-unit-box">
-                    <div style="font-weight:600; margin-bottom:10px;">➕ 快速创建单词单元</div>
+                    <div style="font-weight:600; margin-bottom:10px;">快速创建单词单元</div>
                     <div class="flex-row">
                         <select id="wordUnitBookSelect" style="flex:2;"><option value="">选择所属书本</option></select>
                         <input type="text" id="wordUnitName" placeholder="单元名称" style="flex:2;">
@@ -263,12 +361,12 @@
         </div>
 
         <div class="module-card grammar-module-bg">
-            <h3 style="cursor:pointer;" onclick="toggleModuleCollapse('grammarBookModule')">📘 语法书本列表 <span class="collapse-icon open" id="grammarBookModuleIcon">▼</span></h3>
+            <h3 style="cursor:pointer;" onclick="toggleModuleCollapse('grammarBookModule')">语法书本列表 <span class="collapse-icon open" id="grammarBookModuleIcon">▼</span></h3>
             <div id="grammarBookModuleContent">
                 <div id="grammarBookListContainer"></div>
                 <button onclick="createNewBook('grammar')" class="primary" style="margin:10px 0;">+ 新建语法书本</button>
                 <div class="create-unit-box">
-                    <div style="font-weight:600; margin-bottom:10px;">➕ 快速创建语法单元</div>
+                    <div style="font-weight:600; margin-bottom:10px;">快速创建语法单元</div>
                     <div class="flex-row">
                         <select id="grammarUnitBookSelect" style="flex:2;"><option value="">选择所属书本</option></select>
                         <input type="text" id="grammarUnitName" placeholder="单元名称" style="flex:2;">
@@ -279,7 +377,7 @@
         </div>
 
         <div class="module-card">
-            <h3>📎 批量导入</h3>
+            <h3>批量导入</h3>
             <select id="importCategory" style="width:auto;" onchange="updateImportCategory()">
                 <option value="word">单词 (五列：中文 假名 词性 助词 短句)</option>
                 <option value="grammar">语法 (四列：中文 日语语法 例句 翻译)</option>
@@ -292,40 +390,27 @@
     </div>
 
     <div id="spaced" class="page active">
-        <h3>📈 遗忘曲线</h3>
+        <div id="spacedSetup">
+        <h3>复习</h3>
         <div class="sub-tab-bar" id="spacedSubTabBar">
             <button class="sub-tab-btn active" onclick="switchSpacedSubTab('practice')">练习</button>
             <button class="sub-tab-btn" onclick="switchSpacedSubTab('library')">题库</button>
         </div>
 
         <div id="spacedPracticeTab">
-            <div class="spaced-stats" style="grid-template-columns: repeat(2,1fr);">
+            <div class="spaced-stats">
                 <div class="spaced-card">
-                    <div style="font-weight:600; margin-bottom:8px;">📘 单词遗忘曲线</div>
+                    <div style="font-weight:600; margin-bottom:8px;">单词</div>
                     <div class="stat-num" id="wordSpacedTodayCount">0</div><div>今日待复习</div>
                     <div class="stat-num" id="wordSpacedTotalCount">0</div><div>总词数</div>
-                    <button class="primary" style="margin-top:10px; width:100%;" onclick="startSpacedPractice('word')">▶ 开始单词练习</button>
+                    <button class="primary" style="margin-top:10px; width:100%;" onclick="startSpacedPractice('word')">开始单词复习</button>
                 </div>
                 <div class="spaced-card">
-                    <div style="font-weight:600; margin-bottom:8px;">📗 语法遗忘曲线</div>
+                    <div style="font-weight:600; margin-bottom:8px;">语法</div>
                     <div class="stat-num" id="grammarSpacedTodayCount">0</div><div>今日待复习</div>
                     <div class="stat-num" id="grammarSpacedTotalCount">0</div><div>总词数</div>
-                    <button class="primary" style="margin-top:10px; width:100%;" onclick="startSpacedPractice('grammar')">▶ 开始语法练习</button>
+                    <button class="primary" style="margin-top:10px; width:100%;" onclick="startSpacedPractice('grammar')">开始语法复习</button>
                 </div>
-            </div>
-            <div id="spacedPracticeArea" style="display:none; margin-top:20px;">
-                <div class="stats-grid">
-                    <div class="stat-card"><span class="stat-num" id="spacedProgressCurr">0</span>/<span id="spacedProgressTotal">0</span><br>进度</div>
-                    <div class="stat-card"><span class="stat-num" id="spacedCorrectRate">0</span>%<br>正确率</div>
-                    <div class="stat-card"><span class="stat-num" id="spacedTotalAnswered">0</span><br>已答</div>
-                </div>
-                <div class="progress-bar"><div class="progress-fill" id="spacedProgressFill" style="width:0%"></div></div>
-                <div class="word-display" id="spacedQuestionWord"></div>
-                <div id="spacedMultiHint" class="multi-meaning-hint" style="display:none;"></div>
-                <div class="answer-preview">答案：<span id="spacedPreviewText"></span></div>
-                <div class="result-badge" id="spacedResultMessage"></div>
-                <div id="spacedMultiAnswerList" class="answer-list" style="display:none;"></div>
-                <div id="spacedExampleCard" style="display:none;" class="example-box"></div>
             </div>
         </div>
 
@@ -336,8 +421,8 @@
             </div>
             <div id="spacedLibraryMeta" class="deck-meta" style="margin:8px 0;"></div>
             <div class="spaced-action-row">
-                <button id="spacedImportBtn" onclick="importCurrentSpacedSummary()">📥 导入单词汇总错题</button>
-                <button class="danger" onclick="clearSpacedData()">🗑️ 清空当前题库</button>
+                <button id="spacedImportBtn" onclick="importCurrentSpacedSummary()">导入汇总错题</button>
+                <button class="danger" onclick="clearSpacedData()">清空当前题库</button>
             </div>
             <div class="flex-row" style="margin:10px 0;">
                 <input type="text" id="spacedSearchInput" placeholder="搜索中文/日文" style="flex:3;">
@@ -350,25 +435,45 @@
             </div>
             <div class="spaced-word-list" id="spacedWordList">暂无单词</div>
         </div>
+        </div>
+
+        <div id="spacedPracticeArea" style="display:none;">
+            <div class="session-bar">
+                <button class="text-btn" onclick="exitSpacedSession()">结束</button>
+                <span class="session-meta" id="spacedSessionMeta"></span>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card"><span class="stat-num" id="spacedProgressCurr">0</span>/<span id="spacedProgressTotal">0</span><br>进度</div>
+                <div class="stat-card"><span class="stat-num" id="spacedCorrectRate">0</span>%<br>正确率</div>
+                <div class="stat-card"><span class="stat-num" id="spacedTotalAnswered">0</span><br>已答</div>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" id="spacedProgressFill" style="width:0%"></div></div>
+            <div class="word-display" id="spacedQuestionWord"></div>
+            <div id="spacedMultiHint" class="multi-meaning-hint" style="display:none;"></div>
+            <div class="answer-preview"><span class="preview-label">输入</span> <span id="spacedPreviewText"></span></div>
+            <div class="result-badge" id="spacedResultMessage"></div>
+            <div id="spacedMultiAnswerList" class="answer-list" style="display:none;"></div>
+            <div id="spacedExampleCard" style="display:none;" class="example-box"></div>
+        </div>
 
         <div id="spacedFixedInputArea" style="display:none;">
             <form id="spacedAnswerForm" onsubmit="return false;">
-                <input type="text" id="spacedAnswerInput" placeholder="输入日语假名，回车确认" autocomplete="off">
+                <input type="text" id="spacedAnswerInput" placeholder="输入日语假名，回车确认" autocomplete="off" lang="ja" autocapitalize="off" autocorrect="off" spellcheck="false">
             </form>
             <div class="grade-bar" id="spacedGradeBar">
-                <button onclick="gradeSpacedAnswer(3)">😕 有点难</button>
-                <button class="primary" onclick="gradeSpacedAnswer(4)">🙂 记得</button>
-                <button onclick="gradeSpacedAnswer(5)">😎 很熟</button>
+                <button onclick="gradeSpacedAnswer(3)">有点难</button>
+                <button class="primary" onclick="gradeSpacedAnswer(4)">记得</button>
+                <button onclick="gradeSpacedAnswer(5)">很熟</button>
             </div>
             <div class="flex-row" id="spacedWrongActionBar" style="display:none;">
-                <button onclick="handleSpacedRemove()">🗑️ 移出</button>
-                <button class="warning" onclick="handleSpacedKeep()">💾 保留</button>
+                <button onclick="handleSpacedRemove()">移出</button>
+                <button class="warning" onclick="handleSpacedKeep()">保留</button>
             </div>
         </div>
     </div>
 
     <div id="stats" class="page">
-        <h3>📊 学习统计</h3>
+        <h3>学习统计</h3>
         <div class="stats-hero">
             <div class="stat-card"><span class="stat-num" id="statsStreak">0</span><br>连续打卡（天）</div>
             <div class="stat-card"><span class="stat-num" id="statsTodayAnswered">0</span><br>今日已答</div>
@@ -376,17 +481,17 @@
             <div class="stat-card"><span class="stat-num" id="statsWeekRate">0</span>%<br>近7日正确率</div>
         </div>
         <div class="module-card">
-            <h3>📅 近7天</h3>
+            <h3>近7天</h3>
             <div id="statsWeekTable">暂无记录</div>
         </div>
         <div class="module-card">
-            <h3>📌 最常错 Top 20</h3>
+            <h3>最常错 Top 20</h3>
             <div id="statsTopWrong">暂无错题</div>
         </div>
     </div>
 
     <div id="sync" class="page">
-        <h3>☁️ GitHub 同步 (压缩传输)</h3>
+        <h3>GitHub 同步</h3>
         <div class="sync-step"><h4>1. 配置</h4><input type="text" id="githubUser" placeholder="用户名"><input type="password" id="githubToken" placeholder="Token"><button onclick="saveGithubConfig()">保存</button><span id="configStatus"></span></div>
         <div class="sync-step"><h4>2. Gist ID</h4><div class="flex-row"><input type="text" id="gistIdInput" style="flex:3;"><button onclick="fetchGistIdFromList()" style="flex:1;">选择Gist</button></div><button onclick="createNewGist()" class="warning" style="margin-top:10px;">创建新Gist</button></div>
         <div class="sync-step"><h4>3. 同步</h4>
@@ -405,13 +510,28 @@
             <div id="syncMessage" style="margin-top:15px;"></div>
         </div>
         <hr>
-        <h4>💾 本地备份</h4>
-        <button onclick="exportBackup()">📤 导出备份文件</button>
-        <input type="file" id="importFile" accept=".json" style="margin-top:10px;"><button onclick="importBackup()">📥 导入备份文件</button>
-        <button onclick="restoreSafetySnapshot()" style="margin-top:10px;">↩️ 恢复最近一次安全备份</button>
+        <h4>本地备份</h4>
+        <button onclick="exportBackup()">导出备份文件</button>
+        <input type="file" id="importFile" accept=".json" style="margin-top:10px;"><button onclick="importBackup()">导入备份文件</button>
+        <button onclick="restoreSafetySnapshot()" style="margin-top:10px;">恢复最近一次安全备份</button>
         <div id="safetySnapshotInfo" class="tiny-note"></div>
         <div id="pwaInstallNote" class="pwa-note"></div>
-        <button class="danger" style="margin-top:20px;" onclick="resetAllData()">⚠️ 清空所有数据</button>
+        <button class="danger" style="margin-top:20px;" onclick="resetAllData()">清空所有数据</button>
+    </div>
+
+    <nav class="bottom-nav" id="bottomNav">
+        <button class="nav-item active" data-page="spaced" onclick="showPage('spaced')">复习</button>
+        <button class="nav-item" data-page="practice" onclick="showPage('practice')">练习</button>
+        <button class="nav-item" data-page="wrong" onclick="showPage('wrong')">错题</button>
+        <button class="nav-item" data-page="library" onclick="showPage('library')">题库</button>
+        <button class="nav-item" id="navMoreBtn" onclick="toggleMoreMenu(event)">更多</button>
+    </nav>
+    <div id="moreOverlay" class="more-overlay" onclick="if(event.target===this)closeMoreMenu()">
+        <div class="more-sheet">
+            <button onclick="showPage('stats')">统计</button>
+            <button onclick="showPage('sync')">同步与备份</button>
+            <button onclick="closeMoreMenu()">取消</button>
+        </div>
     </div>
 
     <div id="editOverlay" class="edit-overlay" onclick="if(event.target===this)closeEditPanel()">
@@ -572,8 +692,86 @@
             }
 
             function syncSpacedInputVisibility() {
-                const show = state.spacedUI.subTab === 'practice' && isSpacedPracticeActive();
+                const show = isSpacedPracticeActive();
                 document.getElementById('spacedFixedInputArea').style.display = show ? 'block' : 'none';
+            }
+
+            function isPracticeSessionActive() {
+                const p = state.practice;
+                return Array.isArray(p.words) && p.words.length > 0 && p.index < p.words.length;
+            }
+
+            function refreshSessionChrome() {
+                const practiceOn = isPracticeSessionActive();
+                const spacedOn = isSpacedPracticeActive();
+                document.body.classList.toggle('session-active', practiceOn || spacedOn);
+                document.body.classList.toggle('session-practice', practiceOn);
+                document.body.classList.toggle('session-spaced', spacedOn);
+                const setup = document.getElementById('practiceSetup');
+                const session = document.getElementById('practiceSession');
+                const spacedSetup = document.getElementById('spacedSetup');
+                if (setup) setup.style.display = practiceOn ? 'none' : 'block';
+                if (session) session.style.display = practiceOn ? 'block' : 'none';
+                if (spacedSetup) spacedSetup.style.display = spacedOn ? 'none' : '';
+                if (practiceOn) {
+                    const p = state.practice;
+                    const answered = (p.stats.correct || 0) + (p.stats.wrong || 0);
+                    const rate = answered ? Math.round(p.stats.correct / answered * 100) : 0;
+                    const meta = document.getElementById('practiceSessionMeta');
+                    if (meta) meta.textContent = (p.index + 1) + '/' + p.words.length + ' · ' + rate + '%';
+                }
+                if (spacedOn) {
+                    const ui = state.spacedUI;
+                    const answered = (ui.stats.correct || 0) + (ui.stats.wrong || 0);
+                    const rate = answered ? Math.round(ui.stats.correct / answered * 100) : 0;
+                    const meta = document.getElementById('spacedSessionMeta');
+                    if (meta) meta.textContent = (ui.index + 1) + '/' + ui.practiceWords.length + ' · ' + rate + '%';
+                }
+                syncSpacedInputVisibility();
+            }
+
+            window.exitPracticeSession = function() {
+                if (!isPracticeSessionActive()) { refreshSessionChrome(); return; }
+                if (!confirm('结束本次练习？本轮未完成的题目会退出，已记录的对错仍会保留。')) return;
+                clearAutoNext();
+                state.practice.words = [];
+                state.practice.pendingWrong = null;
+                state.practice.answerState = 'initial';
+                document.getElementById('wrongActionBar').style.display = 'none';
+                document.getElementById('answerInput').disabled = false;
+                refreshSessionChrome();
+            };
+
+            window.exitSpacedSession = function() {
+                if (!isSpacedPracticeActive()) { refreshSessionChrome(); return; }
+                if (!confirm('结束本次复习？')) return;
+                clearAutoNext();
+                const ui = state.spacedUI;
+                ui.practiceWords = [];
+                ui.pendingAction = null;
+                ui.answerState = 'initial';
+                hideSpacedGradeBar();
+                document.getElementById('spacedWrongActionBar').style.display = 'none';
+                document.getElementById('spacedAnswerInput').disabled = false;
+                document.getElementById('spacedPracticeArea').style.display = 'none';
+                refreshSessionChrome();
+                updateSpacedUI();
+            };
+
+            window.closeMoreMenu = function() {
+                const el = document.getElementById('moreOverlay');
+                if (el) el.classList.remove('show');
+            };
+
+            window.toggleMoreMenu = function(ev) {
+                if (ev) ev.stopPropagation();
+                const el = document.getElementById('moreOverlay');
+                if (!el) return;
+                el.classList.toggle('show');
+            };
+
+            function itemCardHtml({ jp, cn, meta, actions }) {
+                return `<div class="item-card"><div class="item-card-body"><div class="item-jp">${jp || ''}</div>${cn ? `<div class="item-cn">${cn}</div>` : ''}${meta ? `<div class="item-meta">${meta}</div>` : ''}</div><div class="item-card-actions">${actions || ''}</div></div>`;
             }
 
             function sameId(a, b) {
@@ -769,7 +967,7 @@
                 document.getElementById('statsTodayAnswered').innerText = (today.correct || 0) + (today.wrong || 0);
                 document.getElementById('statsTodayReviews').innerText = today.reviews || 0;
                 let weekCorrect = 0, weekWrong = 0;
-                const rows = [];
+                const weekCards = [];
                 for (let i = 0; i < 7; i++) {
                     const d = new Date();
                     d.setDate(d.getDate() - i);
@@ -777,11 +975,15 @@
                     const rec = days[key] || { correct: 0, wrong: 0, reviews: 0 };
                     weekCorrect += rec.correct || 0;
                     weekWrong += rec.wrong || 0;
-                    rows.push(`<tr><td>${key}</td><td>${rec.correct || 0}</td><td>${rec.wrong || 0}</td><td>${rec.reviews || 0}</td></tr>`);
+                    weekCards.push(itemCardHtml({
+                        jp: key,
+                        cn: '',
+                        meta: '正确 ' + (rec.correct || 0) + ' · 错误 ' + (rec.wrong || 0) + ' · 复习 ' + (rec.reviews || 0)
+                    }));
                 }
                 const weekTotal = weekCorrect + weekWrong;
                 document.getElementById('statsWeekRate').innerText = weekTotal ? Math.round(weekCorrect / weekTotal * 100) : 0;
-                document.getElementById('statsWeekTable').innerHTML = `<table class="word-table"><tr><th>日期</th><th>正确</th><th>错误</th><th>复习</th></tr>${rows.join('')}</table>`;
+                document.getElementById('statsWeekTable').innerHTML = weekCards.join('');
                 const merged = new Map();
                 Object.keys(state.wrong).forEach(k => {
                     (state.wrong[k] || []).forEach(ww => {
@@ -795,8 +997,11 @@
                 if (!top.length) {
                     document.getElementById('statsTopWrong').innerHTML = '<p>暂无错题</p>';
                 } else {
-                    document.getElementById('statsTopWrong').innerHTML = '<table class="word-table"><tr><th>中文</th><th>日文</th><th>次数</th></tr>' +
-                        top.map(w => `<tr><td>${w.chinese}</td><td>${w.japanese}</td><td>${w.wrongCount || 1}</td></tr>`).join('') + '</table>';
+                    document.getElementById('statsTopWrong').innerHTML = top.map(w => itemCardHtml({
+                        jp: w.japanese,
+                        cn: w.chinese,
+                        meta: '错误 ' + (w.wrongCount || 1) + ' 次'
+                    })).join('');
                 }
             }
 
@@ -1247,6 +1452,7 @@
                 document.getElementById('totalAnswered').innerText = answered;
                 document.getElementById('correctRate').innerText = answered ? Math.round(state.practice.stats.correct / answered * 100) : 0;
                 document.getElementById('progressFill').style.width = (total ? ((state.practice.index + 1) / total * 100) : 0) + '%';
+                refreshSessionChrome();
             }
 
             function checkAnswer() {
@@ -1438,7 +1644,8 @@
                 } else {
                     alert(`练习完成！正确:${p.stats.correct} 错误:${p.stats.wrong}`);
                     p.words = [];
-                    showQuestion();
+                    p.index = 0;
+                    refreshSessionChrome();
                 }
             };
 
@@ -1464,22 +1671,28 @@
 
             // ========== 公共 UI 动作 ==========
             window.showPage = function(pid){
+                closeMoreMenu();
                 document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
                 document.getElementById(pid).classList.add('active');
-                const tabBtn = document.querySelector(`.tab-btn[onclick*="'${pid}'"]`);
-                if (tabBtn) tabBtn.classList.add('active');
+                const navBtn = document.querySelector(`.nav-item[data-page="${pid}"]`);
+                if (navBtn) navBtn.classList.add('active');
+                else {
+                    const more = document.getElementById('navMoreBtn');
+                    if (more) more.classList.add('active');
+                }
                 if (pid === 'library') { renderBookLists(); clearSearch(); updateImportCategory(); }
                 if (pid === 'wrong') { updateWrongTabActiveStates(); renderWrongList(); }
                 if (pid === 'spaced') { updateSpacedUI(); }
                 if (pid === 'stats') { renderStatsPage(); }
                 if (pid === 'sync') { fillGithubConfigToUI(); fetchCloudSyncMeta().then(() => updateSyncInfoDisplay()); updateSafetySnapshotInfo(); updatePwaNote(); }
-                if (pid === 'practice') updateModeUI(); 
+                if (pid === 'practice') updateModeUI();
+                window.scrollTo(0, 0);
             };
 
             window.setPracticeCategory = function(cat) {
                 state.practice.category = cat;
-                document.querySelectorAll('#practice .sub-tab-bar:first-child .sub-tab-btn').forEach((btn, idx) => btn.classList.toggle('active', (idx===0 && cat==='word')||(idx===1 && cat==='grammar')));
+                document.querySelectorAll('#practiceSetup > .sub-tab-bar:first-of-type .sub-tab-btn').forEach((btn, idx) => btn.classList.toggle('active', (idx===0 && cat==='word')||(idx===1 && cat==='grammar')));
                 document.getElementById('grammarDirectionBar').style.display = cat === 'grammar' ? 'flex' : 'none';
                 document.getElementById('wordDirectionBar').style.display = cat === 'word' ? 'flex' : 'none';
                 updatePracticeCategory();
@@ -1718,21 +1931,28 @@
                 if (!list) return;
                 if (list.classList.contains('open')) { list.classList.remove('open'); icon.classList.remove('open'); return; }
                 const words = state.vocabs.filter(v => v.deckId == unitId && v.category === type);
-                let html = '<table class="word-table" style="margin-top:8px;">';
+                let html = '';
                 if (type === 'word') {
-                    html += '<tr><th>中文</th><th>日文</th><th>词性</th><th>助词</th><th>短句</th><th>操作</th></tr>';
                     words.forEach(w => {
-                        const wt = w.wordType ? `<span class="type-badge${w.wordType.includes('他')?' 他':''}">${w.wordType}</span>` : '-';
-                        html += `<tr><td>${w.chinese}</td><td>${w.japanese}</td><td>${wt}</td><td>${w.particle||'-'}</td><td>${w.example||'-'}</td><td><button class="btn-sm" onclick="event.stopPropagation();editWord('${w.id}')">编辑</button><button class="btn-sm danger" onclick="event.stopPropagation();deleteWord('${w.id}')">删</button></td></tr>`;
+                        const wt = w.wordType ? `<span class="type-badge${w.wordType.includes('他')?' 他':''}">${w.wordType}</span>` : '';
+                        html += itemCardHtml({
+                            jp: w.japanese,
+                            cn: w.chinese,
+                            meta: [wt, w.particle, w.example].filter(Boolean).join(' · ') || '',
+                            actions: `<button class="btn-sm" onclick="event.stopPropagation();editWord('${w.id}')">编辑</button><button class="btn-sm danger" onclick="event.stopPropagation();deleteWord('${w.id}')">删</button>`
+                        });
                     });
                 } else {
-                    html += '<tr><th>中文</th><th>日语语法</th><th>例句</th><th>翻译</th><th>操作</th></tr>';
                     words.forEach(w => {
-                        html += `<tr><td>${w.chinese}</td><td>${w.japanese}</td><td>${w.example||'-'}</td><td>${w.exampleCn||'-'}</td><td><button class="btn-sm" onclick="event.stopPropagation();editWord('${w.id}')">编辑</button><button class="btn-sm danger" onclick="event.stopPropagation();deleteWord('${w.id}')">删</button></td></tr>`;
+                        html += itemCardHtml({
+                            jp: w.japanese,
+                            cn: w.chinese,
+                            meta: [w.example, w.exampleCn].filter(Boolean).join(' · ') || '',
+                            actions: `<button class="btn-sm" onclick="event.stopPropagation();editWord('${w.id}')">编辑</button><button class="btn-sm danger" onclick="event.stopPropagation();deleteWord('${w.id}')">删</button>`
+                        });
                     });
                 }
-                html += '</table>';
-                list.innerHTML = html;
+                list.innerHTML = html || '<p>暂无词条</p>';
                 list.classList.add('open');
                 icon.classList.add('open');
             };
@@ -1749,22 +1969,29 @@
             function renderSearchResults(words, cat) {
                 const cont = document.getElementById('wordSearchResults');
                 if (!words.length) { cont.innerHTML = '<p>未找到</p>'; return; }
-                let html = '<table class="word-table">';
+                let html = '';
                 if (cat === 'word') {
-                    html += '<tr><th>中文</th><th>日文</th><th>词性</th><th>助词</th><th>短句</th><th>位置</th><th>操作</th></tr>';
                     words.forEach(w => {
                         const deck = state.decks.find(d => d.id == w.deckId);
-                        const wt = w.wordType ? `<span class="type-badge${w.wordType.includes('他')?' 他':''}">${w.wordType}</span>` : '-';
-                        html += `<tr><td>${w.chinese}</td><td>${w.japanese}</td><td>${wt}</td><td>${w.particle||'-'}</td><td>${w.example||'-'}</td><td>${deck?.name||'?'}</td><td><button class="btn-sm" onclick="editWord('${w.id}')">编辑</button><button class="btn-sm danger" onclick="deleteWord('${w.id}')">删</button></td></tr>`;
+                        const wt = w.wordType ? `<span class="type-badge${w.wordType.includes('他')?' 他':''}">${w.wordType}</span>` : '';
+                        html += itemCardHtml({
+                            jp: w.japanese,
+                            cn: w.chinese,
+                            meta: [wt, w.particle, w.example, deck && deck.name].filter(Boolean).join(' · '),
+                            actions: `<button class="btn-sm" onclick="editWord('${w.id}')">编辑</button><button class="btn-sm danger" onclick="deleteWord('${w.id}')">删</button>`
+                        });
                     });
                 } else {
-                    html += '<tr><th>中文</th><th>日语语法</th><th>例句</th><th>翻译</th><th>位置</th><th>操作</th></tr>';
                     words.forEach(w => {
                         const deck = state.decks.find(d => d.id == w.deckId);
-                        html += `<tr><td>${w.chinese}</td><td>${w.japanese}</td><td>${w.example||'-'}</td><td>${w.exampleCn||'-'}</td><td>${deck?.name||'?'}</td><td><button class="btn-sm" onclick="editWord('${w.id}')">编辑</button><button class="btn-sm danger" onclick="deleteWord('${w.id}')">删</button></td></tr>`;
+                        html += itemCardHtml({
+                            jp: w.japanese,
+                            cn: w.chinese,
+                            meta: [w.example, w.exampleCn, deck && deck.name].filter(Boolean).join(' · '),
+                            actions: `<button class="btn-sm" onclick="editWord('${w.id}')">编辑</button><button class="btn-sm danger" onclick="deleteWord('${w.id}')">删</button>`
+                        });
                     });
                 }
-                html += '</table>';
                 cont.innerHTML = html;
             }
 
@@ -1772,11 +1999,15 @@
                 const cont = document.getElementById('wrongListContainer');
                 const list = getCurrentWrongList();
                 if (!list.length) { cont.innerHTML = '<p>暂无错题</p>'; return; }
-                let html = '<table class="word-table"><tr><th>中文</th><th>日文/语法</th><th>错误次数</th><th>操作</th></tr>';
+                let html = '';
                 list.forEach((ww, idx) => {
-                    html += `<tr><td>${ww.chinese}</td><td>${ww.japanese}</td><td>${ww.wrongCount||1}</td><td><button class="btn-sm" onclick="removeWrongItem(${idx})">移除</button></td></tr>`;
+                    html += itemCardHtml({
+                        jp: ww.japanese,
+                        cn: ww.chinese,
+                        meta: '错误 ' + (ww.wrongCount || 1) + ' 次',
+                        actions: `<button class="btn-sm" onclick="removeWrongItem(${idx})">移除</button>`
+                    });
                 });
-                html += '</table>';
                 cont.innerHTML = html;
             }
 
@@ -2012,6 +2243,7 @@
                 p.currentItem = null;
                 saveAll();
                 showQuestion();
+                refreshSessionChrome();
             };
 
             // ========== 遗忘曲线部分 ==========
@@ -2041,7 +2273,7 @@
                 });
                 const importBtn = document.getElementById('spacedImportBtn');
                 if (importBtn) {
-                    importBtn.textContent = cat === 'grammar' ? '📥 导入语法汇总错题' : '📥 导入单词汇总错题';
+                    importBtn.textContent = cat === 'grammar' ? '导入语法汇总错题' : '导入单词汇总错题';
                 }
                 renderSpacedWordList();
             };
@@ -2094,7 +2326,7 @@
                 if (meta) meta.innerText = `${label}题库：共 ${pool.length} 条 · 今日待复习 ${dueCount}`;
                 const importBtn = document.getElementById('spacedImportBtn');
                 if (importBtn) {
-                    importBtn.textContent = cat === 'grammar' ? '📥 导入语法汇总错题' : '📥 导入单词汇总错题';
+                    importBtn.textContent = cat === 'grammar' ? '导入语法汇总错题' : '导入单词汇总错题';
                 }
                 document.querySelectorAll('#spacedLibraryCatBar .sub-tab-btn').forEach(btn => {
                     btn.classList.toggle('active', btn.getAttribute('onclick').includes(`'${cat}'`));
@@ -2126,22 +2358,25 @@
                 }
                 if (!filtered.length) { container.innerHTML = `<p>无匹配${label}</p>`; return; }
                 const getSortIcon = (colKey) => {
-                    if (ui.sortKey !== colKey) return ' ↕';
+                    if (ui.sortKey !== colKey) return '';
                     return ui.sortOrder === 'asc' ? ' ↑' : ' ↓';
                 };
-                let html = '<table class="word-table"><tr>';
-                html += `<th style="cursor:pointer;" onclick="toggleSort('chinese')">中文${getSortIcon('chinese')}</th>`;
-                html += `<th style="cursor:pointer;" onclick="toggleSort('japanese')">日文${getSortIcon('japanese')}</th>`;
-                html += `<th style="cursor:pointer;" onclick="toggleSort('repetitions')">复习次数${getSortIcon('repetitions')}</th>`;
-                html += `<th style="cursor:pointer;" onclick="toggleSort('interval')">间隔${getSortIcon('interval')}</th>`;
-                html += `<th style="cursor:pointer;" onclick="toggleSort('nextReviewDate')">下次复习${getSortIcon('nextReviewDate')}</th>`;
-                html += '<th>操作</th></tr>';
+                let html = '<div class="flex-row" style="margin-bottom:8px;">';
+                html += `<button class="btn-sm" onclick="toggleSort('chinese')">中文${getSortIcon('chinese')}</button>`;
+                html += `<button class="btn-sm" onclick="toggleSort('japanese')">日文${getSortIcon('japanese')}</button>`;
+                html += `<button class="btn-sm" onclick="toggleSort('repetitions')">次数${getSortIcon('repetitions')}</button>`;
+                html += `<button class="btn-sm" onclick="toggleSort('interval')">间隔${getSortIcon('interval')}</button>`;
+                html += `<button class="btn-sm" onclick="toggleSort('nextReviewDate')">下次${getSortIcon('nextReviewDate')}</button></div>`;
                 filtered.forEach((item) => {
                     const originalIdx = state.spacedItems.indexOf(item);
-                    const dueSoon = item.nextReviewDate <= today ? ' (今日)' : '';
-                    html += `<tr><td>${item.chinese}</td><td>${item.japanese}</td><td>${item.repetitions}</td><td>${item.interval}天</td><td>${item.nextReviewDate}${dueSoon}</td><td><button class="btn-sm danger" onclick="removeSpacedItemByFilter(${originalIdx})">移除</button></td></tr>`;
+                    const dueSoon = item.nextReviewDate <= today ? ' · 今日' : '';
+                    html += itemCardHtml({
+                        jp: item.japanese,
+                        cn: item.chinese,
+                        meta: '复习 ' + item.repetitions + ' 次 · 间隔 ' + item.interval + ' 天 · ' + item.nextReviewDate + dueSoon,
+                        actions: `<button class="btn-sm danger" onclick="removeSpacedItemByFilter(${originalIdx})">移除</button>`
+                    });
                 });
-                html += '</table>';
                 container.innerHTML = html;
             }
 
@@ -2295,8 +2530,8 @@
                 document.querySelector('#spacedSubTabBar .sub-tab-btn:first-child').classList.add('active');
                 document.getElementById('spacedPracticeArea').style.display = 'block';
                 document.getElementById('spacedWrongActionBar').style.display = 'none';
-                syncSpacedInputVisibility();
                 showSpacedQuestion();
+                refreshSessionChrome();
             };
 
             function showSpacedQuestion() {
@@ -2312,10 +2547,9 @@
                 document.getElementById('spacedCorrectRate').innerText = answered ? Math.round(ui.stats.correct / answered * 100) : 0;
                 document.getElementById('spacedProgressFill').style.width = total ? ((current / total) * 100) + '%' : '0%';
                 if (!ui.practiceWords.length || ui.index >= ui.practiceWords.length) {
-                    document.getElementById('spacedSubTabBar').style.display = 'flex';
                     document.getElementById('spacedPracticeArea').style.display = 'none';
                     ui.practiceWords = [];
-                    syncSpacedInputVisibility();
+                    refreshSessionChrome();
                     updateSpacedUI();
                     alert(`复习完成！正确:${ui.stats.correct} 错误:${ui.stats.wrong}`);
                     return;
@@ -2362,7 +2596,7 @@
                 document.getElementById('spacedAnswerInput').disabled = false;
                 document.getElementById('spacedAnswerInput').value = '';
                 document.getElementById('spacedAnswerInput').focus();
-                syncSpacedInputVisibility();
+                refreshSessionChrome();
             }
 
             function hideSpacedGradeBar() {
@@ -3099,6 +3333,17 @@
             updateSafetySnapshotInfo();
             updatePwaNote();
             registerPwa();
+            refreshSessionChrome();
+            if (window.visualViewport) {
+                const applyKb = function() {
+                    const vv = window.visualViewport;
+                    const occluded = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+                    document.documentElement.style.setProperty('--kb', occluded + 'px');
+                };
+                visualViewport.addEventListener('resize', applyKb);
+                visualViewport.addEventListener('scroll', applyKb);
+                applyKb();
+            }
         })();
     </script>
 </body>

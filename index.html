@@ -48,7 +48,7 @@
         .word-display .type-badge { display: inline-block; margin: 8px 0 0; font-family: system-ui, sans-serif; }
         .type-badge { font-size: 0.85rem; font-weight: 500; background: #cfe2ff; color: #0d47a1; padding: 2px 10px; border-radius: 8px; margin-left: 8px; vertical-align: middle; }
         .type-badge.他 { background: #ffd6d6; color: #a10d0d; }
-        .result-badge { text-align: center; padding: 12px; border-radius: 14px; font-size: 1.15rem; font-weight: 600; margin: 12px 0; scroll-margin-bottom: 160px; }
+        .result-badge { text-align: center; padding: 12px; border-radius: 14px; font-size: 1.15rem; font-weight: 600; margin: 12px 0; word-break: break-word; overflow-wrap: anywhere; white-space: normal; }
         .correct { background: #e1f7e3; color: #1e7a44; }
         .wrong { background: #ffe9e9; color: #b33; }
         .progress-bar { height: 8px; background: #e2eaf3; border-radius: 8px; overflow: hidden; margin: 10px 0 14px; }
@@ -81,7 +81,7 @@
         .preview-label { color: #7a8b9f; font-size: 0.85rem; }
         .checkbox-group { display: flex; flex-wrap: wrap; gap: 12px; background: #f8f9fc; padding: 12px; border-radius: 12px; margin: 10px 0; }
         .checkbox-group label { display: flex; align-items: center; gap: 5px; font-size: 0.95rem; min-height: 44px; }
-        .example-box { background: #eef3f9; border-radius: 14px; padding: 12px; margin: 10px 0; font-size: 1.1rem; text-align: center; color: #11324d; animation: slideIn 0.3s ease-out; }
+        .example-box { background: #eef3f9; border-radius: 14px; padding: 12px; margin: 10px 0; font-size: 1.1rem; text-align: center; color: #11324d; animation: slideIn 0.3s ease-out; word-break: break-word; overflow-wrap: anywhere; white-space: normal; }
         .example-box span { background: white; padding: 2px 8px; border-radius: 8px; margin: 0 4px; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         @media (prefers-reduced-motion: reduce) { .example-box { animation: none; } }
@@ -102,7 +102,11 @@
         #fixedInputArea { display: none; }
         body.session-practice #fixedInputArea { display: block; }
         #fixedInputArea .flex-row, #spacedFixedInputArea .flex-row { margin-top: 0; }
-        body.session-practice #practice, body.session-spaced #spaced { padding-bottom: 148px; }
+        body.session-practice #practice, body.session-spaced #spaced { padding-bottom: 168px; }
+        #practiceFeedback, #spacedFeedback {
+            scroll-margin-top: 52px;
+            scroll-margin-bottom: 168px;
+        }
         .unit-list { display: none; padding-left: 8px; margin-bottom: 10px; }
         .unit-list.open { display: block; }
         .word-list { display: none; margin-top: 8px; }
@@ -114,7 +118,7 @@
         .grammar-badge { background: #e8daef; color: #6a1b9a; padding: 2px 8px; border-radius: 8px; font-size: 0.8rem; }
         .create-unit-box { background: #f2f6fc; border-radius: 16px; padding: 16px; margin: 20px 0; }
         .multi-meaning-hint { font-size: 0.95rem; color: #6a1b9a; margin-top: 5px; text-align: center; }
-        .answer-list { font-size: 1.05rem; background: #f8f9fc; border-radius: 14px; padding: 12px; margin: 10px 0; }
+        .answer-list { font-size: 1.05rem; background: #f8f9fc; border-radius: 14px; padding: 12px; margin: 10px 0; word-break: break-word; overflow-wrap: anywhere; }
         #wrongActionBar button, #spacedWrongActionBar button { flex: 1; }
         .module-card { background: #ffffff; border-radius: 16px; padding: 16px; margin-bottom: 16px; border: 1px solid #eef2f7; }
         .module-card h3 { margin-top: 0; color: #1e3c5c; font-size: 1.05rem; }
@@ -166,37 +170,44 @@
             max-width: 800px;
             display: flex;
             background: #fff;
-            border-top: 1px solid #e2eaf3;
+            border-top: 1px solid #e5e8ee;
             z-index: 150;
-            padding: 4px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+            padding: 4px 0 calc(4px + env(safe-area-inset-bottom, 0px));
         }
         .nav-item {
             flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
             background: none;
             border: none;
             box-shadow: none;
-            border-radius: 12px;
-            min-height: 48px;
-            padding: 6px 2px;
-            font-size: 0.78rem;
-            color: #5f738c;
-            font-weight: 600;
+            border-radius: 0;
+            min-height: 52px;
+            padding: 4px 2px 2px;
+            font-size: 11px;
+            color: #8a97a8;
+            font-weight: 500;
+            line-height: 1.2;
         }
-        .nav-item.active { color: #1e3c5c; background: #eef3f9; }
-        .more-overlay { display: none; position: fixed; inset: 0; background: rgba(17,32,48,0.4); z-index: 180; align-items: flex-end; justify-content: center; }
-        .more-overlay.show { display: flex; }
-        .more-sheet { background: white; width: 100%; max-width: 800px; border-radius: 20px 20px 0 0; padding: 12px 12px calc(16px + env(safe-area-inset-bottom, 0px)); }
-        .more-sheet button { width: 100%; margin: 6px 0; }
+        .nav-item.active { color: #1e3c5c; background: none; }
+        .nav-item svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+        .mine-card { display: block; width: 100%; text-align: left; background: #f7fafd; border: 1px solid #e2eaf3; border-radius: 16px; padding: 16px; margin-bottom: 10px; }
+        .mine-card strong { display: block; font-size: 1.05rem; color: #1e3c5c; margin-bottom: 4px; }
+        .mine-card span { font-size: 0.85rem; color: #7a8b9f; font-weight: 400; }
+        .page-back { background: none; box-shadow: none; color: #5f738c; padding: 8px 0; min-height: 40px; font-size: 0.95rem; }
         .session-bar { display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: white; z-index: 11; padding: 0 0 8px; }
         .session-meta { font-size: 0.9rem; color: #5f738c; font-weight: 600; }
         #practiceSession { display: none; }
         body.session-active #appTitle,
         body.session-active #bottomNav,
         body.session-active #backToTop { display: none !important; }
-        body.session-active { padding-bottom: 12px; }
+        body.session-active { padding-bottom: 12px; overscroll-behavior: auto; }
         body.session-active .toast { bottom: calc(16px + env(safe-area-inset-bottom, 0px) + var(--kb, 0px)); }
-        body.session-practice #practice { padding: 12px; }
-        body.session-spaced #spaced { padding: 12px; }
+        body.session-practice #practice { padding: 12px 12px 168px; }
+        body.session-spaced #spaced { padding: 12px 12px 168px; }
         @media (max-height: 640px) {
             #fixedInputArea, #spacedFixedInputArea {
                 position: relative;
@@ -285,9 +296,11 @@
         <div class="word-display" id="questionWord">请开始练习</div>
         <div id="multiHint" class="multi-meaning-hint" style="display:none;"></div>
         <div class="answer-preview"><span class="preview-label">输入</span> <span id="previewText"></span></div>
+        <div id="practiceFeedback">
         <div id="exampleCard" style="display:none;" class="example-box"></div>
         <div id="resultMessage" class="result-badge"></div>
         <div id="answerListArea" class="answer-list" style="display:none;"></div>
+        </div>
         <div id="fixedInputArea">
             <form id="answerForm" onsubmit="return false;"><input type="text" id="answerInput" placeholder="输入答案，回车确认" autocomplete="off" lang="ja" autocapitalize="off" autocorrect="off" spellcheck="false"></form>
             <div class="flex-row" id="wrongActionBar" style="display:none;">
@@ -299,6 +312,7 @@
     </div>
 
     <div id="wrong" class="page">
+        <button class="page-back" onclick="showPage('mine')">‹ 我的</button>
         <div class="sub-tab-bar" style="margin-bottom:15px;">
             <button class="sub-tab-btn active" onclick="setWrongCategory('word')">单词错题</button>
             <button class="sub-tab-btn" onclick="setWrongCategory('grammar')">语法错题</button>
@@ -451,9 +465,11 @@
             <div class="word-display" id="spacedQuestionWord"></div>
             <div id="spacedMultiHint" class="multi-meaning-hint" style="display:none;"></div>
             <div class="answer-preview"><span class="preview-label">输入</span> <span id="spacedPreviewText"></span></div>
+            <div id="spacedFeedback">
             <div class="result-badge" id="spacedResultMessage"></div>
             <div id="spacedMultiAnswerList" class="answer-list" style="display:none;"></div>
             <div id="spacedExampleCard" style="display:none;" class="example-box"></div>
+            </div>
         </div>
 
         <div id="spacedFixedInputArea" style="display:none;">
@@ -473,6 +489,7 @@
     </div>
 
     <div id="stats" class="page">
+        <button class="page-back" onclick="showPage('mine')">‹ 我的</button>
         <h3>学习统计</h3>
         <div class="stats-hero">
             <div class="stat-card"><span class="stat-num" id="statsStreak">0</span><br>连续打卡（天）</div>
@@ -491,6 +508,7 @@
     </div>
 
     <div id="sync" class="page">
+        <button class="page-back" onclick="showPage('mine')">‹ 我的</button>
         <h3>GitHub 同步</h3>
         <div class="sync-step"><h4>1. 配置</h4><input type="text" id="githubUser" placeholder="用户名"><input type="password" id="githubToken" placeholder="Token"><button onclick="saveGithubConfig()">保存</button><span id="configStatus"></span></div>
         <div class="sync-step"><h4>2. Gist ID</h4><div class="flex-row"><input type="text" id="gistIdInput" style="flex:3;"><button onclick="fetchGistIdFromList()" style="flex:1;">选择Gist</button></div><button onclick="createNewGist()" class="warning" style="margin-top:10px;">创建新Gist</button></div>
@@ -519,20 +537,40 @@
         <button class="danger" style="margin-top:20px;" onclick="resetAllData()">清空所有数据</button>
     </div>
 
-    <nav class="bottom-nav" id="bottomNav">
-        <button class="nav-item active" data-page="spaced" onclick="showPage('spaced')">复习</button>
-        <button class="nav-item" data-page="practice" onclick="showPage('practice')">练习</button>
-        <button class="nav-item" data-page="wrong" onclick="showPage('wrong')">错题</button>
-        <button class="nav-item" data-page="library" onclick="showPage('library')">题库</button>
-        <button class="nav-item" id="navMoreBtn" onclick="toggleMoreMenu(event)">更多</button>
-    </nav>
-    <div id="moreOverlay" class="more-overlay" onclick="if(event.target===this)closeMoreMenu()">
-        <div class="more-sheet">
-            <button onclick="showPage('stats')">统计</button>
-            <button onclick="showPage('sync')">同步与备份</button>
-            <button onclick="closeMoreMenu()">取消</button>
-        </div>
+    <div id="mine" class="page">
+        <h3>我的</h3>
+        <button class="mine-card" onclick="showPage('wrong')">
+            <strong>错题本</strong>
+            <span>查看和练习当前错题</span>
+        </button>
+        <button class="mine-card" onclick="showPage('stats')">
+            <strong>学习统计</strong>
+            <span>打卡、正确率、常错词</span>
+        </button>
+        <button class="mine-card" onclick="showPage('sync')">
+            <strong>同步与备份</strong>
+            <span>云端同步、导出导入、安装到主屏幕</span>
+        </button>
     </div>
+
+    <nav class="bottom-nav" id="bottomNav">
+        <button class="nav-item active" data-page="spaced" onclick="showPage('spaced')">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+            <span>复习</span>
+        </button>
+        <button class="nav-item" data-page="practice" onclick="showPage('practice')">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l4-1 11-11-3-3L5 16l-1 4z"></path><path d="M14 5l3 3"></path></svg>
+            <span>练习</span>
+        </button>
+        <button class="nav-item" data-page="library" onclick="showPage('library')">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h6v16H5zM13 8h6v13h-6z"></path><path d="M5 5V3h6v2"></path></svg>
+            <span>题库</span>
+        </button>
+        <button class="nav-item" data-page="mine" onclick="showPage('mine')">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.2"></circle><path d="M5 19c1.5-3 4-4.5 7-4.5S17.5 16 19 19"></path></svg>
+            <span>我的</span>
+        </button>
+    </nav>
 
     <div id="editOverlay" class="edit-overlay" onclick="if(event.target===this)closeEditPanel()">
         <div class="edit-panel">
@@ -759,17 +797,36 @@
                 updateSpacedUI();
             };
 
-            window.closeMoreMenu = function() {
-                const el = document.getElementById('moreOverlay');
-                if (el) el.classList.remove('show');
-            };
+            window.closeMoreMenu = function() {};
+            window.toggleMoreMenu = function() {};
 
-            window.toggleMoreMenu = function(ev) {
-                if (ev) ev.stopPropagation();
-                const el = document.getElementById('moreOverlay');
+            function revealFeedback(kind) {
+                const el = document.getElementById(kind === 'spaced' ? 'spacedFeedback' : 'practiceFeedback');
+                const input = document.getElementById(kind === 'spaced' ? 'spacedFixedInputArea' : 'fixedInputArea');
                 if (!el) return;
-                el.classList.toggle('show');
-            };
+                const run = function() {
+                    const style = input ? window.getComputedStyle(input) : null;
+                    const inputVisible = input && style && style.display !== 'none' && input.style.display !== 'none';
+                    const inputFixed = inputVisible && style.position === 'fixed';
+                    const inputH = inputFixed ? input.getBoundingClientRect().height : 0;
+                    const bar = document.querySelector(kind === 'spaced' ? '#spacedPracticeArea .session-bar' : '#practiceSession .session-bar');
+                    const topH = bar ? Math.max(0, bar.getBoundingClientRect().bottom) : 0;
+                    const avail = Math.max(80, window.innerHeight - inputH - topH - 16);
+                    const blockH = el.offsetHeight;
+                    if (blockH <= avail) {
+                        const bottom = el.getBoundingClientRect().bottom;
+                        const target = window.innerHeight - inputH - 12;
+                        const top = el.getBoundingClientRect().top;
+                        if (bottom > target || top < topH + 4) {
+                            window.scrollBy({ top: bottom - target, left: 0, behavior: 'smooth' });
+                        }
+                    } else {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                };
+                if (window.requestAnimationFrame) requestAnimationFrame(function() { setTimeout(run, 40); });
+                else setTimeout(run, 50);
+            }
 
             function itemCardHtml({ jp, cn, meta, actions }) {
                 return `<div class="item-card"><div class="item-card-body"><div class="item-jp">${jp || ''}</div>${cn ? `<div class="item-cn">${cn}</div>` : ''}${meta ? `<div class="item-meta">${meta}</div>` : ''}</div><div class="item-card-actions">${actions || ''}</div></div>`;
@@ -1505,12 +1562,11 @@
                             msg += `<br>含义：${allRaw}`;
                         }
                         msgDiv.innerHTML = msg;
-                        msgDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                         if (word.example) {
                             document.getElementById('exampleCard').innerHTML = p.category === 'grammar' ? `📖 ${word.example} ${word.exampleCn||''}` : `📖 ${word.example}`;
                             document.getElementById('exampleCard').style.display = 'block';
                         }
-                        if (!handleCorrectForWrongPractice(word)) return;
+                        if (!handleCorrectForWrongPractice(word)) { revealFeedback('practice'); return; }
                     } else {
                         p.stats.wrong++;
                         msgDiv.innerText = `✗ 错误 正确答案: ${isJp2Cn ? word.chinese : word.japanese}`;
@@ -1520,7 +1576,7 @@
                         }
                         addToWrongList(word);
                     }
-                    document.getElementById('resultMessage').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    revealFeedback('practice');
                     p.answerState = 'completed';
                     updateProgress();
                     recordStudy({ correct: !!correct, review: false });
@@ -1538,10 +1594,11 @@
                             p.answerState = 'waitingParticle';
                             document.getElementById('answerInput').value = '';
                             document.getElementById('answerInput').placeholder = '输入助词（が/を/に）';
+                            revealFeedback('practice');
                         } else {
                             if (kanaOk) {
                                 p.stats.correct++;
-                                if (!handleCorrectForWrongPractice(word)) return;
+                                if (!handleCorrectForWrongPractice(word)) { revealFeedback('practice'); return; }
                                 document.getElementById('resultMessage').className = 'result-badge correct';
                                 document.getElementById('resultMessage').innerText = '✓ 正确';
                             } else {
@@ -1550,7 +1607,7 @@
                                 document.getElementById('resultMessage').innerText = `✗ 错误 正确答案: ${word.japanese}`;
                                 addToWrongList(word);
                             }
-                            document.getElementById('resultMessage').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                            revealFeedback('practice');
                             p.answerState = 'completed';
                             updateProgress();
                             recordStudy({ correct: kanaOk, review: false });
@@ -1562,7 +1619,7 @@
                         const msgDiv = document.getElementById('resultMessage');
                         if (p.kanaCorrect && particleOk) {
                             p.stats.correct++;
-                            if (!handleCorrectForWrongPractice(word)) return;
+                            if (!handleCorrectForWrongPractice(word)) { revealFeedback('practice'); return; }
                             msgDiv.className = 'result-badge correct';
                             msgDiv.innerText = `✓ 正确！「${word.japanese}」${word.wordType||''}（${correctParticle}）`;
                         } else {
@@ -1574,7 +1631,7 @@
                             msgDiv.innerText = msg;
                             addToWrongList(word);
                         }
-                        document.getElementById('resultMessage').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        revealFeedback('practice');
                         p.answerState = 'completed';
                         document.getElementById('answerInput').placeholder = '输入日语假名';
                         updateProgress();
@@ -1607,7 +1664,6 @@
                     addToWrongList(question.item);
                 }
                 msgDiv.innerHTML = msg;
-                msgDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 const exampleSet = new Set();
                 meanings.forEach(meaning => { meaning.items.forEach(item => { if (item.example) { const ex = `📖 ${item.example}${item.exampleCn ? ' ' + item.exampleCn : ''}`; exampleSet.add(ex); } }); });
                 if (exampleSet.size > 0) {
@@ -1621,6 +1677,7 @@
                 state.practice.answerState = 'completed';
                 updateProgress();
                 recordStudy({ correct: isCorrect, review: false });
+                revealFeedback('practice');
                 if (isCorrect && !handleCorrectForWrongPractice(question.item)) {
                     state.practice.answerState = 'pendingChoice';
                 } else if (isCorrect) {
@@ -1679,12 +1736,10 @@
                 document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
                 document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
                 document.getElementById(pid).classList.add('active');
-                const navBtn = document.querySelector(`.nav-item[data-page="${pid}"]`);
+                const minePages = { mine: 1, wrong: 1, stats: 1, sync: 1 };
+                const navKey = minePages[pid] ? 'mine' : pid;
+                const navBtn = document.querySelector('.nav-item[data-page="' + navKey + '"]');
                 if (navBtn) navBtn.classList.add('active');
-                else {
-                    const more = document.getElementById('navMoreBtn');
-                    if (more) more.classList.add('active');
-                }
                 if (pid === 'library') { renderBookLists(); clearSearch(); updateImportCategory(); }
                 if (pid === 'wrong') { updateWrongTabActiveStates(); renderWrongList(); }
                 if (pid === 'spaced') { updateSpacedUI(); }
@@ -2716,6 +2771,7 @@
                     updateSpacedUI();
                     saveAll();
                 }
+                revealFeedback('spaced');
             }
 
             function showSpacedExample(item) {
@@ -2774,6 +2830,7 @@
                     updateSpacedUI();
                     saveAll();
                 }
+                revealFeedback('spaced');
             }
 
             window.gradeSpacedAnswer = function(quality) {
@@ -2802,6 +2859,7 @@
                 }
                 updateSpacedUI();
                 saveAll();
+                revealFeedback('spaced');
             };
 
             function advanceSpacedQuestion() {

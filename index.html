@@ -391,7 +391,7 @@
 
     <div id="spaced" class="page active">
         <div id="spacedSetup">
-        <h3>复习</h3>
+        <h3>遗忘曲线</h3>
         <div class="sub-tab-bar" id="spacedSubTabBar">
             <button class="sub-tab-btn active" onclick="switchSpacedSubTab('practice')">练习</button>
             <button class="sub-tab-btn" onclick="switchSpacedSubTab('library')">题库</button>
@@ -677,6 +677,7 @@
                     direction,
                     vocabId: vocabId || null,
                     repetitions: 0,
+                    reviewCount: 0,
                     easeFactor: 2.5,
                     interval: 0,
                     lapses: 0,
@@ -1200,6 +1201,9 @@
                         }
                         if (item.lapses === undefined) item.lapses = 0;
                         if (!item.lastReviewDate) item.lastReviewDate = '';
+                        if (item.reviewCount === undefined) {
+                            item.reviewCount = (item.repetitions || 0) + (item.lapses || 0);
+                        }
                         return item;
                     });
                     for (let k in state.wrong) {
@@ -2342,7 +2346,7 @@
                 }
                 const repMin = parseInt(document.getElementById('spacedFilterRep')?.value);
                 const intMin = parseInt(document.getElementById('spacedFilterInterval')?.value);
-                if (!isNaN(repMin)) filtered = filtered.filter(item => item.repetitions >= repMin);
+                if (!isNaN(repMin)) filtered = filtered.filter(item => (item.reviewCount != null ? item.reviewCount : item.repetitions) >= repMin);
                 if (!isNaN(intMin)) filtered = filtered.filter(item => item.interval >= intMin);
                 const key = ui.sortKey;
                 if (key) {
@@ -2364,7 +2368,7 @@
                 let html = '<div class="flex-row" style="margin-bottom:8px;">';
                 html += `<button class="btn-sm" onclick="toggleSort('chinese')">中文${getSortIcon('chinese')}</button>`;
                 html += `<button class="btn-sm" onclick="toggleSort('japanese')">日文${getSortIcon('japanese')}</button>`;
-                html += `<button class="btn-sm" onclick="toggleSort('repetitions')">次数${getSortIcon('repetitions')}</button>`;
+                html += `<button class="btn-sm" onclick="toggleSort('reviewCount')">次数${getSortIcon('reviewCount')}</button>`;
                 html += `<button class="btn-sm" onclick="toggleSort('interval')">间隔${getSortIcon('interval')}</button>`;
                 html += `<button class="btn-sm" onclick="toggleSort('nextReviewDate')">下次${getSortIcon('nextReviewDate')}</button></div>`;
                 filtered.forEach((item) => {
@@ -2373,7 +2377,7 @@
                     html += itemCardHtml({
                         jp: item.japanese,
                         cn: item.chinese,
-                        meta: '复习 ' + item.repetitions + ' 次 · 间隔 ' + item.interval + ' 天 · ' + item.nextReviewDate + dueSoon,
+                        meta: '复习 ' + (item.reviewCount != null ? item.reviewCount : item.repetitions) + ' 次 · 间隔 ' + item.interval + ' 天 · ' + item.nextReviewDate + dueSoon,
                         actions: `<button class="btn-sm danger" onclick="removeSpacedItemByFilter(${originalIdx})">移除</button>`
                     });
                 });
@@ -2452,6 +2456,7 @@
 
             function sm2Update(item, quality) {
                 item.lastReviewDate = getTodayStr();
+                item.reviewCount = (item.reviewCount || 0) + 1;
                 if (quality < 3) {
                     item.repetitions = 0;
                     item.interval = 1;
@@ -2937,10 +2942,13 @@
                     const idx = findSpacedItem(rw);
                     const existing = idx > -1 ? out[idx] : null;
                     if (existing) {
+                        const localCount = existing.reviewCount != null ? existing.reviewCount : ((existing.repetitions || 0) + (existing.lapses || 0));
+                        const remoteCount = rw.reviewCount != null ? rw.reviewCount : ((rw.repetitions || 0) + (rw.lapses || 0));
                         if ((rw.repetitions || 0) > (existing.repetitions || 0) ||
                             ((rw.repetitions || 0) === (existing.repetitions || 0) && (rw.interval || 0) > (existing.interval || 0))) {
                             out[idx] = { ...existing, ...rw, chinese: existing.chinese, japanese: existing.japanese };
                         }
+                        out[idx].reviewCount = Math.max(localCount, remoteCount, out[idx].reviewCount || 0);
                     } else out.push({ ...rw });
                 });
                 return out;

@@ -1239,7 +1239,7 @@
                     const units = state.decks.filter(d => d.type === 'unit' && d.parentId == b.id);
                     const count = state.vocabs.filter(v => v.category === type && units.some(u => u.id == v.deckId)).length;
                     html += `<div class="deck-card" data-book-id="${b.id}" onclick="toggleUnitList('${b.id}')">
-                        <div class="deck-title"><span>📘 ${b.name} <span class="deck-meta">(单元 ${units.length} · ${count})</span></span><span class="collapse-icon" id="icon-${b.id}">▶</span></div>
+                        <div class="deck-title"><span>📘 ${b.name} <span class="deck-meta">(单元 ${units.length} · ${count})</span></span><span><button class="btn-sm" onclick="event.stopPropagation();editDeck('${b.id}')">编辑</button><button class="btn-sm danger" onclick="event.stopPropagation();deleteDeck('${b.id}')">删除</button><span class="collapse-icon" id="icon-${b.id}">▶</span></span></div>
                         <div class="unit-list" id="units-${b.id}">
                             ${units.map(u => {
                                 const wc = state.vocabs.filter(v=>v.deckId==u.id && v.category===type).length;

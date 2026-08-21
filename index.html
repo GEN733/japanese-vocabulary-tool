@@ -230,7 +230,7 @@
         body.session-active #appTitle,
         body.session-active #bottomNav,
         body.session-active #backToTop { display: none !important; }
-        body.session-active { padding-bottom: 12px; overscroll-behavior: auto; }
+        body.session-active { padding-bottom: 12px; overscroll-behavior: auto; overflow-anchor: none; }
         body.session-active .toast { bottom: calc(16px + env(safe-area-inset-bottom, 0px) + var(--kb, 0px)); }
         body.session-practice #practice { padding: 12px 12px 168px; }
         body.session-spaced #spaced { padding: 12px 12px 168px; }
@@ -323,9 +323,9 @@
         <div id="multiHint" class="multi-meaning-hint" style="display:none;"></div>
         <div class="answer-preview"><span class="preview-label">输入</span> <span id="previewText"></span></div>
         <div id="practiceFeedback">
-        <div id="exampleCard" style="display:none;" class="example-box"></div>
         <div id="resultMessage" class="result-badge"></div>
         <div id="answerListArea" class="answer-list" style="display:none;"></div>
+        <div id="exampleCard" style="display:none;" class="example-box"></div>
         </div>
         <div id="fixedInputArea">
             <form id="answerForm" onsubmit="return false;"><input type="text" id="answerInput" placeholder="输入答案，回车确认" autocomplete="off" lang="ja" autocapitalize="off" autocorrect="off" spellcheck="false"></form>
@@ -826,32 +826,49 @@
             window.closeMoreMenu = function() {};
             window.toggleMoreMenu = function() {};
 
+            function keepInputFocus(kind) {
+                const el = document.getElementById(kind === 'spaced' ? 'spacedAnswerInput' : 'answerInput');
+                if (!el || el.disabled) return;
+                try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); }
+            }
+
+            function getDockTop(kind) {
+                const dock = document.getElementById(kind === 'spaced' ? 'spacedFixedInputArea' : 'fixedInputArea');
+                if (dock && dock.style.display !== 'none' && window.getComputedStyle(dock).display !== 'none') {
+                    const top = dock.getBoundingClientRect().top;
+                    if (top > 0) return top;
+                }
+                if (window.visualViewport) return visualViewport.offsetTop + visualViewport.height;
+                return window.innerHeight;
+            }
+
             function revealFeedback(kind) {
                 const el = document.getElementById(kind === 'spaced' ? 'spacedFeedback' : 'practiceFeedback');
-                const input = document.getElementById(kind === 'spaced' ? 'spacedFixedInputArea' : 'fixedInputArea');
+                const page = document.getElementById(kind === 'spaced' ? 'spaced' : 'practice');
                 if (!el) return;
                 const run = function() {
-                    const style = input ? window.getComputedStyle(input) : null;
-                    const inputVisible = input && style && style.display !== 'none' && input.style.display !== 'none';
-                    const inputFixed = inputVisible && style.position === 'fixed';
-                    const inputH = inputFixed ? input.getBoundingClientRect().height : 0;
-                    const bar = document.querySelector(kind === 'spaced' ? '#spacedPracticeArea .session-bar' : '#practiceSession .session-bar');
-                    const topH = bar ? Math.max(0, bar.getBoundingClientRect().bottom) : 0;
-                    const avail = Math.max(80, window.innerHeight - inputH - topH - 16);
-                    const blockH = el.offsetHeight;
-                    if (blockH <= avail) {
-                        const bottom = el.getBoundingClientRect().bottom;
-                        const target = window.innerHeight - inputH - 12;
-                        const top = el.getBoundingClientRect().top;
-                        if (bottom > target || top < topH + 4) {
-                            window.scrollBy({ top: bottom - target, left: 0, behavior: 'smooth' });
-                        }
-                    } else {
-                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    const dockTop = getDockTop(kind);
+                    if (page) {
+                        page.style.paddingBottom = Math.max(160, window.innerHeight - dockTop + 80) + 'px';
                     }
+                    const delta = el.getBoundingClientRect().bottom - (dockTop - 8);
+                    if (Math.abs(delta) > 1) window.scrollBy(0, delta);
+                    keepInputFocus(kind);
                 };
-                if (window.requestAnimationFrame) requestAnimationFrame(function() { setTimeout(run, 40); });
-                else setTimeout(run, 50);
+                requestAnimationFrame(function() { requestAnimationFrame(run); });
+            }
+
+            function scrollQuestionToTop(kind) {
+                const session = kind === 'spaced' ? document.getElementById('spacedPracticeArea') : document.getElementById('practiceSession');
+                const page = document.getElementById(kind === 'spaced' ? 'spaced' : 'practice');
+                if (page) page.style.paddingBottom = '';
+                const run = function() {
+                    const bar = session && session.querySelector('.session-bar');
+                    if (bar) window.scrollTo(0, Math.max(0, window.pageYOffset + bar.getBoundingClientRect().top));
+                    else window.scrollTo(0, 0);
+                    keepInputFocus(kind);
+                };
+                requestAnimationFrame(function() { requestAnimationFrame(run); });
             }
 
             function itemCardHtml({ jp, cn, meta, actions }) {
@@ -1533,8 +1550,8 @@
                 }
                 document.getElementById('answerInput').value = '';
                 updateProgress();
-                document.getElementById('answerInput').focus();
-               document.getElementById('questionWord').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                keepInputFocus('practice');
+                scrollQuestionToTop('practice');
             }
 
             function updateProgress() {
@@ -1612,7 +1629,6 @@
                     p.answerState = 'completed';
                     updateProgress();
                     recordStudy({ correct: !!correct, review: false });
-                    if (correct && !p.pendingWrong) scheduleAutoNext(() => nextWord(), 700);
                 } else {
                     if (p.answerState === 'initial') {
                         const kanaOk = (ans === word.japanese);
@@ -1643,7 +1659,6 @@
                             p.answerState = 'completed';
                             updateProgress();
                             recordStudy({ correct: kanaOk, review: false });
-                            if (kanaOk && !p.pendingWrong) scheduleAutoNext(() => nextWord(), 700);
                         }
                     } else if (p.answerState === 'waitingParticle') {
                         const correctParticle = word.particle || '';
@@ -1669,7 +1684,6 @@
                         updateProgress();
                         const particleAllOk = p.kanaCorrect && particleOk;
                         recordStudy({ correct: particleAllOk, review: false });
-                        if (particleAllOk && !p.pendingWrong) scheduleAutoNext(() => nextWord(), 700);
                     }
                 }
             }
@@ -1712,8 +1726,6 @@
                 revealFeedback('practice');
                 if (isCorrect && !handleCorrectForWrongPractice(question.item)) {
                     state.practice.answerState = 'pendingChoice';
-                } else if (isCorrect) {
-                    scheduleAutoNext(() => nextWord(), 700);
                 }
             }
 
@@ -2687,8 +2699,9 @@
                 hideSpacedGradeBar();
                 document.getElementById('spacedAnswerInput').disabled = false;
                 document.getElementById('spacedAnswerInput').value = '';
-                document.getElementById('spacedAnswerInput').focus();
+                keepInputFocus('spaced');
                 refreshSessionChrome();
+                scrollQuestionToTop('spaced');
             }
 
             function hideSpacedGradeBar() {

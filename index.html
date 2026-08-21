@@ -59,6 +59,44 @@
         .deck-card { background: #f6faff; border-radius: 16px; padding: 14px; border: 1px solid #dbe4f0; margin-bottom: 12px; cursor: pointer; }
         .deck-title { font-size: 1.15rem; font-weight: 600; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
         .deck-meta { color: #5f738c; font-size: 0.9rem; }
+        #library.page { background: transparent; box-shadow: none; padding: 4px 0 8px; border-radius: 0; }
+        .lib-search { display: flex; gap: 8px; align-items: center; background: #fff; border-radius: 14px; padding: 6px 8px 6px 12px; margin-bottom: 8px; border: 1px solid #e8eef5; }
+        .lib-search select { width: auto; margin: 0; padding: 10px 8px; border: none; background: transparent; font-weight: 600; color: #1e3c5c; flex: 0 0 auto; }
+        .lib-search input { margin: 0; border: none; padding: 10px 8px; background: transparent; flex: 1; min-width: 0; }
+        .lib-search input:focus, .lib-search select:focus { outline: none; }
+        .lib-section-label { font-size: 0.78rem; font-weight: 600; color: #8a97a8; letter-spacing: 0.06em; margin: 18px 12px 8px; }
+        .lib-group { background: #fff; border-radius: 14px; overflow: hidden; border: 1px solid #e8eef5; }
+        .lib-book + .lib-book { border-top: 1px solid #eef2f7; }
+        .lib-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; min-height: 56px; background: none; border: none; border-radius: 0; box-shadow: none; text-align: left; cursor: pointer; }
+        .lib-row:active { background: #f4f7fb; }
+        .lib-book-mark { width: 36px; height: 36px; border-radius: 10px; background: #1e3c5c; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; font-weight: 700; flex-shrink: 0; font-family: "Hiragino Sans", "Noto Sans JP", sans-serif; }
+        .lib-book-mark.grammar { background: #3d5a73; }
+        .lib-row-main { flex: 1; min-width: 0; }
+        .lib-row-title { font-size: 1.02rem; font-weight: 600; color: #1e3c5c; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .lib-row-sub { font-size: 0.78rem; color: #8a97a8; margin-top: 3px; }
+        .lib-row-actions { display: flex; gap: 2px; flex-shrink: 0; }
+        .lib-link { background: none; box-shadow: none; color: #5f738c; min-height: 36px; padding: 4px 8px; font-size: 0.82rem; font-weight: 500; }
+        .lib-link.danger { background: none; color: #c45c5c; }
+        .lib-chevron { color: #c5ced8; font-size: 1.4rem; line-height: 1; margin-left: 2px; transition: transform 0.2s; flex-shrink: 0; }
+        .lib-chevron.open { transform: rotate(90deg); }
+        .lib-add-row { color: #1e3c5c; font-weight: 600; border-top: 1px solid #eef2f7; min-height: 48px; justify-content: flex-start; }
+        .lib-empty { padding: 18px 16px; color: #8a97a8; font-size: 0.92rem; }
+        .lib-unit-row { padding-left: 62px; min-height: 48px; background: #fafcfe; border-top: 1px solid #eef2f7; }
+        .lib-unit-row .lib-row-title { font-size: 0.95rem; font-weight: 600; }
+        .lib-quick { display: flex; gap: 8px; align-items: center; margin: 8px 0 4px; }
+        .lib-quick select, .lib-quick input { margin: 0; flex: 1; min-width: 0; padding: 10px 12px; border-radius: 12px; background: #fff; }
+        .lib-quick button { flex: 0 0 auto; background: #fff; min-height: 44px; }
+        .lib-import { padding: 12px 14px 16px; }
+        .lib-import select, .lib-import textarea, .lib-import button { margin: 6px 0; }
+        #wordSearchResults { margin: 8px 0 4px; }
+        #wordSearchResults:empty { display: none; margin: 0; }
+        .word-list .lib-empty { padding-left: 62px; }
+        .item-card-inset { background: #fafcfe; border: none; border-radius: 0; border-top: 1px solid #eef2f7; margin: 0; padding: 12px 14px 12px 62px; }
+        .item-card-row { background: transparent; border: none; border-radius: 0; border-bottom: 1px solid #eef2f7; margin: 0; padding: 12px 14px; }
+        .lib-group .item-card-row:last-child { border-bottom: none; }
+        .item-card .ex-block { margin-top: 8px; }
+        .item-card .ex-jp { font-size: 0.95rem; font-weight: 600; }
+        .item-card .ex-cn { font-size: 0.85rem; }
         .sync-step { background: #f2f6fc; border-radius: 16px; padding: 16px; margin: 18px 0; }
         .sync-step h4 { margin: 0 0 12px; color: #1e3c5c; }
         .error-msg { color: #b33; background: #ffe6e6; padding: 10px 16px; border-radius: 12px; font-size: 0.9rem; }
@@ -81,8 +119,11 @@
         .preview-label { color: #7a8b9f; font-size: 0.85rem; }
         .checkbox-group { display: flex; flex-wrap: wrap; gap: 12px; background: #f8f9fc; padding: 12px; border-radius: 12px; margin: 10px 0; }
         .checkbox-group label { display: flex; align-items: center; gap: 5px; font-size: 0.95rem; min-height: 44px; }
-        .example-box { background: #eef3f9; border-radius: 14px; padding: 12px; margin: 10px 0; font-size: 1.1rem; text-align: center; color: #11324d; animation: slideIn 0.3s ease-out; word-break: break-word; overflow-wrap: anywhere; white-space: normal; }
+        .example-box { background: #eef3f9; border-radius: 14px; padding: 14px 16px; margin: 10px 0; font-size: 1.05rem; text-align: left; color: #11324d; animation: slideIn 0.3s ease-out; word-break: break-word; overflow-wrap: anywhere; white-space: normal; }
         .example-box span { background: white; padding: 2px 8px; border-radius: 8px; margin: 0 4px; }
+        .ex-block + .ex-block { margin-top: 12px; padding-top: 12px; border-top: 1px solid #dce6f0; }
+        .ex-jp { font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif; font-size: 1.08rem; font-weight: 600; line-height: 1.55; color: #11324d; }
+        .ex-cn { margin-top: 6px; font-size: 0.95rem; color: #5f738c; line-height: 1.5; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         @media (prefers-reduced-motion: reduce) { .example-box { animation: none; } }
         .section-title { font-weight: 600; margin: 8px 0 4px; font-size: 0.9rem; color: #5f738c; }
@@ -107,9 +148,9 @@
             scroll-margin-top: 52px;
             scroll-margin-bottom: 168px;
         }
-        .unit-list { display: none; padding-left: 8px; margin-bottom: 10px; }
+        .unit-list { display: none; }
         .unit-list.open { display: block; }
-        .word-list { display: none; margin-top: 8px; }
+        .word-list { display: none; }
         .word-list.open { display: block; }
         .collapse-icon { font-size: 1.2rem; transition: transform 0.2s; }
         .collapse-icon.open { transform: rotate(90deg); }
@@ -373,59 +414,38 @@
     </div>
 
     <div id="library" class="page">
-        <div class="module-card">
-            <h3>搜索</h3>
-            <div class="flex-row" style="margin-bottom:10px;">
-                <select id="searchCategory" style="width:auto;"><option value="word">单词</option><option value="grammar">语法</option></select>
-                <input type="text" id="searchWordInput" placeholder="输入中文/日文" style="flex:3;">
-                <button onclick="searchWords()" style="flex:1;">搜索</button>
-                <button onclick="clearSearch()" style="flex:1;">重置</button>
-            </div>
-            <div id="wordSearchResults" style="margin-top:10px;"></div>
+        <div class="lib-search">
+            <select id="searchCategory" onchange="searchWords()"><option value="word">单词</option><option value="grammar">语法</option></select>
+            <input type="search" id="searchWordInput" placeholder="搜索中文或日文" enterkeyhint="search" oninput="searchWords()">
+        </div>
+        <div id="wordSearchResults"></div>
+
+        <div class="lib-section-label">单词</div>
+        <div id="wordBookListContainer" class="lib-group"></div>
+        <div class="lib-quick">
+            <select id="wordUnitBookSelect"><option value="">所属书本</option></select>
+            <input type="text" id="wordUnitName" placeholder="新单元名称">
+            <button onclick="addNewUnit('word')">添加</button>
         </div>
 
-        <div class="module-card">
-            <h3 style="cursor:pointer;" onclick="toggleModuleCollapse('wordBookModule')">单词书本列表 <span class="collapse-icon open" id="wordBookModuleIcon">▼</span></h3>
-            <div id="wordBookModuleContent">
-                <div id="wordBookListContainer"></div>
-                <button onclick="createNewBook('word')" class="primary" style="margin:10px 0;">+ 新建单词书本</button>
-                <div class="create-unit-box">
-                    <div style="font-weight:600; margin-bottom:10px;">快速创建单词单元</div>
-                    <div class="flex-row">
-                        <select id="wordUnitBookSelect" style="flex:2;"><option value="">选择所属书本</option></select>
-                        <input type="text" id="wordUnitName" placeholder="单元名称" style="flex:2;">
-                        <button onclick="addNewUnit('word')" class="primary" style="flex:1;">添加</button>
-                    </div>
-                </div>
-            </div>
+        <div class="lib-section-label">语法</div>
+        <div id="grammarBookListContainer" class="lib-group"></div>
+        <div class="lib-quick">
+            <select id="grammarUnitBookSelect"><option value="">所属书本</option></select>
+            <input type="text" id="grammarUnitName" placeholder="新单元名称">
+            <button onclick="addNewUnit('grammar')">添加</button>
         </div>
 
-        <div class="module-card grammar-module-bg">
-            <h3 style="cursor:pointer;" onclick="toggleModuleCollapse('grammarBookModule')">语法书本列表 <span class="collapse-icon open" id="grammarBookModuleIcon">▼</span></h3>
-            <div id="grammarBookModuleContent">
-                <div id="grammarBookListContainer"></div>
-                <button onclick="createNewBook('grammar')" class="primary" style="margin:10px 0;">+ 新建语法书本</button>
-                <div class="create-unit-box">
-                    <div style="font-weight:600; margin-bottom:10px;">快速创建语法单元</div>
-                    <div class="flex-row">
-                        <select id="grammarUnitBookSelect" style="flex:2;"><option value="">选择所属书本</option></select>
-                        <input type="text" id="grammarUnitName" placeholder="单元名称" style="flex:2;">
-                        <button onclick="addNewUnit('grammar')" class="primary" style="flex:1;">添加</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="module-card">
-            <h3>批量导入</h3>
-            <select id="importCategory" style="width:auto;" onchange="updateImportCategory()">
-                <option value="word">单词 (五列：中文 假名 词性 助词 短句)</option>
-                <option value="grammar">语法 (四列：中文 日语语法 例句 翻译)</option>
+        <div class="lib-section-label">批量导入</div>
+        <div class="lib-group lib-import">
+            <select id="importCategory" onchange="updateImportCategory()">
+                <option value="word">单词（中文 假名 词性 助词 短句）</option>
+                <option value="grammar">语法（中文 日语语法 例句 翻译）</option>
             </select>
             <select id="importBook"><option value="">选择目标书本</option></select>
             <select id="importUnit"><option value="">选择目标单元</option></select>
-            <textarea id="importText" placeholder="按上方格式粘贴数据" rows="6"></textarea>
-            <button onclick="importWords()">导入</button>
+            <textarea id="importText" placeholder="按上方格式粘贴数据" rows="5"></textarea>
+            <button class="primary" onclick="importWords()">导入</button>
         </div>
     </div>
 
@@ -876,8 +896,40 @@
                 requestAnimationFrame(function() { requestAnimationFrame(run); });
             }
 
-            function itemCardHtml({ jp, cn, meta, actions }) {
-                return `<div class="item-card"><div class="item-card-body"><div class="item-jp">${jp || ''}</div>${cn ? `<div class="item-cn">${cn}</div>` : ''}${meta ? `<div class="item-meta">${meta}</div>` : ''}</div><div class="item-card-actions">${actions || ''}</div></div>`;
+            function formatExampleHtml(example, exampleCn, blank) {
+                if (!example && !exampleCn) return '';
+                let jp = example || '';
+                if (blank && jp) jp = jp.replace(/___/g, '<span>＿＿</span>');
+                let html = '<div class="ex-block">';
+                if (jp) html += `<div class="ex-jp">${jp}</div>`;
+                if (exampleCn) html += `<div class="ex-cn">${exampleCn}</div>`;
+                html += '</div>';
+                return html;
+            }
+
+            function examplesFromItems(items, blank) {
+                const seen = new Set();
+                const blocks = [];
+                (items || []).forEach(item => {
+                    if (!item || !item.example) return;
+                    const key = item.example + '\n' + (item.exampleCn || '');
+                    if (seen.has(key)) return;
+                    seen.add(key);
+                    blocks.push(formatExampleHtml(item.example, item.exampleCn, blank));
+                });
+                return blocks.join('');
+            }
+
+            function showExampleCard(el, html) {
+                if (!el) return;
+                if (html) { el.innerHTML = html; el.style.display = 'block'; }
+                else { el.innerHTML = ''; el.style.display = 'none'; }
+            }
+
+            function itemCardHtml({ jp, cn, meta, example, exampleCn, actions, variant }) {
+                const cls = variant === 'inset' ? 'item-card item-card-inset' : variant === 'row' ? 'item-card item-card-row' : 'item-card';
+                const ex = formatExampleHtml(example, exampleCn);
+                return `<div class="${cls}"><div class="item-card-body"><div class="item-jp">${jp || ''}</div>${cn ? `<div class="item-cn">${cn}</div>` : ''}${meta ? `<div class="item-meta">${meta}</div>` : ''}${ex}</div><div class="item-card-actions">${actions || ''}</div></div>`;
             }
 
             function sameId(a, b) {
@@ -1617,16 +1669,14 @@
                         }
                         msgDiv.innerHTML = msg;
                         if (word.example) {
-                            document.getElementById('exampleCard').innerHTML = p.category === 'grammar' ? `📖 ${word.example} ${word.exampleCn||''}` : `📖 ${word.example}`;
-                            document.getElementById('exampleCard').style.display = 'block';
+                            showExampleCard(document.getElementById('exampleCard'), formatExampleHtml(word.example, word.exampleCn, false));
                         }
                         if (!handleCorrectForWrongPractice(word)) { revealFeedback('practice'); return; }
                     } else {
                         p.stats.wrong++;
                         msgDiv.innerText = `✗ 错误 正确答案: ${isJp2Cn ? word.chinese : word.japanese}`;
                         if (word.example) {
-                            document.getElementById('exampleCard').innerHTML = p.category === 'grammar' ? `📖 ${word.example} ${word.exampleCn||''}` : `📖 ${word.example}`;
-                            document.getElementById('exampleCard').style.display = 'block';
+                            showExampleCard(document.getElementById('exampleCard'), formatExampleHtml(word.example, word.exampleCn, false));
                         }
                         addToWrongList(word);
                     }
@@ -1641,8 +1691,7 @@
                         if (p.verbMode && isVerb(word)) {
                             document.getElementById('previewText').innerText = kanaOk ? '✓ 假名正确，请输入助词' : '✗ 假名错误，仍需输入助词';
                             if (word.example) {
-                                document.getElementById('exampleCard').innerHTML = '📖 ' + word.example.replace('___', '<span>＿＿</span>');
-                                document.getElementById('exampleCard').style.display = 'block';
+                                showExampleCard(document.getElementById('exampleCard'), formatExampleHtml(word.example, word.exampleCn, true));
                             }
                             p.answerState = 'waitingParticle';
                             document.getElementById('answerInput').value = '';
@@ -1715,14 +1764,8 @@
                     addToWrongList(question.item);
                 }
                 msgDiv.innerHTML = msg;
-                const exampleSet = new Set();
-                meanings.forEach(meaning => { meaning.items.forEach(item => { if (item.example) { const ex = `📖 ${item.example}${item.exampleCn ? ' ' + item.exampleCn : ''}`; exampleSet.add(ex); } }); });
-                if (exampleSet.size > 0) {
-                    document.getElementById('exampleCard').innerHTML = Array.from(exampleSet).join('<br>');
-                    document.getElementById('exampleCard').style.display = 'block';
-                } else {
-                    document.getElementById('exampleCard').style.display = 'none';
-                }
+                const exampleHtml = examplesFromItems(meanings.flatMap(m => m.items));
+                showExampleCard(document.getElementById('exampleCard'), exampleHtml);
                 document.getElementById('multiHint').style.display = 'none';
                 document.getElementById('answerListArea').style.display = 'none';
                 state.practice.answerState = 'completed';
@@ -2005,25 +2048,47 @@
 
             function renderBookCategory(containerId, books, type) {
                 const container = document.getElementById(containerId);
-                if (!books.length) { container.innerHTML = '<p>暂无书本</p>'; return; }
+                const mark = type === 'grammar' ? '文' : 'あ';
+                const markClass = type === 'grammar' ? 'lib-book-mark grammar' : 'lib-book-mark';
+                const addLabel = type === 'grammar' ? '＋ 新建语法书' : '＋ 新建单词书';
                 let html = '';
+                if (!books.length) html += '<div class="lib-empty">还没有书本</div>';
                 books.forEach(b => {
                     const units = state.decks.filter(d => d.type === 'unit' && d.parentId == b.id);
                     const count = state.vocabs.filter(v => v.category === type && units.some(u => u.id == v.deckId)).length;
-                    html += `<div class="deck-card" data-book-id="${b.id}" onclick="toggleUnitList('${b.id}')">
-                        <div class="deck-title"><span>📘 ${b.name} <span class="deck-meta">(单元 ${units.length} · ${count})</span></span><span><button class="btn-sm" onclick="event.stopPropagation();editDeck('${b.id}')">编辑</button><button class="btn-sm danger" onclick="event.stopPropagation();deleteDeck('${b.id}')">删除</button><span class="collapse-icon" id="icon-${b.id}">▶</span></span></div>
+                    html += `<div class="lib-book" data-book-id="${b.id}">
+                        <div class="lib-row" onclick="toggleUnitList('${b.id}')">
+                            <div class="${markClass}">${mark}</div>
+                            <div class="lib-row-main">
+                                <div class="lib-row-title">${b.name}</div>
+                                <div class="lib-row-sub">${units.length} 个单元 · ${count} ${type === 'grammar' ? '条' : '词'}</div>
+                            </div>
+                            <span class="lib-row-actions" onclick="event.stopPropagation()">
+                                <button class="lib-link" onclick="editDeck('${b.id}')">编辑</button>
+                                <button class="lib-link danger" onclick="deleteDeck('${b.id}')">删除</button>
+                            </span>
+                            <span class="lib-chevron" id="icon-${b.id}">›</span>
+                        </div>
                         <div class="unit-list" id="units-${b.id}">
                             ${units.map(u => {
-                                const wc = state.vocabs.filter(v=>v.deckId==u.id && v.category===type).length;
-                                return `<div class="unit-card" onclick="event.stopPropagation();toggleWordList('${u.id}','${type}')">
-                                    <div class="unit-title"><span>📖 ${u.name} (${wc}) <span class="collapse-icon" id="word-icon-${u.id}">▶</span></span>
-                                    <span><button class="btn-sm" onclick="event.stopPropagation();editDeck('${u.id}')">编辑</button><button class="btn-sm danger" onclick="event.stopPropagation();deleteDeck('${u.id}')">删除</button></span></div>
-                                    <div class="word-list" id="words-${u.id}"></div>
-                                </div>`;
+                                const wc = state.vocabs.filter(v => v.deckId == u.id && v.category === type).length;
+                                return `<div class="lib-row lib-unit-row" onclick="event.stopPropagation();toggleWordList('${u.id}','${type}')">
+                                    <div class="lib-row-main">
+                                        <div class="lib-row-title">${u.name}</div>
+                                        <div class="lib-row-sub">${wc} ${type === 'grammar' ? '条' : '词'}</div>
+                                    </div>
+                                    <span class="lib-row-actions" onclick="event.stopPropagation()">
+                                        <button class="lib-link" onclick="editDeck('${u.id}')">编辑</button>
+                                        <button class="lib-link danger" onclick="deleteDeck('${u.id}')">删除</button>
+                                    </span>
+                                    <span class="lib-chevron" id="word-icon-${u.id}">›</span>
+                                </div>
+                                <div class="word-list" id="words-${u.id}"></div>`;
                             }).join('')}
                         </div>
                     </div>`;
                 });
+                html += `<button type="button" class="lib-row lib-add-row" onclick="createNewBook('${type}')">${addLabel}</button>`;
                 container.innerHTML = html;
             }
 
@@ -2039,6 +2104,7 @@
                 if (!list) return;
                 if (list.classList.contains('open')) { list.classList.remove('open'); icon.classList.remove('open'); return; }
                 const words = state.vocabs.filter(v => v.deckId == unitId && v.category === type);
+                const actions = (id) => `<button class="lib-link" onclick="event.stopPropagation();editWord('${id}')">编辑</button><button class="lib-link danger" onclick="event.stopPropagation();deleteWord('${id}')">删除</button>`;
                 let html = '';
                 if (type === 'word') {
                     words.forEach(w => {
@@ -2046,8 +2112,11 @@
                         html += itemCardHtml({
                             jp: w.japanese,
                             cn: w.chinese,
-                            meta: [wt, w.particle, w.example].filter(Boolean).join(' · ') || '',
-                            actions: `<button class="btn-sm" onclick="event.stopPropagation();editWord('${w.id}')">编辑</button><button class="btn-sm danger" onclick="event.stopPropagation();deleteWord('${w.id}')">删</button>`
+                            meta: [wt, w.particle].filter(Boolean).join(' · ') || '',
+                            example: w.example,
+                            exampleCn: w.exampleCn,
+                            actions: actions(w.id),
+                            variant: 'inset'
                         });
                     });
                 } else {
@@ -2055,12 +2124,14 @@
                         html += itemCardHtml({
                             jp: w.japanese,
                             cn: w.chinese,
-                            meta: [w.example, w.exampleCn].filter(Boolean).join(' · ') || '',
-                            actions: `<button class="btn-sm" onclick="event.stopPropagation();editWord('${w.id}')">编辑</button><button class="btn-sm danger" onclick="event.stopPropagation();deleteWord('${w.id}')">删</button>`
+                            example: w.example,
+                            exampleCn: w.exampleCn,
+                            actions: actions(w.id),
+                            variant: 'inset'
                         });
                     });
                 }
-                list.innerHTML = html || '<p>暂无词条</p>';
+                list.innerHTML = html || '<div class="lib-empty">暂无词条</div>';
                 list.classList.add('open');
                 icon.classList.add('open');
             };
@@ -2068,7 +2139,8 @@
             window.searchWords = function() {
                 const kw = document.getElementById('searchWordInput').value.trim().toLowerCase();
                 const cat = document.getElementById('searchCategory').value;
-                const filtered = kw ? state.vocabs.filter(v => v.category === cat && (v.chinese.includes(kw) || v.japanese.toLowerCase().includes(kw))) : [];
+                if (!kw) { document.getElementById('wordSearchResults').innerHTML = ''; return; }
+                const filtered = state.vocabs.filter(v => v.category === cat && (v.chinese.includes(kw) || v.japanese.toLowerCase().includes(kw)));
                 renderSearchResults(filtered, cat);
             };
 
@@ -2076,31 +2148,23 @@
 
             function renderSearchResults(words, cat) {
                 const cont = document.getElementById('wordSearchResults');
-                if (!words.length) { cont.innerHTML = '<p>未找到</p>'; return; }
+                if (!words.length) { cont.innerHTML = '<div class="lib-group"><div class="lib-empty">未找到相关词条</div></div>'; return; }
+                const actions = (id) => `<button class="lib-link" onclick="editWord('${id}')">编辑</button><button class="lib-link danger" onclick="deleteWord('${id}')">删除</button>`;
                 let html = '';
-                if (cat === 'word') {
-                    words.forEach(w => {
-                        const deck = state.decks.find(d => d.id == w.deckId);
-                        const wt = w.wordType ? `<span class="type-badge${w.wordType.includes('他')?' 他':''}">${w.wordType}</span>` : '';
-                        html += itemCardHtml({
-                            jp: w.japanese,
-                            cn: w.chinese,
-                            meta: [wt, w.particle, w.example, deck && deck.name].filter(Boolean).join(' · '),
-                            actions: `<button class="btn-sm" onclick="editWord('${w.id}')">编辑</button><button class="btn-sm danger" onclick="deleteWord('${w.id}')">删</button>`
-                        });
+                words.forEach(w => {
+                    const deck = state.decks.find(d => d.id == w.deckId);
+                    const wt = cat === 'word' && w.wordType ? `<span class="type-badge${w.wordType.includes('他')?' 他':''}">${w.wordType}</span>` : '';
+                    html += itemCardHtml({
+                        jp: w.japanese,
+                        cn: w.chinese,
+                        meta: [wt, cat === 'word' ? w.particle : '', deck && deck.name].filter(Boolean).join(' · '),
+                        example: w.example,
+                        exampleCn: w.exampleCn,
+                        actions: actions(w.id),
+                        variant: 'row'
                     });
-                } else {
-                    words.forEach(w => {
-                        const deck = state.decks.find(d => d.id == w.deckId);
-                        html += itemCardHtml({
-                            jp: w.japanese,
-                            cn: w.chinese,
-                            meta: [w.example, w.exampleCn, deck && deck.name].filter(Boolean).join(' · '),
-                            actions: `<button class="btn-sm" onclick="editWord('${w.id}')">编辑</button><button class="btn-sm danger" onclick="deleteWord('${w.id}')">删</button>`
-                        });
-                    });
-                }
-                cont.innerHTML = html;
+                });
+                cont.innerHTML = `<div class="lib-group">${html}</div>`;
             }
 
             function renderWrongList() {
@@ -2794,21 +2858,10 @@
                 }
                 msgDiv.innerHTML = msg;
 
-                const exampleSet = new Set();
-                meanings.forEach(meaning => {
-                    meaning.items.forEach(item => {
-                        if (item.example) {
-                            exampleSet.add(`📖 ${item.example}${item.exampleCn ? ' ' + item.exampleCn : ''}`);
-                        }
-                    });
-                });
+                const exampleHtml = examplesFromItems(meanings.flatMap(m => m.items));
                 const exDiv = document.getElementById('spacedExampleCard');
-                if (exampleSet.size > 0) {
-                    exDiv.innerHTML = Array.from(exampleSet).join('<br>');
-                    exDiv.style.display = 'block';
-                } else {
-                    showSpacedExample(question.item || items[0]);
-                }
+                if (exampleHtml) showExampleCard(exDiv, exampleHtml);
+                else showSpacedExample(question.item || items[0]);
 
                 document.getElementById('spacedMultiHint').style.display = 'none';
                 document.getElementById('spacedMultiAnswerList').style.display = 'none';
@@ -2826,25 +2879,9 @@
 
             function showSpacedExample(item) {
                 const exDiv = document.getElementById('spacedExampleCard');
-                if (!item) { exDiv.style.display = 'none'; return; }
+                if (!item) { showExampleCard(exDiv, ''); return; }
                 const relatedVocabs = state.vocabs.filter(v => v.japanese === item.japanese);
-                if (relatedVocabs.length === 0) {
-                    exDiv.style.display = 'none';
-                    return;
-                }
-                const exampleSet = new Set();
-                relatedVocabs.forEach(v => {
-                    if (v.example) {
-                        const ex = `📖 ${v.example}${v.exampleCn ? ' ' + v.exampleCn : ''}`;
-                        exampleSet.add(ex);
-                    }
-                });
-                if (exampleSet.size > 0) {
-                    exDiv.innerHTML = Array.from(exampleSet).join('<br>');
-                    exDiv.style.display = 'block';
-                } else {
-                    exDiv.style.display = 'none';
-                }
+                showExampleCard(exDiv, examplesFromItems(relatedVocabs));
             }
 
             function checkSpacedAnswer(userAnswer) {

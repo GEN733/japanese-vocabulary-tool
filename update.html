@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-store">
+    <title>刷新日语学习</title>
+    <style>
+        body { font-family: system-ui, sans-serif; padding: 32px 20px; max-width: 480px; margin: 0 auto; color: #1e3c5c; background: #f4f7fb; }
+        p { line-height: 1.6; font-size: 1.1rem; }
+    </style>
+</head>
+<body>
+    <p id="msg">正在清除手机里的旧网页缓存…</p>
+    <script>
+        (function() {
+            var msg = document.getElementById('msg');
+            function go() {
+                msg.textContent = '已清除，正在打开新版…';
+                location.replace('./index.html?t=' + Date.now());
+            }
+            var tasks = [];
+            if (window.caches) {
+                tasks.push(caches.keys().then(function(keys) {
+                    return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+                }));
+            }
+            if (navigator.serviceWorker) {
+                tasks.push(navigator.serviceWorker.getRegistrations().then(function(regs) {
+                    return Promise.all(regs.map(function(r) { return r.unregister(); }));
+                }));
+            }
+            Promise.all(tasks).then(go).catch(go);
+        })();
+    </script>
+</body>
+</html>

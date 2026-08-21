@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <meta name="theme-color" content="#1e3c5c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="日语学习">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="icon" type="image/png" href="icon-192.png">
     <title>日语学习工具 · 完全体</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
     <style>
@@ -97,6 +103,19 @@
         .spaced-badge { font-size: 0.8rem; background: #cfe2ff; color: #0d47a1; padding: 2px 8px; border-radius: 20px; margin-left: 6px; }
         .spaced-badge.mastered { background: #d4edda; color: #155724; }
         .spaced-action-row { display: flex; gap: 10px; margin-top: 15px; }
+        .edit-overlay { display: none; position: fixed; inset: 0; background: rgba(17,32,48,0.45); z-index: 2000; align-items: flex-end; justify-content: center; padding: 12px; }
+        .edit-overlay.show { display: flex; }
+        .edit-panel { background: white; width: 100%; max-width: 800px; border-radius: 24px 24px 16px 16px; padding: 18px 18px 24px; max-height: 88vh; overflow-y: auto; box-shadow: 0 -8px 30px rgba(0,0,0,0.15); }
+        .edit-panel h3 { margin: 0 0 12px; color: #1e3c5c; }
+        .edit-panel label { display: block; font-size: 0.85rem; color: #5f738c; margin: 8px 0 0; }
+        .toast { position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); background: #1e3c5c; color: white; padding: 12px 16px; border-radius: 40px; z-index: 2100; display: none; align-items: center; gap: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.2); max-width: 92%; }
+        .toast.show { display: flex; }
+        .toast button { background: #f5b342; color: #1e1e1e; padding: 6px 14px; font-size: 0.9rem; }
+        .grade-bar { display: none; gap: 8px; margin-top: 8px; }
+        .grade-bar.show { display: flex; }
+        .grade-bar button { flex: 1; font-size: 0.9rem; padding: 12px 8px; }
+        .stats-hero { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin: 12px 0 18px; }
+        .pwa-note { font-size: 0.85rem; color: #5f738c; background: #f2f6fc; border-radius: 16px; padding: 12px; margin-top: 12px; }
     </style>
 </head>
 <body>
@@ -107,6 +126,7 @@
         <button class="tab-btn" onclick="showPage('practice')">练习</button>
         <button class="tab-btn" onclick="showPage('wrong')">错题</button>
         <button class="tab-btn" onclick="showPage('library')">题库</button>
+        <button class="tab-btn" onclick="showPage('stats')">统计</button>
         <button class="tab-btn" onclick="showPage('sync')">同步</button>
     </div>
 
@@ -335,10 +355,33 @@
             <form id="spacedAnswerForm" onsubmit="return false;">
                 <input type="text" id="spacedAnswerInput" placeholder="输入日语假名，回车确认" autocomplete="off">
             </form>
+            <div class="grade-bar" id="spacedGradeBar">
+                <button onclick="gradeSpacedAnswer(3)">😕 有点难</button>
+                <button class="primary" onclick="gradeSpacedAnswer(4)">🙂 记得</button>
+                <button onclick="gradeSpacedAnswer(5)">😎 很熟</button>
+            </div>
             <div class="flex-row" id="spacedWrongActionBar" style="display:none;">
                 <button onclick="handleSpacedRemove()">🗑️ 移出</button>
                 <button class="warning" onclick="handleSpacedKeep()">💾 保留</button>
             </div>
+        </div>
+    </div>
+
+    <div id="stats" class="page">
+        <h3>📊 学习统计</h3>
+        <div class="stats-hero">
+            <div class="stat-card"><span class="stat-num" id="statsStreak">0</span><br>连续打卡（天）</div>
+            <div class="stat-card"><span class="stat-num" id="statsTodayAnswered">0</span><br>今日已答</div>
+            <div class="stat-card"><span class="stat-num" id="statsTodayReviews">0</span><br>今日复习</div>
+            <div class="stat-card"><span class="stat-num" id="statsWeekRate">0</span>%<br>近7日正确率</div>
+        </div>
+        <div class="module-card">
+            <h3>📅 近7天</h3>
+            <div id="statsWeekTable">暂无记录</div>
+        </div>
+        <div class="module-card">
+            <h3>📌 最常错 Top 20</h3>
+            <div id="statsTopWrong">暂无错题</div>
         </div>
     </div>
 
@@ -349,8 +392,12 @@
         <div class="sync-step"><h4>3. 同步</h4>
             <div class="flex-row">
                 <button onclick="uploadToGithub()" class="primary" style="flex:1;">⬆️ 上传</button>
-                <button onclick="downloadFromGithub()" class="primary" style="flex:1;">⬇️ 下载</button>
             </div>
+            <div class="flex-row" style="margin-top:10px;">
+                <button onclick="downloadFromGithub('merge')" class="primary" style="flex:1;">⬇️ 合并下载</button>
+                <button onclick="downloadFromGithub('overwrite')" class="warning" style="flex:1;">⬇️ 覆盖下载</button>
+            </div>
+            <p class="tiny-note">合并：保留两边题库，错题次数取较大值，遗忘进度取练得更熟的一条。覆盖：用云端整份替换本地（覆盖前会自动做一份可恢复备份）。</p>
             <div id="syncInfoBox" class="sync-info-box">
                 <div id="lastSyncInfo"></div>
                 <div id="cloudSyncInfo" style="margin-top:6px;"></div>
@@ -361,7 +408,25 @@
         <h4>💾 本地备份</h4>
         <button onclick="exportBackup()">📤 导出备份文件</button>
         <input type="file" id="importFile" accept=".json" style="margin-top:10px;"><button onclick="importBackup()">📥 导入备份文件</button>
+        <button onclick="restoreSafetySnapshot()" style="margin-top:10px;">↩️ 恢复最近一次安全备份</button>
+        <div id="safetySnapshotInfo" class="tiny-note"></div>
+        <div id="pwaInstallNote" class="pwa-note"></div>
         <button class="danger" style="margin-top:20px;" onclick="resetAllData()">⚠️ 清空所有数据</button>
+    </div>
+
+    <div id="editOverlay" class="edit-overlay" onclick="if(event.target===this)closeEditPanel()">
+        <div class="edit-panel">
+            <h3 id="editPanelTitle">编辑</h3>
+            <div id="editPanelFields"></div>
+            <div class="flex-row" style="margin-top:14px;">
+                <button class="primary" style="flex:1;" onclick="saveEditPanel()">保存</button>
+                <button style="flex:1;" onclick="closeEditPanel()">取消</button>
+            </div>
+        </div>
+    </div>
+    <div id="appToast" class="toast">
+        <span id="appToastMsg"></span>
+        <button onclick="undoLastAction()">撤销</button>
     </div>
 
     <script>
@@ -383,6 +448,7 @@
                     grammarSummaryJpCn: [],
                 },
                 spacedItems: [],
+                studyStats: { days: {} },
                 settings: { practiceCount: 0 },
                 uploadHistory: [],
                 lastUploadInfo: null,
@@ -433,6 +499,10 @@
                 sync: {},
             };
 
+            let autoNextTimer = null;
+            let undoState = null;
+            let editContext = null;
+
             // ========== 工具函数 ==========
             function getTodayStr() {
                 const d = new Date();
@@ -461,17 +531,23 @@
 
             function findSpacedItem(item) {
                 if (!item) return -1;
+                const vid = item.vocabId || (item.category !== 'grammar' ? item.id : null);
+                if (vid != null) {
+                    const byId = state.spacedItems.findIndex(s => String(s.vocabId) === String(vid) && s.category === (item.category || 'word'));
+                    if (byId > -1) return byId;
+                }
                 if (item.category === 'grammar') {
                     return state.spacedItems.findIndex(s => s.category === 'grammar' && s.japanese === item.japanese);
                 }
                 return state.spacedItems.findIndex(s => s.category === 'word' && s.chinese === item.chinese && s.japanese === item.japanese);
             }
 
-            function upsertSpacedItem({ chinese, japanese, category, direction }) {
-                const probe = { chinese, japanese, category };
+            function upsertSpacedItem({ chinese, japanese, category, direction, vocabId }) {
+                const probe = { chinese, japanese, category, vocabId };
                 const idx = findSpacedItem(probe);
                 if (idx > -1) {
                     if (category === 'grammar' && chinese) state.spacedItems[idx].chinese = chinese;
+                    if (vocabId && !state.spacedItems[idx].vocabId) state.spacedItems[idx].vocabId = vocabId;
                     return false;
                 }
                 state.spacedItems.push({
@@ -479,9 +555,12 @@
                     japanese,
                     category,
                     direction,
+                    vocabId: vocabId || null,
                     repetitions: 0,
                     easeFactor: 2.5,
                     interval: 0,
+                    lapses: 0,
+                    lastReviewDate: '',
                     nextReviewDate: getTodayStr()
                 });
                 return true;
@@ -495,6 +574,230 @@
             function syncSpacedInputVisibility() {
                 const show = state.spacedUI.subTab === 'practice' && isSpacedPracticeActive();
                 document.getElementById('spacedFixedInputArea').style.display = show ? 'block' : 'none';
+            }
+
+            function sameId(a, b) {
+                return a != null && b != null && String(a) === String(b);
+            }
+
+            function findVocabByRef(ref) {
+                if (!ref) return null;
+                if (ref.vocabId != null || ref.id != null) {
+                    const id = ref.vocabId != null ? ref.vocabId : ref.id;
+                    const byId = state.vocabs.find(v => sameId(v.id, id));
+                    if (byId) return byId;
+                }
+                return state.vocabs.find(v => v.chinese === ref.chinese && v.japanese === ref.japanese) || null;
+            }
+
+            function findWrongEntry(list, word) {
+                if (!list || !word) return null;
+                if (word.id != null) {
+                    const byId = list.find(w => sameId(w.vocabId, word.id));
+                    if (byId) return byId;
+                }
+                return list.find(w => w.chinese === word.chinese && w.japanese === word.japanese) || null;
+            }
+
+            function findWrongIndex(list, item) {
+                if (!list || !item) return -1;
+                if (item.vocabId != null || item.id != null) {
+                    const id = item.vocabId != null ? item.vocabId : item.id;
+                    const byId = list.findIndex(w => sameId(w.vocabId, id));
+                    if (byId > -1) return byId;
+                }
+                return list.findIndex(w => w.chinese === item.chinese && w.japanese === item.japanese);
+            }
+
+            function aliasMatches(alias, ans) {
+                return alias === ans || normalizeString(alias) === normalizeString(ans);
+            }
+
+            function getWordAliases(item) {
+                return extractChineseMeanings(item.chinese || '');
+            }
+
+            function buildJp2CnQuestions(candidates, aliasFn) {
+                const questions = [];
+                const jpMap = new Map();
+                candidates.forEach(item => {
+                    const jp = item.japanese;
+                    if (!jpMap.has(jp)) jpMap.set(jp, []);
+                    jpMap.get(jp).push(item);
+                });
+                for (let [jp, items] of jpMap.entries()) {
+                    const meaningMap = new Map();
+                    items.forEach(item => {
+                        const aliases = aliasFn(item);
+                        const key = aliases.slice().sort().join('||');
+                        if (!meaningMap.has(key)) meaningMap.set(key, { aliases, items: [] });
+                        meaningMap.get(key).items.push(item);
+                    });
+                    const meanings = Array.from(meaningMap.values());
+                    if (meanings.length > 1) {
+                        questions.push({ type: 'multi', japanese: jp, meanings, item: meanings[0].items[0] });
+                    } else if (meanings.length === 1) {
+                        questions.push({ type: 'single', item: meanings[0].items[0], direction: 'jp2cn', aliases: meanings[0].aliases });
+                    }
+                }
+                for (let i = questions.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [questions[i], questions[j]] = [questions[j], questions[i]];
+                }
+                return questions;
+            }
+
+            function buildWordJp2CnQuestions(candidates) {
+                return buildJp2CnQuestions(candidates, getWordAliases);
+            }
+
+            function clearAutoNext() {
+                if (autoNextTimer) {
+                    clearTimeout(autoNextTimer);
+                    autoNextTimer = null;
+                }
+            }
+
+            function scheduleAutoNext(fn, delay) {
+                clearAutoNext();
+                autoNextTimer = setTimeout(() => {
+                    autoNextTimer = null;
+                    fn();
+                }, delay);
+            }
+
+            function hideToast() {
+                document.getElementById('appToast').classList.remove('show');
+            }
+
+            function showUndoToast(message, undoFn) {
+                if (undoState && undoState.timer) clearTimeout(undoState.timer);
+                undoState = {
+                    undoFn,
+                    timer: setTimeout(() => {
+                        undoState = null;
+                        hideToast();
+                    }, 10000)
+                };
+                document.getElementById('appToastMsg').innerText = message;
+                document.getElementById('appToast').classList.add('show');
+            }
+
+            window.undoLastAction = function() {
+                if (!undoState) return;
+                const fn = undoState.undoFn;
+                clearTimeout(undoState.timer);
+                undoState = null;
+                hideToast();
+                fn();
+            };
+
+            function snapshotSafety(reason) {
+                try {
+                    const payload = {
+                        reason,
+                        time: new Date().toLocaleString(),
+                        data: getAppDataObject()
+                    };
+                    localStorage.setItem('jp_safety_snapshot', JSON.stringify(payload));
+                    updateSafetySnapshotInfo();
+                } catch (e) {
+                    console.warn('安全备份失败', e);
+                }
+            }
+
+            function updateSafetySnapshotInfo() {
+                const el = document.getElementById('safetySnapshotInfo');
+                if (!el) return;
+                try {
+                    const raw = localStorage.getItem('jp_safety_snapshot');
+                    if (!raw) { el.innerText = '暂无安全备份'; return; }
+                    const snap = JSON.parse(raw);
+                    el.innerText = `最近安全备份：${snap.reason || ''} · ${snap.time || ''}`;
+                } catch (e) {
+                    el.innerText = '安全备份无法读取';
+                }
+            }
+
+            function updatePwaNote() {
+                const el = document.getElementById('pwaInstallNote');
+                if (!el) return;
+                if (location.protocol === 'file:') {
+                    el.innerHTML = '要像 App 一样安装到主屏幕：请用本地网页服务打开（不要直接双击 HTML）。可用 Cursor/VS Code 的 Live Server，或在本文件夹运行 <code>python -m http.server</code>，再用手机浏览器打开后选择「添加到主屏幕」。';
+                } else {
+                    el.innerHTML = '可在浏览器菜单选择「添加到主屏幕 / 安装应用」，之后可离线打开。';
+                }
+            }
+
+            function registerPwa() {
+                if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
+                navigator.serviceWorker.register('./sw.js').catch(err => console.warn('PWA 注册失败', err));
+            }
+
+            function recordStudy({ correct, review }) {
+                const day = getTodayStr();
+                if (!state.studyStats.days) state.studyStats.days = {};
+                if (!state.studyStats.days[day]) state.studyStats.days[day] = { correct: 0, wrong: 0, reviews: 0 };
+                const rec = state.studyStats.days[day];
+                if (correct) rec.correct++;
+                else rec.wrong++;
+                if (review) rec.reviews++;
+                state.studyStats.lastStudyDate = day;
+                try { localStorage.setItem('jp_study_stats', JSON.stringify(state.studyStats)); } catch (e) {}
+            }
+
+            function computeStreak() {
+                const days = state.studyStats.days || {};
+                const hasActivity = (key) => {
+                    const rec = days[key];
+                    return rec && ((rec.correct || 0) + (rec.wrong || 0) + (rec.reviews || 0) > 0);
+                };
+                const d = new Date();
+                if (!hasActivity(getTodayStr())) d.setDate(d.getDate() - 1);
+                let streak = 0;
+                while (hasActivity(formatLocalYMD(d))) {
+                    streak++;
+                    d.setDate(d.getDate() - 1);
+                }
+                return streak;
+            }
+
+            function renderStatsPage() {
+                const days = state.studyStats.days || {};
+                const today = days[getTodayStr()] || { correct: 0, wrong: 0, reviews: 0 };
+                document.getElementById('statsStreak').innerText = computeStreak();
+                document.getElementById('statsTodayAnswered').innerText = (today.correct || 0) + (today.wrong || 0);
+                document.getElementById('statsTodayReviews').innerText = today.reviews || 0;
+                let weekCorrect = 0, weekWrong = 0;
+                const rows = [];
+                for (let i = 0; i < 7; i++) {
+                    const d = new Date();
+                    d.setDate(d.getDate() - i);
+                    const key = formatLocalYMD(d);
+                    const rec = days[key] || { correct: 0, wrong: 0, reviews: 0 };
+                    weekCorrect += rec.correct || 0;
+                    weekWrong += rec.wrong || 0;
+                    rows.push(`<tr><td>${key}</td><td>${rec.correct || 0}</td><td>${rec.wrong || 0}</td><td>${rec.reviews || 0}</td></tr>`);
+                }
+                const weekTotal = weekCorrect + weekWrong;
+                document.getElementById('statsWeekRate').innerText = weekTotal ? Math.round(weekCorrect / weekTotal * 100) : 0;
+                document.getElementById('statsWeekTable').innerHTML = `<table class="word-table"><tr><th>日期</th><th>正确</th><th>错误</th><th>复习</th></tr>${rows.join('')}</table>`;
+                const merged = new Map();
+                Object.keys(state.wrong).forEach(k => {
+                    (state.wrong[k] || []).forEach(ww => {
+                        const key = (ww.vocabId != null ? String(ww.vocabId) : '') + '|' + ww.japanese + '|' + ww.chinese;
+                        const prev = merged.get(key);
+                        if (!prev) merged.set(key, { ...ww });
+                        else prev.wrongCount = Math.max(prev.wrongCount || 1, ww.wrongCount || 1);
+                    });
+                });
+                const top = Array.from(merged.values()).sort((a, b) => (b.wrongCount || 1) - (a.wrongCount || 1)).slice(0, 20);
+                if (!top.length) {
+                    document.getElementById('statsTopWrong').innerHTML = '<p>暂无错题</p>';
+                } else {
+                    document.getElementById('statsTopWrong').innerHTML = '<table class="word-table"><tr><th>中文</th><th>日文</th><th>次数</th></tr>' +
+                        top.map(w => `<tr><td>${w.chinese}</td><td>${w.japanese}</td><td>${w.wrongCount || 1}</td></tr>`).join('') + '</table>';
+                }
             }
 
             function isVerb(word) {
@@ -573,7 +876,7 @@
             }
 
             function cleanWrongList(list) {
-                return list.filter(ww => state.vocabs.some(v => v.chinese === ww.chinese && v.japanese === ww.japanese));
+                return list.filter(ww => findVocabByRef(ww));
             }
 
             // ========== 数据持久化 ==========
@@ -603,6 +906,7 @@
                 localStorage.setItem('jp_grammar_unit_jp_cn_wrong', JSON.stringify(w.grammarUnitJpCn));
                 localStorage.setItem('jp_grammar_summary_jp_cn_wrong', JSON.stringify(w.grammarSummaryJpCn));
                 localStorage.setItem('jp_spaced_repetition_data', JSON.stringify(state.spacedItems));
+                localStorage.setItem('jp_study_stats', JSON.stringify(state.studyStats));
                 localStorage.setItem('jp_settings', JSON.stringify(state.settings));
                 localStorage.setItem('jp_history', JSON.stringify(state.uploadHistory));
                 localStorage.setItem('jp_last_upload_info', JSON.stringify(state.lastUploadInfo));
@@ -628,6 +932,9 @@
                     state.wrong.grammarSummaryJpCn = JSON.parse(localStorage.getItem('jp_grammar_summary_jp_cn_wrong') || '[]');
                     const rawSpaced = JSON.parse(localStorage.getItem('jp_spaced_repetition_data') || '[]');
                     state.spacedItems = Array.isArray(rawSpaced) ? rawSpaced : [];
+                    state.studyStats = JSON.parse(localStorage.getItem('jp_study_stats') || '{"days":{}}');
+                    if (!state.studyStats || typeof state.studyStats !== 'object') state.studyStats = { days: {} };
+                    if (!state.studyStats.days) state.studyStats.days = {};
                     state.settings = JSON.parse(localStorage.getItem('jp_settings') || '{"practiceCount":0}');
                     state.uploadHistory = JSON.parse(localStorage.getItem('jp_history') || '[]');
                     state.lastUploadInfo = JSON.parse(localStorage.getItem('jp_last_upload_info') || 'null');
@@ -680,8 +987,27 @@
                             const fullChinese = collectGrammarMeanings(item.japanese, item.chinese);
                             if (fullChinese) item.chinese = fullChinese;
                         }
+                        if (!item.vocabId) {
+                            const v = item.category === 'grammar'
+                                ? state.vocabs.find(x => x.category === 'grammar' && x.japanese === item.japanese)
+                                : state.vocabs.find(x => x.chinese === item.chinese && x.japanese === item.japanese);
+                            if (v) item.vocabId = v.id;
+                        }
+                        if (item.lapses === undefined) item.lapses = 0;
+                        if (!item.lastReviewDate) item.lastReviewDate = '';
                         return item;
                     });
+                    for (let k in state.wrong) {
+                        state.wrong[k] = (state.wrong[k] || []).map(ww => {
+                            const v = findVocabByRef(ww);
+                            if (v) {
+                                ww.vocabId = v.id;
+                                ww.chinese = v.chinese;
+                                ww.japanese = v.japanese;
+                            }
+                            return ww;
+                        });
+                    }
                 } catch (e) {
                     console.error('数据加载失败，已重置', e);
                 }
@@ -693,7 +1019,9 @@
                 fillAllSelects();
                 if (document.getElementById('library')) renderBookLists();
                 updateSyncInfoDisplay();
+                updateSafetySnapshotInfo();
                 if (document.getElementById('spaced').classList.contains('active')) updateSpacedUI();
+                if (document.getElementById('stats') && document.getElementById('stats').classList.contains('active')) renderStatsPage();
             }
 
             function updateSyncInfoDisplay() {
@@ -800,9 +1128,15 @@
                 const targetList = getWrongListById(listId);
                 if (!targetList) return;
                 const add = (list) => {
-                    const existing = list.find(w => w.chinese === word.chinese && w.japanese === word.japanese);
-                    if (existing) existing.wrongCount = (existing.wrongCount || 1) + 1;
-                    else list.push({ chinese: word.chinese, japanese: word.japanese, wrongCount: 1 });
+                    const existing = findWrongEntry(list, word);
+                    if (existing) {
+                        existing.wrongCount = (existing.wrongCount || 1) + 1;
+                        if (word.id != null) existing.vocabId = word.id;
+                        existing.chinese = word.chinese;
+                        existing.japanese = word.japanese;
+                    } else {
+                        list.push({ vocabId: word.id, chinese: word.chinese, japanese: word.japanese, wrongCount: 1 });
+                    }
                 };
                 add(targetList);
                 if (listId === 'wordUnitCnJp') add(state.wrong.wordSummaryCnJp);
@@ -815,7 +1149,8 @@
                         chinese: word.chinese,
                         japanese: word.japanese,
                         category: 'word',
-                        direction: 'cn2jp'
+                        direction: 'cn2jp',
+                        vocabId: word.id
                     });
                 }
                 if (listId === 'grammarUnitJpCn' || listId === 'grammarSummaryJpCn') {
@@ -823,7 +1158,8 @@
                         chinese: collectGrammarMeanings(word.japanese, word.chinese),
                         japanese: word.japanese,
                         category: 'grammar',
-                        direction: 'jp2cn'
+                        direction: 'jp2cn',
+                        vocabId: word.id
                     });
                 }
                 saveAll();
@@ -832,7 +1168,7 @@
             function removeFromWrongListById(listId, item) {
                 const target = getWrongListById(listId);
                 if (!target) return false;
-                const idx = target.findIndex(w => w.chinese === item.chinese && w.japanese === item.japanese);
+                const idx = findWrongIndex(target, item);
                 if (idx > -1) { target.splice(idx, 1); saveAll(); return true; }
                 return false;
             }
@@ -856,6 +1192,7 @@
             // ========== 练习相关 ==========
             function showQuestion() {
                 const { practice: p } = state;
+                clearAutoNext();
                 if (!p.words.length || p.index >= p.words.length) {
                     document.getElementById('questionWord').innerHTML = '无单词';
                     return;
@@ -874,7 +1211,7 @@
                 document.getElementById('answerInput').disabled = false;
                 if (question.type === 'multi') {
                     document.getElementById('questionWord').innerHTML = question.japanese;
-                    document.getElementById('multiHint').innerHTML = `该语法有 <b>${question.meanings.length}</b> 个含义，请逐个输入`;
+                    document.getElementById('multiHint').innerHTML = `有 <b>${question.meanings.length}</b> 个含义，请逐个输入`;
                     document.getElementById('multiHint').style.display = 'block';
                     document.getElementById('answerInput').placeholder = '输入其中一个中文含义';
                     p.answerState = 'multiMeaning';
@@ -942,8 +1279,8 @@
                         const normalizedAns = normalizeString(ans);
                         correct = candidates.some(c => normalizeString(c) === normalizedAns);
                     } else if (isJp2Cn && p.category === 'word') {
-                        const aliases = extractChineseMeanings(word.chinese);
-                        correct = aliases.some(a => a === ans);
+                        const aliases = question.aliases && question.aliases.length ? question.aliases : extractChineseMeanings(word.chinese);
+                        correct = aliases.some(a => aliasMatches(a, ans));
                     } else {
                         correct = (ans === word.japanese);
                     }
@@ -976,6 +1313,8 @@
                     document.getElementById('resultMessage').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                     p.answerState = 'completed';
                     updateProgress();
+                    recordStudy({ correct: !!correct, review: false });
+                    if (correct && !p.pendingWrong) scheduleAutoNext(() => nextWord(), 700);
                 } else {
                     if (p.answerState === 'initial') {
                         const kanaOk = (ans === word.japanese);
@@ -1004,6 +1343,8 @@
                             document.getElementById('resultMessage').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                             p.answerState = 'completed';
                             updateProgress();
+                            recordStudy({ correct: kanaOk, review: false });
+                            if (kanaOk && !p.pendingWrong) scheduleAutoNext(() => nextWord(), 700);
                         }
                     } else if (p.answerState === 'waitingParticle') {
                         const correctParticle = word.particle || '';
@@ -1027,6 +1368,9 @@
                         p.answerState = 'completed';
                         document.getElementById('answerInput').placeholder = '输入日语假名';
                         updateProgress();
+                        const particleAllOk = p.kanaCorrect && particleOk;
+                        recordStudy({ correct: particleAllOk, review: false });
+                        if (particleAllOk && !p.pendingWrong) scheduleAutoNext(() => nextWord(), 700);
                     }
                 }
             }
@@ -1036,7 +1380,7 @@
                 const userSet = state.practice.multiAnswers;
                 let allMatched = true;
                 for (const meaning of meanings) {
-                    if (!userSet.some(ans => meaning.aliases.some(alias => alias === ans))) { allMatched = false; break; }
+                    if (!userSet.some(ans => meaning.aliases.some(alias => aliasMatches(alias, ans)))) { allMatched = false; break; }
                 }
                 const isCorrect = allMatched && userSet.length === meanings.length;
                 const msgDiv = document.getElementById('resultMessage');
@@ -1066,13 +1410,17 @@
                 document.getElementById('answerListArea').style.display = 'none';
                 state.practice.answerState = 'completed';
                 updateProgress();
+                recordStudy({ correct: isCorrect, review: false });
                 if (isCorrect && !handleCorrectForWrongPractice(question.item)) {
                     state.practice.answerState = 'pendingChoice';
+                } else if (isCorrect) {
+                    scheduleAutoNext(() => nextWord(), 700);
                 }
             }
 
             window.nextWord = function() {
                 const { practice: p } = state;
+                clearAutoNext();
                 if (p.pendingWrong) return;
                 const question = p.words[p.index];
                 if (!question) return;
@@ -1124,7 +1472,8 @@
                 if (pid === 'library') { renderBookLists(); clearSearch(); updateImportCategory(); }
                 if (pid === 'wrong') { updateWrongTabActiveStates(); renderWrongList(); }
                 if (pid === 'spaced') { updateSpacedUI(); }
-                if (pid === 'sync') { fillGithubConfigToUI(); fetchCloudSyncMeta().then(() => updateSyncInfoDisplay()); }
+                if (pid === 'stats') { renderStatsPage(); }
+                if (pid === 'sync') { fillGithubConfigToUI(); fetchCloudSyncMeta().then(() => updateSyncInfoDisplay()); updateSafetySnapshotInfo(); updatePwaNote(); }
                 if (pid === 'practice') updateModeUI(); 
             };
 
@@ -1431,10 +1780,34 @@
                 cont.innerHTML = html;
             }
 
-            window.removeWrongItem = function(idx) { getCurrentWrongList().splice(idx, 1); saveAll(); renderWrongList(); };
+            window.removeWrongItem = function(idx) {
+                const list = getCurrentWrongList();
+                const removed = list[idx];
+                if (!removed) return;
+                list.splice(idx, 1);
+                saveAll();
+                renderWrongList();
+                showUndoToast('已移除错题', () => {
+                    getCurrentWrongList().splice(idx, 0, removed);
+                    saveAll();
+                    renderWrongList();
+                });
+            };
 
             window.clearAllWrong = function() {
-                if (confirm('清空当前错题？')) { getCurrentWrongList().length = 0; saveAll(); renderWrongList(); }
+                if (!confirm('清空当前错题？')) return;
+                snapshotSafety('清空错题前');
+                const list = getCurrentWrongList();
+                const copy = list.slice();
+                list.length = 0;
+                saveAll();
+                renderWrongList();
+                showUndoToast('已清空当前错题', () => {
+                    const cur = getCurrentWrongList();
+                    copy.forEach(item => cur.push(item));
+                    saveAll();
+                    renderWrongList();
+                });
             };
 
             window.startPracticeFromWrong = function() {
@@ -1559,7 +1932,7 @@
                         list = cleanWrongList(list);
                         if (p.verbSubTab === 'verbUnit') state.wrong.verbUnit = list;
                         else state.wrong.verbSummary = list;
-                        candidates = list.map(ww => state.vocabs.find(v => v.chinese === ww.chinese && v.japanese === ww.japanese)).filter(Boolean);
+                        candidates = list.map(ww => findVocabByRef(ww)).filter(Boolean);
                     } else {
                         // 单词标准错题
                         if (p.wordDirection === 'cn2jp') {
@@ -1575,7 +1948,7 @@
                             if (p.wrongSubTab === 'unit') state.wrong.wordUnitJpCn = list;
                             else state.wrong.wordSummaryJpCn = list;
                         }
-                        candidates = list.map(ww => state.vocabs.find(v => v.chinese === ww.chinese && v.japanese === ww.japanese)).filter(Boolean);
+                        candidates = list.map(ww => findVocabByRef(ww)).filter(Boolean);
                     }
                 } else if (mode === 'normal') {
                     // 日常练习 / 标准练习：优先单元，否则书本多选
@@ -1619,10 +1992,16 @@
                         if (limit > 0 && p.words.length > limit) p.words = p.words.slice(0, limit);
                     } else {
                         const direction = p.verbMode ? 'cn2jp' : p.wordDirection;
-                        for (let i = candidates.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [candidates[i], candidates[j]] = [candidates[j], candidates[i]]; }
-                        let limit = state.settings.practiceCount;
-                        if (limit > 0 && candidates.length > limit) candidates = candidates.slice(0, limit);
-                        p.words = candidates.map(item => ({ type: 'single', item, direction }));
+                        if (direction === 'jp2cn') {
+                            p.words = buildWordJp2CnQuestions(candidates);
+                            let limit = state.settings.practiceCount;
+                            if (limit > 0 && p.words.length > limit) p.words = p.words.slice(0, limit);
+                        } else {
+                            for (let i = candidates.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [candidates[i], candidates[j]] = [candidates[j], candidates[i]]; }
+                            let limit = state.settings.practiceCount;
+                            if (limit > 0 && candidates.length > limit) candidates = candidates.slice(0, limit);
+                            p.words = candidates.map(item => ({ type: 'single', item, direction }));
+                        }
                     }
                 }
                 if (!p.words || p.words.length === 0) { alert('没有可练习的内容。'); return; }
@@ -1778,20 +2157,20 @@
             };
 
             window.removeSpacedItemByFilter = function(idx) {
-                if (confirm('确定从遗忘曲线数据库中移除此词？')) {
-                    state.spacedItems.splice(idx, 1);
+                const removed = state.spacedItems[idx];
+                if (!removed) return;
+                if (!confirm('确定从遗忘曲线数据库中移除此词？')) return;
+                state.spacedItems.splice(idx, 1);
+                saveAll();
+                updateSpacedUI();
+                showUndoToast('已移除复习词', () => {
+                    state.spacedItems.splice(idx, 0, removed);
                     saveAll();
                     updateSpacedUI();
-                }
+                });
             };
 
-            window.removeSpacedItem = function(idx) {
-                if (confirm('确定从遗忘曲线数据库中移除此词？')) {
-                    state.spacedItems.splice(idx, 1);
-                    saveAll();
-                    updateSpacedUI();
-                }
-            };
+            window.removeSpacedItem = window.removeSpacedItemByFilter;
 
             window.importSummaryToSpaced = function(category) {
                 let source;
@@ -1807,11 +2186,13 @@
                     const fullChinese = category === 'grammar'
                         ? collectGrammarMeanings(ww.japanese, ww.chinese)
                         : ww.chinese;
+                    const vocab = findVocabByRef(ww);
                     if (upsertSpacedItem({
                         chinese: fullChinese,
                         japanese: ww.japanese,
                         category,
-                        direction: category === 'grammar' ? 'jp2cn' : 'cn2jp'
+                        direction: category === 'grammar' ? 'jp2cn' : 'cn2jp',
+                        vocabId: (vocab && vocab.id) || ww.vocabId
                     })) added++;
                 });
                 if (added > 0) { saveAll(); updateSpacedUI(); alert(`已导入 ${added} 个新条目`); }
@@ -1821,22 +2202,33 @@
             window.clearSpacedData = function() {
                 const cat = state.spacedUI.libraryCategory || 'word';
                 const label = cat === 'grammar' ? '语法' : '单词';
-                if (confirm(`确定清空${label}遗忘曲线题库？`)) {
-                    state.spacedItems = state.spacedItems.filter(item => item.category !== cat);
+                if (!confirm(`确定清空${label}遗忘曲线题库？`)) return;
+                snapshotSafety('清空遗忘题库前');
+                const removed = state.spacedItems.filter(item => item.category === cat);
+                state.spacedItems = state.spacedItems.filter(item => item.category !== cat);
+                saveAll();
+                updateSpacedUI();
+                showUndoToast(`已清空${label}题库`, () => {
+                    state.spacedItems = state.spacedItems.concat(removed);
                     saveAll();
                     updateSpacedUI();
-                }
+                });
             };
 
             function sm2Update(item, quality) {
+                item.lastReviewDate = getTodayStr();
                 if (quality < 3) {
                     item.repetitions = 0;
                     item.interval = 1;
                     item.easeFactor = Math.max(1.3, item.easeFactor - 0.2);
+                    item.lapses = (item.lapses || 0) + 1;
                 } else {
                     if (item.repetitions === 0) item.interval = 1;
-                    else if (item.repetitions === 1) item.interval = 6;
-                    else item.interval = Math.round(item.interval * item.easeFactor);
+                    else if (item.repetitions === 1) item.interval = quality === 3 ? 3 : 6;
+                    else {
+                        const factor = quality === 3 ? Math.max(1.2, item.easeFactor * 0.85) : item.easeFactor;
+                        item.interval = Math.round(item.interval * factor);
+                    }
                     item.repetitions += 1;
                     item.easeFactor = item.easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
                     if (item.easeFactor < 1.3) item.easeFactor = 1.3;
@@ -1909,6 +2301,8 @@
 
             function showSpacedQuestion() {
                 const ui = state.spacedUI;
+                clearAutoNext();
+                hideSpacedGradeBar();
                 const total = ui.practiceWords.length;
                 const answered = ui.stats.correct + ui.stats.wrong;
                 const current = ui.index + 1;
@@ -1964,10 +2358,23 @@
 
                 document.getElementById('spacedPreviewText').innerText = '';
                 document.getElementById('spacedWrongActionBar').style.display = 'none';
+                hideSpacedGradeBar();
                 document.getElementById('spacedAnswerInput').disabled = false;
                 document.getElementById('spacedAnswerInput').value = '';
                 document.getElementById('spacedAnswerInput').focus();
                 syncSpacedInputVisibility();
+            }
+
+            function hideSpacedGradeBar() {
+                const bar = document.getElementById('spacedGradeBar');
+                if (bar) bar.classList.remove('show');
+            }
+
+            function showSpacedGradeBar() {
+                document.getElementById('spacedGradeBar').classList.add('show');
+                document.getElementById('spacedAnswerInput').value = '';
+                document.getElementById('spacedAnswerInput').placeholder = '回车 = 记得，或点上方按钮';
+                state.spacedUI.answerState = 'waitingGrade';
             }
 
             function getSpacedTargetItems(question) {
@@ -2021,23 +2428,21 @@
                 const userSet = ui.multiAnswers;
                 let allMatched = true;
                 for (const meaning of meanings) {
-                    if (!userSet.some(ans => meaning.aliases.some(alias => alias === ans))) {
+                    if (!userSet.some(ans => meaning.aliases.some(alias => aliasMatches(alias, ans)))) {
                         allMatched = false;
                         break;
                     }
                 }
                 const isCorrect = allMatched && userSet.length === meanings.length;
-                const quality = isCorrect ? 5 : 1;
                 ui.stats.correct += isCorrect ? 1 : 0;
                 ui.stats.wrong += isCorrect ? 0 : 1;
                 const items = getSpacedTargetItems(question);
-                items.forEach(item => sm2Update(item, quality));
 
                 const msgDiv = document.getElementById('spacedResultMessage');
                 let msg = `已输入含义：${userSet.join('、')}<br>`;
                 if (isCorrect) {
                     msgDiv.className = 'result-badge correct';
-                    msg += '✓ 完全正确！';
+                    msg += '✓ 完全正确！请选择熟悉程度';
                 } else {
                     msgDiv.className = 'result-badge wrong';
                     const allAliases = meanings.map(m => m.aliases.join('/')).join('、');
@@ -2063,10 +2468,15 @@
 
                 document.getElementById('spacedMultiHint').style.display = 'none';
                 document.getElementById('spacedMultiAnswerList').style.display = 'none';
-                applySpacedMasteredPrompt(isCorrect, items, '');
-                if (!ui.pendingAction) ui.answerState = 'completed';
-                updateSpacedUI();
-                saveAll();
+                if (isCorrect) {
+                    showSpacedGradeBar();
+                } else {
+                    items.forEach(item => sm2Update(item, 1));
+                    recordStudy({ correct: false, review: true });
+                    ui.answerState = 'completed';
+                    updateSpacedUI();
+                    saveAll();
+                }
             }
 
             function showSpacedExample(item) {
@@ -2100,46 +2510,60 @@
                 let isCorrect = false;
                 if (ui.currentCategory === 'grammar') {
                     const aliases = (question && question.aliases) || word.chinese.split('/').map(s => s.trim()).filter(Boolean);
-                    const normalizedAns = normalizeString(userAnswer);
-                    isCorrect = aliases.some(a => normalizeString(a) === normalizedAns);
+                    isCorrect = aliases.some(a => aliasMatches(a, userAnswer));
                 } else {
                     isCorrect = (userAnswer === word.japanese);
                 }
-                const quality = isCorrect ? 5 : 1;
                 ui.stats.correct += isCorrect ? 1 : 0;
                 ui.stats.wrong += isCorrect ? 0 : 1;
                 const items = getSpacedTargetItems(question);
-                items.forEach(item => sm2Update(item, quality));
-                const item = items[0] || word;
-                updateSpacedUI();
                 const msgDiv = document.getElementById('spacedResultMessage');
-                if (isCorrect && item.interval >= 30) {
+                showSpacedExample(word);
+                if (isCorrect) {
                     msgDiv.className = 'result-badge correct';
-                    msgDiv.innerHTML = `🎉 已掌握！<br>是否从遗忘曲线数据库移出？`;
-                    showSpacedExample(word);
-                    document.getElementById('spacedWrongActionBar').style.display = 'flex';
-                    document.getElementById('spacedAnswerInput').disabled = true;
-                    ui.pendingAction = { type: 'mastered', items };
-                } else if (isCorrect) {
-                    msgDiv.className = 'result-badge correct';
-                    let msg = `✓ 正确！下次复习：${item.nextReviewDate}（间隔${item.interval}天）`;
-                    if (ui.currentCategory === 'grammar') msg += `<br>完整释义：${word.chinese}`;
-                    msgDiv.innerHTML = msg;
-                    showSpacedExample(word);
-                    document.getElementById('spacedWrongActionBar').style.display = 'none';
-                    ui.pendingAction = null;
-                    ui.answerState = 'completed';
+                    msgDiv.innerHTML = '✓ 正确！请选择熟悉程度';
+                    showSpacedGradeBar();
                 } else {
+                    items.forEach(item => sm2Update(item, 1));
+                    recordStudy({ correct: false, review: true });
                     msgDiv.className = 'result-badge wrong';
                     const correctAnswer = ui.currentCategory === 'grammar' ? word.chinese : word.japanese;
                     msgDiv.innerHTML = `✗ 错误！正确答案：${correctAnswer}。已重置，明天再复习。`;
-                    showSpacedExample(word);
                     document.getElementById('spacedWrongActionBar').style.display = 'none';
                     ui.pendingAction = null;
                     ui.answerState = 'completed';
+                    updateSpacedUI();
+                    saveAll();
                 }
-                saveAll();
             }
+
+            window.gradeSpacedAnswer = function(quality) {
+                const ui = state.spacedUI;
+                if (ui.answerState !== 'waitingGrade') return;
+                const items = getSpacedTargetItems(ui.currentQuestion);
+                items.forEach(item => sm2Update(item, quality));
+                recordStudy({ correct: true, review: true });
+                hideSpacedGradeBar();
+                const item = items[0];
+                const msgDiv = document.getElementById('spacedResultMessage');
+                const labels = { 3: '有点难', 4: '记得', 5: '很熟' };
+                if (item && item.interval >= 30) {
+                    msgDiv.className = 'result-badge correct';
+                    msgDiv.innerHTML = `✓ ${labels[quality] || ''} · 下次：${item.nextReviewDate}（间隔${item.interval}天）<br>🎉 已掌握！<br>是否从遗忘曲线数据库移出？`;
+                    document.getElementById('spacedWrongActionBar').style.display = 'flex';
+                    document.getElementById('spacedAnswerInput').disabled = true;
+                    ui.pendingAction = { type: 'mastered', items };
+                    ui.answerState = 'completed';
+                } else {
+                    msgDiv.className = 'result-badge correct';
+                    msgDiv.innerHTML = `✓ ${labels[quality] || ''} · 下次复习：${item ? item.nextReviewDate : ''}（间隔${item ? item.interval : 0}天）`;
+                    ui.pendingAction = null;
+                    ui.answerState = 'completed';
+                    scheduleAutoNext(() => { ui.index++; showSpacedQuestion(); }, 600);
+                }
+                updateSpacedUI();
+                saveAll();
+            };
 
             function advanceSpacedQuestion() {
                 const ui = state.spacedUI;
@@ -2188,28 +2612,146 @@
                 return r.json();
             }
 
+            function getAppDataObject(syncMeta) {
+                return {
+                    allDecks: state.decks,
+                    allVocabularies: state.vocabs,
+                    wordUnitCnJpWrong: state.wrong.wordUnitCnJp,
+                    wordSummaryCnJpWrong: state.wrong.wordSummaryCnJp,
+                    wordUnitJpCnWrong: state.wrong.wordUnitJpCn,
+                    wordSummaryJpCnWrong: state.wrong.wordSummaryJpCn,
+                    verbUnitWrong: state.wrong.verbUnit,
+                    verbSummaryWrong: state.wrong.verbSummary,
+                    grammarUnitCnJpWrong: state.wrong.grammarUnitCnJp,
+                    grammarSummaryCnJpWrong: state.wrong.grammarSummaryCnJp,
+                    grammarUnitJpCnWrong: state.wrong.grammarUnitJpCn,
+                    grammarSummaryJpCnWrong: state.wrong.grammarSummaryJpCn,
+                    wordUnitCnJp: state.wrong.wordUnitCnJp,
+                    wordSummaryCnJp: state.wrong.wordSummaryCnJp,
+                    wordUnitJpCn: state.wrong.wordUnitJpCn,
+                    wordSummaryJpCn: state.wrong.wordSummaryJpCn,
+                    verbUnit: state.wrong.verbUnit,
+                    verbSummary: state.wrong.verbSummary,
+                    grammarUnitCnJp: state.wrong.grammarUnitCnJp,
+                    grammarSummaryCnJp: state.wrong.grammarSummaryCnJp,
+                    grammarUnitJpCn: state.wrong.grammarUnitJpCn,
+                    grammarSummaryJpCn: state.wrong.grammarSummaryJpCn,
+                    spacedRepetitionData: state.spacedItems,
+                    studyStats: state.studyStats,
+                    settings: state.settings,
+                    uploadHistory: state.uploadHistory,
+                    _syncMeta: syncMeta || { device: getDeviceName(), time: new Date().toISOString() }
+                };
+            }
+
+            function extractWrongFromData(data) {
+                return {
+                    wordUnitCnJp: data.wordUnitCnJpWrong || data.wordUnitCnJp || [],
+                    wordSummaryCnJp: data.wordSummaryCnJpWrong || data.wordSummaryCnJp || [],
+                    wordUnitJpCn: data.wordUnitJpCnWrong || data.wordUnitJpCn || [],
+                    wordSummaryJpCn: data.wordSummaryJpCnWrong || data.wordSummaryJpCn || [],
+                    verbUnit: data.verbUnitWrong || data.verbUnit || [],
+                    verbSummary: data.verbSummaryWrong || data.verbSummary || [],
+                    grammarUnitCnJp: data.grammarUnitCnJpWrong || data.grammarUnitCnJp || [],
+                    grammarSummaryCnJp: data.grammarSummaryCnJpWrong || data.grammarSummaryCnJp || [],
+                    grammarUnitJpCn: data.grammarUnitJpCnWrong || data.grammarUnitJpCn || [],
+                    grammarSummaryJpCn: data.grammarSummaryJpCnWrong || data.grammarSummaryJpCn || [],
+                };
+            }
+
+            function overwriteWithData(data, skipSnapshot) {
+                if (!skipSnapshot) snapshotSafety('覆盖前自动备份');
+                state.decks = data.allDecks || [];
+                state.vocabs = data.allVocabularies || [];
+                const w = extractWrongFromData(data);
+                Object.keys(w).forEach(k => { state.wrong[k] = w[k]; });
+                state.spacedItems = Array.isArray(data.spacedRepetitionData) ? data.spacedRepetitionData : [];
+                state.spacedUI.practiceWords = [];
+                state.spacedUI.index = 0;
+                state.spacedUI.pendingAction = null;
+                if (data.studyStats) state.studyStats = data.studyStats;
+                state.settings = data.settings || { practiceCount: 0 };
+                state.uploadHistory = data.uploadHistory || [];
+                if (data._syncMeta) state.cloudSyncMeta = data._syncMeta;
+            }
+
+            function mergeById(localArr, remoteArr, idKey) {
+                const map = new Map();
+                (localArr || []).forEach(item => map.set(String(item[idKey]), item));
+                (remoteArr || []).forEach(item => {
+                    const key = String(item[idKey]);
+                    if (!map.has(key)) map.set(key, item);
+                });
+                return Array.from(map.values());
+            }
+
+            function mergeWrongLists(localList, remoteList) {
+                const out = (localList || []).map(x => ({ ...x }));
+                (remoteList || []).forEach(rw => {
+                    const existing = findWrongEntry(out, { id: rw.vocabId, vocabId: rw.vocabId, chinese: rw.chinese, japanese: rw.japanese });
+                    if (existing) {
+                        existing.wrongCount = Math.max(existing.wrongCount || 1, rw.wrongCount || 1);
+                        if (rw.vocabId && !existing.vocabId) existing.vocabId = rw.vocabId;
+                    } else out.push({ ...rw });
+                });
+                return out;
+            }
+
+            function mergeSpacedLists(localList, remoteList) {
+                const out = (localList || []).map(x => ({ ...x }));
+                (remoteList || []).forEach(rw => {
+                    const idx = findSpacedItem(rw);
+                    const existing = idx > -1 ? out[idx] : null;
+                    if (existing) {
+                        if ((rw.repetitions || 0) > (existing.repetitions || 0) ||
+                            ((rw.repetitions || 0) === (existing.repetitions || 0) && (rw.interval || 0) > (existing.interval || 0))) {
+                            out[idx] = { ...existing, ...rw, chinese: existing.chinese, japanese: existing.japanese };
+                        }
+                    } else out.push({ ...rw });
+                });
+                return out;
+            }
+
+            function mergeCloudData(data) {
+                snapshotSafety('合并前自动备份');
+                state.decks = mergeById(state.decks, data.allDecks || [], 'id');
+                const vocabMap = new Map();
+                state.vocabs.forEach(v => vocabMap.set(String(v.id), v));
+                (data.allVocabularies || []).forEach(v => {
+                    const key = String(v.id);
+                    if (!vocabMap.has(key)) {
+                        const dup = state.vocabs.find(x => x.chinese === v.chinese && x.japanese === v.japanese && x.category === v.category);
+                        if (!dup) vocabMap.set(key, v);
+                    }
+                });
+                state.vocabs = Array.from(vocabMap.values());
+                const remoteWrong = extractWrongFromData(data);
+                Object.keys(state.wrong).forEach(k => {
+                    state.wrong[k] = mergeWrongLists(state.wrong[k], remoteWrong[k] || []);
+                });
+                state.spacedItems = mergeSpacedLists(state.spacedItems, data.spacedRepetitionData || []);
+                if (data.studyStats && data.studyStats.days) {
+                    if (!state.studyStats.days) state.studyStats.days = {};
+                    Object.keys(data.studyStats.days).forEach(day => {
+                        const a = state.studyStats.days[day] || { correct: 0, wrong: 0, reviews: 0 };
+                        const b = data.studyStats.days[day] || { correct: 0, wrong: 0, reviews: 0 };
+                        state.studyStats.days[day] = {
+                            correct: Math.max(a.correct || 0, b.correct || 0),
+                            wrong: Math.max(a.wrong || 0, b.wrong || 0),
+                            reviews: Math.max(a.reviews || 0, b.reviews || 0)
+                        };
+                    });
+                }
+                if (data.settings && data.settings.practiceCount != null && !state.settings.practiceCount) {
+                    state.settings.practiceCount = data.settings.practiceCount;
+                }
+            }
+
             function packData() {
                 const syncMeta = { device: getDeviceName(), time: new Date().toISOString() };
                 let cleanData;
                 try {
-                    cleanData = JSON.parse(JSON.stringify({
-                        allDecks: state.decks,
-                        allVocabularies: state.vocabs,
-                        wordUnitCnJpWrong: state.wrong.wordUnitCnJp,
-                        wordSummaryCnJpWrong: state.wrong.wordSummaryCnJp,
-                        wordUnitJpCnWrong: state.wrong.wordUnitJpCn,
-                        wordSummaryJpCnWrong: state.wrong.wordSummaryJpCn,
-                        verbUnitWrong: state.wrong.verbUnit,
-                        verbSummaryWrong: state.wrong.verbSummary,
-                        grammarUnitCnJpWrong: state.wrong.grammarUnitCnJp,
-                        grammarSummaryCnJpWrong: state.wrong.grammarSummaryCnJp,
-                        grammarUnitJpCnWrong: state.wrong.grammarUnitJpCn,
-                        grammarSummaryJpCnWrong: state.wrong.grammarSummaryJpCn,
-                        spacedRepetitionData: state.spacedItems,
-                        settings: state.settings,
-                        uploadHistory: state.uploadHistory,
-                        _syncMeta: syncMeta
-                    }));
+                    cleanData = JSON.parse(JSON.stringify(getAppDataObject(syncMeta)));
                 } catch (e) {
                     alert('数据序列化失败，可能是数据损坏。请先导出备份，清空数据后再导入。');
                     throw e;
@@ -2273,10 +2815,11 @@
                 } catch (e) { alert('上传失败: ' + e.message); }
             };
 
-            window.downloadFromGithub = async () => {
+            window.downloadFromGithub = async (mode) => {
                 if (!state.github.gistId) { alert('填写ID'); return; }
                 const remoteMeta = await fetchCloudSyncMeta();
-                let confirmMsg = '确认从云端下载数据？这将会覆盖本地数据。';
+                const isMerge = mode !== 'overwrite';
+                let confirmMsg = isMerge ? '确认从云端合并数据到本地？' : '确认用云端数据覆盖本地？覆盖前会自动保存一份可恢复备份。';
                 if (remoteMeta) confirmMsg += `\n☁️ 云端备份来源：${remoteMeta.device} · ${new Date(remoteMeta.time).toLocaleString()}`;
                 else confirmMsg += '\n☁️ 云端暂无备份记录';
                 if (state.lastDownloadInfo) confirmMsg += `\n📥 本机上次下载：${state.lastDownloadInfo.device} · ${state.lastDownloadInfo.time}`;
@@ -2286,29 +2829,16 @@
                     const file = gist.files['japanese_words_backup.json'];
                     if (!file) throw new Error('无文件');
                     const data = unpackData(file.content);
-                    state.decks = data.allDecks || [];
-                    state.vocabs = data.allVocabularies || [];
-                    state.wrong.wordUnitCnJp = data.wordUnitCnJpWrong || [];
-                    state.wrong.wordSummaryCnJp = data.wordSummaryCnJpWrong || [];
-                    state.wrong.wordUnitJpCn = data.wordUnitJpCnWrong || [];
-                    state.wrong.wordSummaryJpCn = data.wordSummaryJpCnWrong || [];
-                    state.wrong.verbUnit = data.verbUnitWrong || [];
-                    state.wrong.verbSummary = data.verbSummaryWrong || [];
-                    state.wrong.grammarUnitCnJp = data.grammarUnitCnJpWrong || [];
-                    state.wrong.grammarSummaryCnJp = data.grammarSummaryCnJpWrong || [];
-                    state.wrong.grammarUnitJpCn = data.grammarUnitJpCnWrong || [];
-                    state.wrong.grammarSummaryJpCn = data.grammarSummaryJpCnWrong || [];
-                    state.spacedItems = Array.isArray(data.spacedRepetitionData) ? data.spacedRepetitionData : [];
-                    state.spacedUI.practiceWords = [];
-                    state.spacedUI.index = 0;
-                    state.spacedUI.pendingAction = null;
-                    state.settings = data.settings || { practiceCount: 0 };
-                    state.uploadHistory = data.uploadHistory || [];
-                    state.cloudSyncMeta = data._syncMeta || { device: '未知设备', time: gist.updated_at };
+                    if (isMerge) mergeCloudData(data);
+                    else overwriteWithData(data);
                     state.lastDownloadInfo = { device: getDeviceName(), time: new Date().toLocaleString() };
+                    if (data._syncMeta) state.cloudSyncMeta = data._syncMeta;
                     saveAll();
                     renderBookLists();
-                    alert('✅ 下载成功');
+                    renderWrongList();
+                    fillAllSelects();
+                    updateSpacedUI();
+                    alert(isMerge ? '✅ 合并完成' : '✅ 覆盖完成');
                 } catch (e) { alert('下载失败: ' + e.message); }
             };
 
@@ -2329,7 +2859,7 @@
             };
 
             window.exportBackup = () => {
-                const data = { allDecks: state.decks, allVocabularies: state.vocabs, ...state.wrong, spacedRepetitionData: state.spacedItems, settings: state.settings, uploadHistory: state.uploadHistory, _syncMeta: { device: getDeviceName(), time: new Date().toISOString() } };
+                const data = getAppDataObject();
                 const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(blob);
@@ -2340,49 +2870,51 @@
             window.importBackup = function() {
                 const file = document.getElementById('importFile').files[0];
                 if (!file) return;
+                if (!confirm('导入备份将覆盖当前本地数据（导入前会自动保存一份可恢复备份）。继续？')) return;
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     try {
                         const data = JSON.parse(e.target.result);
-                        if (data.allDecks) state.decks = data.allDecks;
-                        if (data.allVocabularies) state.vocabs = data.allVocabularies;
-                        state.wrong.wordUnitCnJp = data.wordUnitCnJpWrong || [];
-                        state.wrong.wordSummaryCnJp = data.wordSummaryCnJpWrong || [];
-                        state.wrong.wordUnitJpCn = data.wordUnitJpCnWrong || [];
-                        state.wrong.wordSummaryJpCn = data.wordSummaryJpCnWrong || [];
-                        state.wrong.verbUnit = data.verbUnitWrong || [];
-                        state.wrong.verbSummary = data.verbSummaryWrong || [];
-                        state.wrong.grammarUnitCnJp = data.grammarUnitCnJpWrong || [];
-                        state.wrong.grammarSummaryCnJp = data.grammarSummaryCnJpWrong || [];
-                        state.wrong.grammarUnitJpCn = data.grammarUnitJpCnWrong || [];
-                        state.wrong.grammarSummaryJpCn = data.grammarSummaryJpCnWrong || [];
-                        state.spacedItems = Array.isArray(data.spacedRepetitionData) ? data.spacedRepetitionData : [];
-                    state.spacedUI.practiceWords = [];
-                    state.spacedUI.index = 0;
-                    state.spacedUI.pendingAction = null;
-                        state.settings = data.settings || { practiceCount: 0 };
-                        state.uploadHistory = data.uploadHistory || [];
+                        overwriteWithData(data);
                         saveAll();
                         alert('导入完成');
                         renderBookLists();
                         renderWrongList();
                         fillAllSelects();
+                        updateSpacedUI();
                     } catch (ex) { alert('解析失败: ' + ex.message); }
                 };
                 reader.readAsText(file);
             };
 
-            window.resetAllData = () => {
-                if (confirm('⚠️ 删除所有数据？')) {
-                    state.decks = []; state.vocabs = []; state.spacedItems = [];
-                    state.spacedUI.practiceWords = [];
-                    state.spacedUI.index = 0;
-                    for (let k in state.wrong) state.wrong[k] = [];
-                    state.settings = { practiceCount: 0 };
-                    state.uploadHistory = [];
-                    state.lastUploadInfo = state.lastDownloadInfo = state.cloudSyncMeta = null;
+            window.restoreSafetySnapshot = function() {
+                try {
+                    const raw = localStorage.getItem('jp_safety_snapshot');
+                    if (!raw) { alert('没有可恢复的安全备份'); return; }
+                    if (!confirm('用最近一次安全备份覆盖当前数据？')) return;
+                    const snap = JSON.parse(raw);
+                    overwriteWithData(snap.data || {}, true);
                     saveAll();
-                }
+                    renderBookLists();
+                    renderWrongList();
+                    fillAllSelects();
+                    updateSpacedUI();
+                    alert('已恢复安全备份');
+                } catch (e) { alert('恢复失败: ' + e.message); }
+            };
+
+            window.resetAllData = () => {
+                if (!confirm('⚠️ 删除所有数据？此操作前会自动保存一份可恢复备份。')) return;
+                snapshotSafety('清空全部数据前');
+                state.decks = []; state.vocabs = []; state.spacedItems = [];
+                state.spacedUI.practiceWords = [];
+                state.spacedUI.index = 0;
+                for (let k in state.wrong) state.wrong[k] = [];
+                state.studyStats = { days: {} };
+                state.settings = { practiceCount: 0 };
+                state.uploadHistory = [];
+                state.lastUploadInfo = state.lastDownloadInfo = state.cloudSyncMeta = null;
+                saveAll();
             };
 
             window.changePracticeCount = () => {
@@ -2418,24 +2950,125 @@
                 else { content.style.display = 'none'; icon.classList.remove('open'); }
             };
 
-            window.editDeck = (id) => { const d = state.decks.find(x => x.id == id); if (!d) return; const n = prompt('名称', d.name); if (n) { d.name = n.trim(); saveAll(); renderBookLists(); } };
-            window.deleteDeck = (id) => { if (!confirm('确定删除？')) return; const d = state.decks.find(x => x.id == id); if (d.type === 'book') { const uids = state.decks.filter(u => u.parentId == id).map(u => u.id); state.vocabs = state.vocabs.filter(v => !uids.includes(v.deckId)); state.decks = state.decks.filter(x => !(x.parentId == id || x.id == id)); } else { state.vocabs = state.vocabs.filter(v => v.deckId != id); state.decks = state.decks.filter(x => x.id != id); } saveAll(); renderBookLists(); };
-            window.createNewBook = function(category) { const name = prompt(`输入${category==='word'?'单词':'语法'}书本名称`); if (!name) return; state.decks.push({ id: Date.now() + Math.random(), name: name.trim(), type: 'book', category }); saveAll(); renderBookLists(); };
+            window.openEditPanel = function(title, fields, onSave) {
+                editContext = { fields, onSave };
+                document.getElementById('editPanelTitle').innerText = title;
+                const box = document.getElementById('editPanelFields');
+                box.innerHTML = fields.map(f => {
+                    const isArea = f.area;
+                    const val = (f.value || '').replace(/"/g, '&quot;');
+                    if (isArea) return `<label>${f.l}</label><textarea id="edit-field-${f.k}" rows="3">${String(f.value || '').replace(/&/g,'&amp;').replace(/</g,'&lt;')}</textarea>`;
+                    return `<label>${f.l}</label><input type="text" id="edit-field-${f.k}" value="${val}">`;
+                }).join('');
+                document.getElementById('editOverlay').classList.add('show');
+                const first = box.querySelector('input,textarea');
+                if (first) first.focus();
+            };
+
+            window.closeEditPanel = function() {
+                editContext = null;
+                document.getElementById('editOverlay').classList.remove('show');
+            };
+
+            window.saveEditPanel = function() {
+                if (!editContext) return;
+                const values = {};
+                editContext.fields.forEach(f => {
+                    const el = document.getElementById('edit-field-' + f.k);
+                    values[f.k] = el ? el.value.trim() : '';
+                });
+                const onSave = editContext.onSave;
+                closeEditPanel();
+                onSave(values);
+            };
+
+            window.editDeck = (id) => {
+                const d = state.decks.find(x => x.id == id);
+                if (!d) return;
+                openEditPanel('编辑名称', [{ k: 'name', l: '名称', value: d.name }], (values) => {
+                    if (!values.name) return;
+                    d.name = values.name;
+                    saveAll();
+                    renderBookLists();
+                });
+            };
+            window.deleteDeck = (id) => {
+                if (!confirm('确定删除？删除前会自动备份。')) return;
+                snapshotSafety('删除书本/单元前');
+                const d = state.decks.find(x => x.id == id);
+                if (!d) return;
+                const decksCopy = JSON.parse(JSON.stringify(state.decks));
+                const vocabsCopy = JSON.parse(JSON.stringify(state.vocabs));
+                if (d.type === 'book') {
+                    const uids = state.decks.filter(u => u.parentId == id).map(u => u.id);
+                    state.vocabs = state.vocabs.filter(v => !uids.includes(v.deckId));
+                    state.decks = state.decks.filter(x => !(x.parentId == id || x.id == id));
+                } else {
+                    state.vocabs = state.vocabs.filter(v => v.deckId != id);
+                    state.decks = state.decks.filter(x => x.id != id);
+                }
+                saveAll();
+                renderBookLists();
+                showUndoToast('已删除', () => {
+                    state.decks = decksCopy;
+                    state.vocabs = vocabsCopy;
+                    saveAll();
+                    renderBookLists();
+                });
+            };
+            window.createNewBook = function(category) {
+                openEditPanel(`新建${category==='word'?'单词':'语法'}书本`, [{ k: 'name', l: '书本名称', value: '' }], (values) => {
+                    if (!values.name) return;
+                    state.decks.push({ id: Date.now() + Math.random(), name: values.name, type: 'book', category });
+                    saveAll();
+                    renderBookLists();
+                });
+            };
             window.addNewUnit = function(type) { const bookId = document.getElementById(type==='word'?'wordUnitBookSelect':'grammarUnitBookSelect').value; const name = document.getElementById(type==='word'?'wordUnitName':'grammarUnitName').value.trim(); if (!bookId || !name) { alert('请填写完整'); return; } state.decks.push({ id: Date.now() + Math.random(), name, type: 'unit', parentId: bookId }); saveAll(); renderBookLists(); };
-            window.editWord = function(id) { const w = state.vocabs.find(v => v.id == id); if (!w) return; const fields = w.category === 'grammar' ? [{ k: 'chinese', l: '中文' }, { k: 'japanese', l: '日语语法' }, { k: 'example', l: '例句' }, { k: 'exampleCn', l: '翻译' }] : [{ k: 'chinese', l: '中文' }, { k: 'japanese', l: '日语' }, { k: 'wordType', l: '词性' }, { k: 'particle', l: '助词' }, { k: 'example', l: '短句' }]; fields.forEach(f => { const v = prompt(f.l, w[f.k] || ''); if (v !== null) w[f.k] = v.trim(); }); saveAll(); clearSearch(); renderBookLists(); };
-            window.deleteWord = (id) => { if (!confirm('删除？')) return; state.vocabs = state.vocabs.filter(v => v.id != id); saveAll(); clearSearch(); renderBookLists(); };
+            window.editWord = function(id) {
+                const w = state.vocabs.find(v => v.id == id);
+                if (!w) return;
+                const fields = w.category === 'grammar'
+                    ? [{ k: 'chinese', l: '中文', value: w.chinese }, { k: 'japanese', l: '日语语法', value: w.japanese }, { k: 'example', l: '例句', value: w.example, area: true }, { k: 'exampleCn', l: '翻译', value: w.exampleCn, area: true }]
+                    : [{ k: 'chinese', l: '中文', value: w.chinese }, { k: 'japanese', l: '日语', value: w.japanese }, { k: 'wordType', l: '词性', value: w.wordType }, { k: 'particle', l: '助词', value: w.particle }, { k: 'example', l: '短句', value: w.example, area: true }];
+                openEditPanel('编辑词条', fields, (values) => {
+                    Object.keys(values).forEach(k => { w[k] = values[k]; });
+                    saveAll();
+                    clearSearch();
+                    renderBookLists();
+                });
+            };
+            window.deleteWord = (id) => {
+                const w = state.vocabs.find(v => v.id == id);
+                if (!w) return;
+                if (!confirm('删除？')) return;
+                state.vocabs = state.vocabs.filter(v => v.id != id);
+                saveAll();
+                clearSearch();
+                renderBookLists();
+                showUndoToast('已删除词条', () => {
+                    state.vocabs.push(w);
+                    saveAll();
+                    renderBookLists();
+                });
+            };
             window.importWords = function() { const unitId = document.getElementById('importUnit').value; if (!unitId) { alert('选单元'); return; } const text = document.getElementById('importText').value.trim(); if (!text) return; const lines = text.split('\n'); let added = 0; const cat = document.getElementById('importCategory').value; lines.forEach(line => { const parts = line.trim().split(/\s+/); if (cat === 'word' && parts.length >= 2) { const [ch, ja, wt='', pt='', ...rest] = parts; const ex = rest.join(' '); if (!state.vocabs.some(v => v.chinese === ch && v.japanese === ja)) { state.vocabs.push({ id: Date.now() + Math.random(), chinese: ch, japanese: ja, deckId: unitId, category: 'word', wordType: wt, particle: pt, example: ex }); added++; } } else if (cat === 'grammar' && parts.length >= 2) { const [ch, ja, ex='', exCn=''] = parts; if (!state.vocabs.some(v => v.chinese === ch && v.japanese === ja)) { state.vocabs.push({ id: Date.now() + Math.random(), chinese: ch, japanese: ja, deckId: unitId, category: 'grammar', wordType: '语法', particle: '', example: ex, exampleCn: exCn }); added++; } } }); saveAll(); renderBookLists(); alert(`添加 ${added} 条`); };
 
             // 事件绑定
             document.getElementById('answerInput').addEventListener('input', function() { document.getElementById('previewText').innerText = this.value; });
-            document.getElementById('answerInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); if (state.practice.pendingWrong) return; if (state.practice.answerState === 'completed') nextWord(); else checkAnswer(); } });
+            document.getElementById('answerInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); clearAutoNext(); if (state.practice.pendingWrong) return; if (state.practice.answerState === 'completed') nextWord(); else checkAnswer(); } });
             document.getElementById('spacedAnswerInput').addEventListener('input', function() { document.getElementById('spacedPreviewText').innerText = this.value; });
             document.getElementById('spacedAnswerInput').addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     const ui = state.spacedUI;
-                    if (ui.pendingAction) return;
+                    if (ui.pendingAction && ui.pendingAction.type === 'mastered') return;
+                    if (ui.answerState === 'waitingGrade') {
+                        gradeSpacedAnswer(4);
+                        return;
+                    }
                     if (ui.answerState === 'completed') {
+                        clearAutoNext();
                         ui.index++;
                         showSpacedQuestion();
                         return;
@@ -2463,6 +3096,9 @@
             document.getElementById('answerInput').placeholder = '输入答案，回车确认';
             updateVerbTabVisibility();
             if (state.github.gistId && state.github.token) fetchCloudSyncMeta().then(() => updateSyncInfoDisplay());
+            updateSafetySnapshotInfo();
+            updatePwaNote();
+            registerPwa();
         })();
     </script>
 </body>

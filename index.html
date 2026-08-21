@@ -303,6 +303,8 @@
                 <div class="word-display" id="spacedQuestionWord"></div>
                 <div class="answer-preview">答案：<span id="spacedPreviewText"></span></div>
                 <div class="result-badge" id="spacedResultMessage"></div>
+                <div id="spacedMultiAnswerList" class="answer-list" style="display:none;"></div>
+                <div id="spacedExampleCard" style="display:none;" class="example-box"></div>
             </div>
         </div>
 
@@ -595,22 +597,36 @@
                         return w;
                     });
                     state.spaced = state.spaced.map(item => {
-                           if (item.repetitions === undefined) item.repetitions = 0;
-                           if (item.easeFactor === undefined) item.easeFactor = 2.5;
-                           if (item.interval === undefined) item.interval = 0;
-                           if (!item.nextReviewDate) item.nextReviewDate = getTodayStr();
-                           // 判断类别：优先使用已有的 category，否则根据 direction 推断
-                           if (!item.category) {
-                               if (item.direction === 'jp2cn') {
-                                   item.category = 'grammar';
-                               } else {
-                                    item.category = 'word';
-                               }
-                           }
-                           if (!item.direction) {
-                               item.direction = (item.category === 'grammar') ? 'jp2cn' : 'cn2jp';
-                           }
-                           return item;
+                        if (item.repetitions === undefined) item.repetitions = 0;
+                        if (item.easeFactor === undefined) item.easeFactor = 2.5;
+                        if (item.interval === undefined) item.interval = 0;
+                        if (!item.nextReviewDate) item.nextReviewDate = getTodayStr();
+                        // 判断类别：优先使用已有的 category，否则根据 direction 推断
+                        if (!item.category) {
+                            if (item.direction === 'jp2cn') {
+                                item.category = 'grammar';
+                            } else {
+                                item.category = 'word';
+                            }
+                        }
+                        if (!item.direction) {
+                            item.direction = (item.category === 'grammar') ? 'jp2cn' : 'cn2jp';
+                        }
+
+                        // 【新增】如果是语法条目，确保 chinese 字段包含该语法在题库中的所有义项
+                        if (item.category === 'grammar') {
+                            const allRelated = state.vocabs.filter(v => v.category === 'grammar' && v.japanese === item.japanese);
+                            if (allRelated.length > 0) {
+                                const allMeanings = new Set();
+                                allRelated.forEach(v => {
+                                    v.chinese.split('/').map(s => s.trim()).filter(Boolean).forEach(meaning => allMeanings.add(meaning));
+                                });
+                                if (allMeanings.size > 0) {
+                                    item.chinese = Array.from(allMeanings).join('/');
+                                }
+                            }
+                        }
+                        return item;
                     });
                 } catch (e) {
                     console.error('数据加载失败，已重置', e);
@@ -754,11 +770,23 @@
                         });
                    }
                 }
-                // 语法日→中错题 → 语法遗忘曲线
+                // 语法日→中错题 → 语法遗忘曲线（保存完整义项）
                 if (listId === 'grammarUnitJpCn' || listId === 'grammarSummaryJpCn') {
-                    if (!state.spaced.some(s => s.chinese === word.chinese && s.japanese === word.japanese && s.category === 'grammar')) {
+                    // 查找题库中该语法的所有条目，收集所有不同义项
+                    const relatedVocabs = state.vocabs.filter(v => v.category === 'grammar' && v.japanese === word.japanese);
+                    let fullChinese = word.chinese;
+                    if (relatedVocabs.length > 0) {
+                        const meaningSet = new Set();
+                        relatedVocabs.forEach(v => {
+                            v.chinese.split('/').map(s => s.trim()).filter(Boolean).forEach(meaning => meaningSet.add(meaning));
+                        });
+                        if (meaningSet.size > 0) {
+                            fullChinese = Array.from(meaningSet).join('/');
+                        }
+                    }
+                    if (!state.spaced.some(s => s.chinese === fullChinese && s.japanese === word.japanese && s.category === 'grammar')) {
                         state.spaced.push({
-                            chinese: word.chinese,
+                            chinese: fullChinese,
                             japanese: word.japanese,
                             category: 'grammar',
                             direction: 'jp2cn',
@@ -1714,9 +1742,22 @@
             }
             let added = 0;
             source.forEach(ww => {
-                    if (!state.spaced.some(s => s.chinese === ww.chinese && s.japanese === ww.japanese && s.category === category)) {
+                    let fullChinese = ww.chinese;
+                    if (category === 'grammar') {
+                        const relatedVocabs = state.vocabs.filter(v => v.category === 'grammar' && v.japanese === ww.japanese);
+                        if (relatedVocabs.length > 0) {
+                            const meaningSet = new Set();
+                            relatedVocabs.forEach(v => {
+                                v.chinese.split('/').map(s => s.trim()).filter(Boolean).forEach(meaning => meaningSet.add(meaning));
+                            });
+                            if (meaningSet.size > 0) {
+                                fullChinese = Array.from(meaningSet).join('/');
+                            }
+                        }
+                    }
+                    if (!state.spaced.some(s => s.chinese === fullChinese && s.japanese === ww.japanese && s.category === category)) {
                         state.spaced.push({
-                            chinese: ww.chinese,
+                            chinese: fullChinese,
                             japanese: ww.japanese,
                             category: category,
                             direction: category === 'grammar' ? 'jp2cn' : 'cn2jp',
@@ -1814,11 +1855,30 @@
                 const item = s.practiceWords[s.index];
                 s.currentItem = item;
                 s.answerState = 'answering';
+                s.multiAnswers = [];        // 重置多义答案列表
+                s.multiRequiredCount = 0;   // 重置所需义项数
+
+                // 清空结果消息、多义列表和例句区域
+                document.getElementById('spacedResultMessage').innerHTML = '';
+                document.getElementById('spacedMultiAnswerList').style.display = 'none';
+                document.getElementById('spacedMultiAnswerList').innerHTML = '';
+                document.getElementById('spacedExampleCard').style.display = 'none';
+                document.getElementById('spacedExampleCard').innerHTML = '';
 
                 if (item.category === 'grammar') {
                     // 语法：显示日文，输入中文
                     document.getElementById('spacedQuestionWord').innerHTML = item.japanese;
                     document.getElementById('spacedAnswerInput').placeholder = '输入中文意思';
+
+                    // 检查是否有多个义项（用 / 分隔）
+                    const aliases = item.chinese.split('/').map(x => x.trim()).filter(Boolean);
+                    if (aliases.length > 1) {
+                        // 多义模式
+                        s.answerState = 'multi';
+                        s.multiRequiredCount = aliases.length;
+                        document.getElementById('spacedAnswerInput').placeholder = '输入其中一个中文含义';
+                        document.getElementById('spacedResultMessage').innerHTML = `该语法有 <b>${aliases.length}</b> 个含义，请逐个输入`;
+                    }
                 } else {
                     // 单词：显示中文（及词性），输入日文假名
                     const vocab = state.vocabs.find(v => v.chinese === item.chinese && v.japanese === item.japanese);
@@ -1828,12 +1888,119 @@
                     document.getElementById('spacedAnswerInput').placeholder = '输入日语假名';
                 }
 
-                document.getElementById('spacedResultMessage').innerHTML = '';
                 document.getElementById('spacedPreviewText').innerText = '';
                 document.getElementById('spacedWrongActionBar').style.display = 'none';
                 document.getElementById('spacedAnswerInput').disabled = false;
                 document.getElementById('spacedAnswerInput').value = '';
                 document.getElementById('spacedAnswerInput').focus();
+            }
+
+            function handleSpacedMultiAnswer(userAnswer) {
+                const s = state.spaced;
+                const item = s.currentItem;
+                if (!item) return;
+
+                // 检查重复
+                if (s.multiAnswers.includes(userAnswer)) {
+                    document.getElementById('spacedResultMessage').className = 'result-badge wrong';
+                    document.getElementById('spacedResultMessage').innerHTML = '⚠️ 这个含义已经输入过了';
+                    document.getElementById('spacedAnswerInput').value = '';
+                    return;
+                }
+
+                s.multiAnswers.push(userAnswer);
+
+                // 显示已输入含义
+                const listDiv = document.getElementById('spacedMultiAnswerList');
+                listDiv.style.display = 'block';
+                listDiv.innerHTML = '<strong>已输入含义：</strong><br>' + s.multiAnswers.map((a, i) => `${i+1}. ${a}`).join('<br>');
+                document.getElementById('spacedAnswerInput').value = '';
+
+                // 如果输入数量达到要求，进行最终判定
+                if (s.multiAnswers.length >= s.multiRequiredCount) {
+                    finalizeSpacedMultiAnswer();
+                }
+            }
+
+            function finalizeSpacedMultiAnswer() {
+                const s = state.spaced;
+                const item = s.currentItem;
+                if (!item) return;
+
+                const aliases = item.chinese.split('/').map(x => x.trim()).filter(Boolean);
+                const userSet = s.multiAnswers;
+
+                // 检查是否每个义项都有匹配（顺序无关）
+                let allMatched = true;
+                for (const alias of aliases) {
+                    if (!userSet.some(ans => normalizeString(ans) === normalizeString(alias))) {
+                        allMatched = false;
+                        break;
+                    }
+                }
+                const isCorrect = allMatched && userSet.length === aliases.length;
+
+                // 更新统计和间隔
+                const quality = isCorrect ? 5 : 1;
+                s.stats.correct += isCorrect ? 1 : 0;
+                s.stats.wrong += isCorrect ? 0 : 1;
+                sm2Update(item, quality);
+
+                // 显示结果
+                const msgDiv = document.getElementById('spacedResultMessage');
+                let msg = `已输入含义：${userSet.join('、')}<br>`;
+                if (isCorrect) {
+                    msgDiv.className = 'result-badge correct';
+                    msg += '✓ 完全正确！';
+                } else {
+                    msgDiv.className = 'result-badge wrong';
+                    msg += `✗ 错误，正确答案：${aliases.join('、')}`;
+                }
+                msgDiv.innerHTML = msg;
+
+                // 显示例句
+                showSpacedExample(item);
+
+                // 处理“已掌握”逻辑
+                if (isCorrect && item.interval >= 30) {
+                    msgDiv.innerHTML += `<br>🎉 已掌握！<br>是否从遗忘曲线数据库移出？`;
+                    document.getElementById('spacedWrongActionBar').style.display = 'flex';
+                    document.getElementById('spacedAnswerInput').disabled = true;
+                    s.pendingAction = { type: 'mastered', item };
+                } else {
+                    document.getElementById('spacedWrongActionBar').style.display = 'none';
+                    s.pendingAction = null;
+                }
+
+                // 隐藏多义列表
+                document.getElementById('spacedMultiAnswerList').style.display = 'none';
+                s.answerState = 'completed';
+                updateSpacedUI();
+                saveAll();
+            }
+
+            function showSpacedExample(item) {
+                const exDiv = document.getElementById('spacedExampleCard');
+                // 根据 japanese 查找所有相关词条（支持多义词多条记录）
+                const relatedVocabs = state.vocabs.filter(v => v.japanese === item.japanese);
+                if (relatedVocabs.length === 0) {
+                    exDiv.style.display = 'none';
+                    return;
+                }
+                // 收集所有例句（去重）
+                const exampleSet = new Set();
+                relatedVocabs.forEach(v => {
+                    if (v.example) {
+                        const ex = `📖 ${v.example}${v.exampleCn ? ' ' + v.exampleCn : ''}`;
+                        exampleSet.add(ex);
+                    }
+                });
+                if (exampleSet.size > 0) {
+                    exDiv.innerHTML = Array.from(exampleSet).join('<br>');
+                    exDiv.style.display = 'block';
+                } else {
+                    exDiv.style.display = 'none';
+                }
             }
 
             function checkSpacedAnswer(userAnswer) {
@@ -1858,18 +2025,21 @@
                 if (isCorrect && item.interval >= 30) {
                     document.getElementById('spacedResultMessage').className = 'result-badge correct';
                     document.getElementById('spacedResultMessage').innerHTML = `🎉 已掌握！<br>是否从遗忘曲线数据库移出？`;
+                    showSpacedExample(item);
                     document.getElementById('spacedWrongActionBar').style.display = 'flex';
                     document.getElementById('spacedAnswerInput').disabled = true;
                     s.pendingAction = { type: 'mastered', item };
                 } else if (isCorrect) {
                     document.getElementById('spacedResultMessage').className = 'result-badge correct';
                     document.getElementById('spacedResultMessage').innerHTML = `✓ 正确！下次复习：${item.nextReviewDate}（间隔${item.interval}天）`;
+                    showSpacedExample(item);
                     document.getElementById('spacedWrongActionBar').style.display = 'none';
                     s.pendingAction = null;
                 } else {
                     document.getElementById('spacedResultMessage').className = 'result-badge wrong';
                     const correctAnswer = item.category === 'grammar' ? item.chinese : item.japanese;
                     document.getElementById('spacedResultMessage').innerHTML = `✗ 错误！正确答案：${correctAnswer}。已重置，明天再复习。`;
+                    showSpacedExample(item);
                     document.getElementById('spacedWrongActionBar').style.display = 'none';
                     s.pendingAction = null;
                 }
@@ -2164,7 +2334,11 @@
                     }
                     const userAnswer = document.getElementById('spacedAnswerInput').value.trim();
                     if (!userAnswer) return;
-                    checkSpacedAnswer(userAnswer);
+                    if (s.answerState === 'multi') {
+                        handleSpacedMultiAnswer(userAnswer);
+                    } else {
+                        checkSpacedAnswer(userAnswer);
+                    } 
                 }
             });
             document.getElementById('importBook').addEventListener('change', updateImportUnits);

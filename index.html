@@ -30,7 +30,7 @@
         button.primary { background: #1e3c5c; color: white; }
         button.warning { background: #f5b342; color: #1e1e1e; }
         button.danger { background: #d9534f; color: white; }
-        button.text-btn { background: none; box-shadow: none; color: #5f738c; min-height: 44px; }
+        button.text-btn { background: none; box-shadow: none; color: #1e3c5c; min-height: 48px; font-size: 1.15rem; font-weight: 600; padding: 10px 12px 10px 0; }
         input,select,textarea { width: 100%; padding: 14px 16px; border: 1px solid #d9e1ec; border-radius: 14px; font-size: 1rem; margin: 8px 0; background: white; }
         textarea { border-radius: 16px; resize: vertical; }
         .flex-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -197,7 +197,7 @@
         .mine-card { display: block; width: 100%; text-align: left; background: #f7fafd; border: 1px solid #e2eaf3; border-radius: 16px; padding: 16px; margin-bottom: 10px; }
         .mine-card strong { display: block; font-size: 1.05rem; color: #1e3c5c; margin-bottom: 4px; }
         .mine-card span { font-size: 0.85rem; color: #7a8b9f; font-weight: 400; }
-        .page-back { background: none; box-shadow: none; color: #5f738c; padding: 8px 0; min-height: 40px; font-size: 0.95rem; }
+        .page-back { background: none; box-shadow: none; color: #1e3c5c; padding: 12px 8px 12px 0; min-height: 48px; font-size: 1.15rem; font-weight: 600; }
         .session-bar { display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: white; z-index: 11; padding: 0 0 8px; }
         .session-meta { font-size: 0.9rem; color: #5f738c; font-weight: 600; }
         #practiceSession { display: none; }
@@ -987,7 +987,13 @@
 
             function registerPwa() {
                 if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
-                navigator.serviceWorker.register('./sw.js').catch(err => console.warn('PWA 注册失败', err));
+                let reloading = false;
+                navigator.serviceWorker.addEventListener('controllerchange', function() {
+                    if (reloading) return;
+                    reloading = true;
+                    location.reload();
+                });
+                navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(err => console.warn('PWA 注册失败', err));
             }
 
             function recordStudy({ correct, review }) {

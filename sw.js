@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jp-study-v4';
+const CACHE_NAME = 'jp-study-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -21,12 +21,29 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request).then((res) => {
+  const req = event.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  const accept = req.headers.get('accept') || '';
+  const isHTML = req.mode === 'navigate' || accept.indexOf('text/html') !== -1 || /\/$|\.html$/i.test(url.pathname);
+
+  if (isHTML) {
+    event.respondWith(
+      fetch(req).then((res) => {
         const copy = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+        return res;
+      }).catch(() => caches.match(req).then((cached) => cached || caches.match('./index.html')))
+    );
+    return;
+  }
+
+  event.respondWith(
+    caches.match(req).then((cached) => {
+      if (cached) return cached;
+      return fetch(req).then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
         return res;
       });
     })

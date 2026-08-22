@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <meta name="theme-color" content="#1e3c5c">
+    <meta name="theme-color" content="#3b82f6">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="日语学习">
     <link rel="manifest" href="manifest.webmanifest">
@@ -15,6 +15,7 @@
     <style>
         * { box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
         html { -webkit-text-size-adjust: 100%; }
+        :root { --accent: #3b82f6; --ink: #1e293b; }
         body {
             background: #f4f7fb;
             margin: 0 auto;
@@ -23,15 +24,15 @@
             overscroll-behavior: none;
             padding: calc(10px + env(safe-area-inset-top, 0px)) 12px calc(78px + env(safe-area-inset-bottom, 0px));
         }
-        h1 { font-size: 1.35rem; margin: 0 0 12px; color: #1e3c5c; font-weight: 700; }
+        h1 { font-size: 1.35rem; margin: 0 0 12px; color: var(--ink); font-weight: 700; }
         .page { display: none; background: white; border-radius: 20px; padding: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.02); margin-bottom: 16px; }
         .page.active { display: block; }
-        button { background: #eef3f9; border: none; border-radius: 16px; padding: 12px 16px; font-size: 1rem; color: #1e3c5c; font-weight: 500; cursor: pointer; transition: 0.15s; min-height: 44px; touch-action: manipulation; }
+        button { background: #eef3f9; border: none; border-radius: 16px; padding: 12px 16px; font-size: 1rem; color: var(--ink); font-weight: 500; cursor: pointer; transition: 0.15s; min-height: 44px; touch-action: manipulation; }
         button:active { transform: scale(0.98); }
-        button.primary { background: #1e3c5c; color: white; }
+        button.primary { background: var(--accent); color: white; }
         button.warning { background: #f5b342; color: #1e1e1e; }
         button.danger { background: #d9534f; color: white; }
-        button.text-btn { background: none; box-shadow: none; color: #1e3c5c; min-height: 56px; font-size: 1.35rem; font-weight: 700; padding: 12px 16px 12px 4px; }
+        button.text-btn { background: none; box-shadow: none; color: var(--ink); min-height: 56px; font-size: 1.35rem; font-weight: 700; padding: 12px 16px 12px 4px; }
         input,select,textarea { width: 100%; padding: 14px 16px; border: 1px solid #d9e1ec; border-radius: 14px; font-size: 1rem; margin: 8px 0; background: white; }
         textarea { border-radius: 16px; resize: vertical; }
         .flex-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -41,28 +42,28 @@
             font-weight: 700;
             text-align: center;
             margin: 16px 0 8px;
-            color: #11324d;
+            color: var(--ink);
             line-height: 1.35;
             word-break: break-word;
         }
         @media (min-width: 400px) { .word-display { font-size: 2.2rem; } }
         .word-display .type-badge { display: inline-block; margin: 8px 0 0; font-family: system-ui, sans-serif; }
-        .type-badge { font-size: 0.85rem; font-weight: 500; background: #cfe2ff; color: #0d47a1; padding: 2px 10px; border-radius: 8px; margin-left: 8px; vertical-align: middle; }
+        .type-badge { font-size: 0.85rem; font-weight: 500; background: #dbeafe; color: #1d4ed8; padding: 2px 10px; border-radius: 8px; margin-left: 8px; vertical-align: middle; }
         .type-badge.他 { background: #ffd6d6; color: #a10d0d; }
         .result-badge { text-align: center; padding: 12px; border-radius: 14px; font-size: 1.15rem; font-weight: 600; margin: 12px 0; word-break: break-word; overflow-wrap: anywhere; white-space: normal; }
         .correct { background: #e1f7e3; color: #1e7a44; }
         .wrong { background: #ffe9e9; color: #b33; }
         .progress-bar { height: 8px; background: #e2eaf3; border-radius: 8px; overflow: hidden; margin: 10px 0 14px; }
-        .progress-fill { height: 100%; background: #1e3c5c; width: 0%; transition: 0.2s; }
+        .progress-fill { height: 100%; background: var(--accent); width: 0%; transition: 0.2s; }
         .stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin: 12px 0; }
         .stat-card { background: #f2f6fc; border-radius: 16px; padding: 12px 6px; text-align: center; }
-        .stat-num { font-size: 1.5rem; font-weight: 700; color: #1e3c5c; }
+        .stat-num { font-size: 1.5rem; font-weight: 700; color: var(--ink); }
         .deck-card { background: #f6faff; border-radius: 16px; padding: 14px; border: 1px solid #dbe4f0; margin-bottom: 12px; cursor: pointer; }
         .deck-title { font-size: 1.15rem; font-weight: 600; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
         .deck-meta { color: #5f738c; font-size: 0.9rem; }
         #library.page { background: transparent; box-shadow: none; padding: 4px 0 8px; border-radius: 0; }
         .lib-search { display: flex; gap: 8px; align-items: center; background: #fff; border-radius: 14px; padding: 6px 8px 6px 12px; margin-bottom: 8px; border: 1px solid #e8eef5; }
-        .lib-search select { width: auto; margin: 0; padding: 10px 8px; border: none; background: transparent; font-weight: 600; color: #1e3c5c; flex: 0 0 auto; }
+        .lib-search select { width: auto; margin: 0; padding: 10px 8px; border: none; background: transparent; font-weight: 600; color: var(--ink); flex: 0 0 auto; }
         .lib-search input { margin: 0; border: none; padding: 10px 8px; background: transparent; flex: 1; min-width: 0; }
         .lib-search input:focus, .lib-search select:focus { outline: none; }
         .lib-section-label { font-size: 0.78rem; font-weight: 600; color: #8a97a8; letter-spacing: 0.06em; margin: 18px 12px 8px; }
@@ -70,17 +71,17 @@
         .lib-book + .lib-book { border-top: 1px solid #eef2f7; }
         .lib-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; min-height: 56px; background: none; border: none; border-radius: 0; box-shadow: none; text-align: left; cursor: pointer; }
         .lib-row:active { background: #f4f7fb; }
-        .lib-book-mark { width: 36px; height: 36px; border-radius: 10px; background: #1e3c5c; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; font-weight: 700; flex-shrink: 0; font-family: "Hiragino Sans", "Noto Sans JP", sans-serif; }
-        .lib-book-mark.grammar { background: #3d5a73; }
+        .lib-book-mark { width: 36px; height: 36px; border-radius: 10px; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; font-weight: 700; flex-shrink: 0; font-family: "Hiragino Sans", "Noto Sans JP", sans-serif; }
+        .lib-book-mark.grammar { background: #60a5fa; }
         .lib-row-main { flex: 1; min-width: 0; }
-        .lib-row-title { font-size: 1.02rem; font-weight: 600; color: #1e3c5c; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .lib-row-title { font-size: 1.02rem; font-weight: 600; color: var(--ink); line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .lib-row-sub { font-size: 0.78rem; color: #8a97a8; margin-top: 3px; }
         .lib-row-actions { display: flex; gap: 2px; flex-shrink: 0; }
         .lib-link { background: none; box-shadow: none; color: #5f738c; min-height: 36px; padding: 4px 8px; font-size: 0.82rem; font-weight: 500; }
         .lib-link.danger { background: none; color: #c45c5c; }
         .lib-chevron { color: #c5ced8; font-size: 1.4rem; line-height: 1; margin-left: 2px; transition: transform 0.2s; flex-shrink: 0; }
         .lib-chevron.open { transform: rotate(90deg); }
-        .lib-add-row { color: #1e3c5c; font-weight: 600; border-top: 1px solid #eef2f7; min-height: 48px; justify-content: flex-start; }
+        .lib-add-row { color: var(--ink); font-weight: 600; border-top: 1px solid #eef2f7; min-height: 48px; justify-content: flex-start; }
         .lib-empty { padding: 18px 16px; color: #8a97a8; font-size: 0.92rem; }
         .lib-unit-row { padding-left: 62px; min-height: 48px; background: #fafcfe; border-top: 1px solid #eef2f7; }
         .lib-unit-row .lib-row-title { font-size: 0.95rem; font-weight: 600; }
@@ -99,7 +100,7 @@
         .item-card .ex-jp { font-size: 0.95rem; font-weight: 600; }
         .item-card .ex-cn { font-size: 0.85rem; }
         .sync-step { background: #f2f6fc; border-radius: 16px; padding: 16px; margin: 18px 0; }
-        .sync-step h4 { margin: 0 0 12px; color: #1e3c5c; }
+        .sync-step h4 { margin: 0 0 12px; color: var(--ink); }
         .sync-text-toggle { background: none; box-shadow: none; color: #5f738c; min-height: 44px; padding: 8px 4px; font-size: 0.9rem; width: auto; }
         #syncNowBtn { width: 100%; margin-top: 12px; }
         #syncAdvanced button, #syncSetupPanel .sync-step button.block { width: 100%; margin: 8px 0; }
@@ -110,25 +111,25 @@
         .tiny-note { font-size: 0.8rem; color: #7a8b9f; margin-top: 5px; }
         .search-box { margin: 15px 0; }
         .word-table { width: 100%; border-collapse: collapse; }
-        .word-table th { background: #1e3c5c; color: white; padding: 12px; }
+        .word-table th { background: var(--accent); color: white; padding: 12px; }
         .word-table td { padding: 12px; border-bottom: 1px solid #e2eaf3; }
         .item-card { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; background: #f7fafd; border: 1px solid #e2eaf3; border-radius: 14px; padding: 12px; margin-bottom: 8px; }
         .item-card-body { flex: 1; min-width: 0; }
-        .item-jp { font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif; font-size: 1.15rem; font-weight: 700; color: #11324d; word-break: break-word; }
+        .item-jp { font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif; font-size: 1.15rem; font-weight: 700; color: var(--ink); word-break: break-word; }
         .item-cn { color: #5f738c; margin-top: 4px; word-break: break-word; }
         .item-meta { font-size: 0.8rem; color: #7a8b9f; margin-top: 6px; }
         .item-card-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
         .wrong-count-badge { background: #d9534f; color: white; border-radius: 40px; padding: 3px 10px; font-size: 0.8rem; margin-left: 6px; }
         .btn-sm { padding: 8px 12px; font-size: 0.85rem; margin: 0; min-height: 40px; }
-        #backToTop { position: fixed; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); right: 16px; background: #1e3c5c; color: white; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; cursor: pointer; border: none; z-index: 90; min-height: 44px; }
-        .answer-preview { font-size: 1.1rem; margin: 10px 0; padding: 8px 14px; background: #f2f6fc; border-radius: 12px; word-break: break-all; text-align: center; color: #1e3c5c; }
+        #backToTop { position: fixed; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); right: 16px; background: var(--accent); color: white; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; cursor: pointer; border: none; z-index: 90; min-height: 44px; }
+        .answer-preview { font-size: 1.1rem; margin: 10px 0; padding: 8px 14px; background: #f2f6fc; border-radius: 12px; word-break: break-all; text-align: center; color: var(--ink); }
         .preview-label { color: #7a8b9f; font-size: 0.85rem; }
         .checkbox-group { display: flex; flex-wrap: wrap; gap: 12px; background: #f8f9fc; padding: 12px; border-radius: 12px; margin: 10px 0; }
         .checkbox-group label { display: flex; align-items: center; gap: 5px; font-size: 0.95rem; min-height: 44px; }
-        .example-box { background: #eef3f9; border-radius: 14px; padding: 14px 16px; margin: 10px 0; font-size: 1.05rem; text-align: left; color: #11324d; animation: slideIn 0.3s ease-out; word-break: break-word; overflow-wrap: anywhere; white-space: normal; }
+        .example-box { background: #eef3f9; border-radius: 14px; padding: 14px 16px; margin: 10px 0; font-size: 1.05rem; text-align: left; color: var(--ink); animation: slideIn 0.3s ease-out; word-break: break-word; overflow-wrap: anywhere; white-space: normal; }
         .example-box span { background: white; padding: 2px 8px; border-radius: 8px; margin: 0 4px; }
         .ex-block + .ex-block { margin-top: 12px; padding-top: 12px; border-top: 1px solid #dce6f0; }
-        .ex-jp { font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif; font-size: 1.08rem; font-weight: 600; line-height: 1.55; color: #11324d; }
+        .ex-jp { font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif; font-size: 1.08rem; font-weight: 600; line-height: 1.55; color: var(--ink); }
         .ex-cn { margin-top: 6px; font-size: 0.95rem; color: #5f738c; line-height: 1.5; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         @media (prefers-reduced-motion: reduce) { .example-box { animation: none; } }
@@ -137,7 +138,7 @@
         .sheet-group { background: #fafcfe; border: 1px solid #e8eef5; border-radius: 14px; overflow: hidden; margin-bottom: 12px; }
         .sheet-row { display: flex; align-items: center; gap: 10px; padding: 2px 12px; min-height: 52px; border-bottom: 1px solid #eef2f7; }
         .sheet-row:last-child { border-bottom: none; }
-        .sheet-row-label { flex: 0 0 64px; font-size: 0.95rem; font-weight: 600; color: #1e3c5c; }
+        .sheet-row-label { flex: 0 0 64px; font-size: 0.95rem; font-weight: 600; color: var(--ink); }
         .sheet-row select, .sheet-row input { margin: 0; flex: 1; min-width: 0; border: none; background: transparent; padding: 12px 4px; }
         .sheet-row select:focus, .sheet-row input:focus { outline: none; }
         .sheet-seg { flex: 1; display: flex; gap: 4px; background: #f0f4f9; border-radius: 10px; padding: 3px; }
@@ -145,10 +146,20 @@
         .sheet-stat-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #eef2f7; min-height: 52px; }
         .sheet-stat-row:last-child { border-bottom: none; }
         .sheet-stat-k { color: #5f738c; font-size: 0.92rem; }
-        .sheet-stat-v { font-size: 1.25rem; font-weight: 700; color: #1e3c5c; }
+        .sheet-stat-v { font-size: 1.25rem; font-weight: 700; color: var(--ink); }
         .sheet-group .checkbox-group { background: none; padding: 0; margin: 0; display: block; border-radius: 0; }
         .sheet-group .checkbox-group label { padding: 12px 14px; border-bottom: 1px solid #eef2f7; margin: 0; border-radius: 0; }
         .sheet-group .checkbox-group label:last-child { border-bottom: none; }
+        .path-block { cursor: pointer; }
+        .path-block.active { border-color: var(--accent); }
+        .book-pick-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; min-height: 48px; background: none; border: none; border-radius: 0; box-shadow: none; text-align: left; color: var(--ink); }
+        .book-pick-row + .book-pick-row { border-top: 1px solid #eef2f7; }
+        .book-pick-row.selected { background: #eff6ff; }
+        .book-pick-check { width: 18px; height: 18px; border-radius: 4px; border: 1.5px solid #cbd5e1; flex-shrink: 0; }
+        .book-pick-row.selected .book-pick-check { background: var(--accent); border-color: var(--accent); }
+        .book-pick-name { flex: 1; min-width: 0; font-size: 0.95rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .book-pick-meta { font-size: 0.78rem; color: #8a97a8; flex-shrink: 0; }
+        .path-hint { padding: 14px 16px; color: #5f738c; font-size: 0.92rem; min-height: 52px; display: flex; align-items: center; }
         #practiceSetup .sub-tab-bar, #spacedSetup > .sub-tab-bar { margin-bottom: 4px; }
         #fixedInputArea, #spacedFixedInputArea {
             position: fixed;
@@ -185,26 +196,26 @@
         .answer-list { font-size: 1.05rem; background: #f8f9fc; border-radius: 14px; padding: 12px; margin: 10px 0; word-break: break-word; overflow-wrap: anywhere; }
         #wrongActionBar button, #spacedWrongActionBar button { flex: 1; }
         .module-card { background: #ffffff; border-radius: 16px; padding: 16px; margin-bottom: 16px; border: 1px solid #eef2f7; }
-        .module-card h3 { margin-top: 0; color: #1e3c5c; font-size: 1.05rem; }
+        .module-card h3 { margin-top: 0; color: var(--ink); font-size: 1.05rem; }
         .grammar-module-bg { background-color: #eef2f8; }
         .sub-tab-bar { display: flex; gap: 6px; margin-bottom: 12px; background: #f0f4f9; border-radius: 14px; padding: 4px; }
         .sub-tab-btn { flex: 1; padding: 10px 8px; background: none; border: none; border-radius: 12px; font-size: 0.9rem; color: #4a5f73; cursor: pointer; min-height: 44px; }
-        .sub-tab-btn.active { background: #1e3c5c; color: white; }
+        .sub-tab-btn.active { background: var(--accent); color: white; }
         .wrong-tab-bar { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
-        .wrong-tab-btn { flex: 1; padding: 10px 8px; border: none; border-radius: 12px; background: #eef3f9; color: #1e3c5c; cursor: pointer; font-weight: 500; min-height: 44px; }
-        .wrong-tab-btn.active { background: #1e3c5c; color: white; }
+        .wrong-tab-btn { flex: 1; padding: 10px 8px; border: none; border-radius: 12px; background: #eef3f9; color: var(--ink); cursor: pointer; font-weight: 500; min-height: 44px; }
+        .wrong-tab-btn.active { background: var(--accent); color: white; }
         .wrong-direction-bar { display: flex; gap: 6px; margin-bottom: 10px; background: #f8f9fc; border-radius: 12px; padding: 4px; }
         .wrong-direction-btn { flex: 1; padding: 10px 8px; border: none; border-radius: 10px; background: none; color: #4a5f73; cursor: pointer; font-size: 0.9rem; font-weight: 500; min-height: 44px; }
-        .wrong-direction-btn.active { background: #1e3c5c; color: white; }
+        .wrong-direction-btn.active { background: var(--accent); color: white; }
         .verb-sub-tab-bar { display: none; gap: 6px; margin-bottom: 10px; }
         .verb-sub-tab-bar.show { display: flex; }
-        .verb-sub-tab-btn { flex: 1; padding: 10px 8px; border: none; border-radius: 12px; background: #e8ecf3; color: #1e3c5c; cursor: pointer; font-size: 0.85rem; font-weight: 500; min-height: 44px; }
+        .verb-sub-tab-btn { flex: 1; padding: 10px 8px; border: none; border-radius: 12px; background: #e8ecf3; color: var(--ink); cursor: pointer; font-size: 0.85rem; font-weight: 500; min-height: 44px; }
         .verb-sub-tab-btn.active { background: #f5b342; color: #1e1e1e; }
         .practice-verb-sub-bar { display: none; gap: 6px; margin: 10px 0; background: #f0f4f9; border-radius: 14px; padding: 4px; }
         .practice-verb-sub-bar.show { display: flex; }
         .practice-verb-sub-btn { flex: 1; padding: 10px 8px; background: none; border: none; border-radius: 12px; font-size: 0.9rem; color: #4a5f73; cursor: pointer; min-height: 44px; }
-        .practice-verb-sub-btn.active { background: #1e3c5c; color: white; }
-        .sync-info-box { background: #f8f9fc; border-radius: 14px; padding: 12px; margin: 10px 0; font-size: 0.9rem; color: #1e3c5c; border: 1px solid #e2eaf3; }
+        .practice-verb-sub-btn.active { background: var(--accent); color: white; }
+        .sync-info-box { background: #f8f9fc; border-radius: 14px; padding: 12px; margin: 10px 0; font-size: 0.9rem; color: var(--ink); border: 1px solid #e2eaf3; }
         .spaced-stats { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 12px 0 4px; }
         @media (min-width: 560px) { .spaced-stats { grid-template-columns: 1fr 1fr; } }
         .spaced-card { background: #fafcfe; border: 1px solid #e8eef5; border-radius: 16px; padding: 16px; text-align: left; }
@@ -213,15 +224,15 @@
         .board-metrics > div { background: #fff; border-radius: 12px; padding: 12px 8px; text-align: center; }
         .board-cap { font-size: 0.78rem; color: #8a97a8; margin-top: 2px; }
         .spaced-word-list { max-height: 400px; overflow-y: auto; margin: 15px 0; -webkit-overflow-scrolling: touch; }
-        .spaced-badge { font-size: 0.8rem; background: #cfe2ff; color: #0d47a1; padding: 2px 8px; border-radius: 8px; margin-left: 6px; }
+        .spaced-badge { font-size: 0.8rem; background: #dbeafe; color: #1d4ed8; padding: 2px 8px; border-radius: 8px; margin-left: 6px; }
         .spaced-badge.mastered { background: #d4edda; color: #155724; }
         .spaced-action-row { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
         .edit-overlay { display: none; position: fixed; inset: 0; background: rgba(17,32,48,0.45); z-index: 2000; align-items: flex-end; justify-content: center; padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px)); }
         .edit-overlay.show { display: flex; }
         .edit-panel { background: white; width: 100%; max-width: 800px; border-radius: 20px 20px 16px 16px; padding: 18px 18px 24px; max-height: 88vh; overflow-y: auto; box-shadow: 0 -8px 30px rgba(0,0,0,0.15); }
-        .edit-panel h3 { margin: 0 0 12px; color: #1e3c5c; }
+        .edit-panel h3 { margin: 0 0 12px; color: var(--ink); }
         .edit-panel label { display: block; font-size: 0.85rem; color: #5f738c; margin: 8px 0 0; }
-        .toast { position: fixed; left: 50%; bottom: calc(86px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: #1e3c5c; color: white; padding: 12px 16px; border-radius: 16px; z-index: 2100; display: none; align-items: center; gap: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.2); max-width: 92%; }
+        .toast { position: fixed; left: 50%; bottom: calc(86px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--accent); color: white; padding: 12px 16px; border-radius: 16px; z-index: 2100; display: none; align-items: center; gap: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.2); max-width: 92%; }
         .toast.show { display: flex; }
         .toast button { background: #f5b342; color: #1e1e1e; padding: 8px 14px; font-size: 0.9rem; }
         .grade-bar { display: none; gap: 6px; margin-top: 8px; flex-wrap: nowrap; }
@@ -260,10 +271,10 @@
             font-weight: 500;
             line-height: 1.2;
         }
-        .nav-item.active { color: #1e3c5c; background: none; }
+        .nav-item.active { color: var(--accent); background: none; }
         .nav-item svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
         .mine-card { display: block; width: 100%; text-align: left; background: #f7fafd; border: 1px solid #e2eaf3; border-radius: 16px; padding: 16px; margin-bottom: 10px; }
-        .mine-card strong { display: block; font-size: 1.05rem; color: #1e3c5c; margin-bottom: 4px; }
+        .mine-card strong { display: block; font-size: 1.05rem; color: var(--ink); margin-bottom: 4px; }
         .mine-card span { font-size: 0.85rem; color: #7a8b9f; font-weight: 400; }
         .page-back {
             position: sticky;
@@ -278,7 +289,7 @@
             font-size: 1.35rem;
             font-weight: 700;
             background: #fff;
-            color: #1e3c5c;
+            color: var(--ink);
             box-shadow: none;
         }
         .session-bar {
@@ -348,13 +359,11 @@
                 </div>
             </div>
             <div class="sheet-row">
-                <span class="sheet-row-label">模式</span>
+                <span class="sheet-row-label">内容</span>
                 <select id="practiceMode" onchange="updateModeUI()">
-                    <option value="unit">单元练习</option>
-                    <option value="review">书本汇总</option>
-                    <option value="verbJudge">动词练习</option>
-                    <option value="wrong">单元错题</option>
-                    <option value="summaryWrong">汇总错题</option>
+                    <option value="normal">标准</option>
+                    <option value="verbJudge">动词</option>
+                    <option value="wrong">错题</option>
                     <option value="verbWrong">动词错题</option>
                 </select>
             </div>
@@ -372,31 +381,26 @@
                 <button onclick="applyCustomCount()" class="lib-link">应用</button>
             </div>
         </div>
-        <div id="bookUnitSelector" style="display:none;">
-            <div class="sheet-label">课本</div>
-            <div class="sheet-group">
-                <div id="unitSelectRow" style="display:none;">
+        <div id="practicePathArea">
+            <div class="sheet-label" id="unitPathLabel">按单元练习</div>
+            <div id="unitPathBlock" class="sheet-group path-block active" onclick="setPracticePath('unit')">
+                <div id="unitSelectRow">
                     <div class="sheet-row">
                         <span class="sheet-row-label">书本</span>
-                        <select id="bookSelect" onchange="loadUnitsForBook()"><option value="">选择书本</option></select>
+                        <select id="bookSelect" onchange="loadUnitsForBook(); setPracticePath('unit')"><option value="">选择书本</option></select>
                     </div>
                     <div class="sheet-row">
                         <span class="sheet-row-label">单元</span>
-                        <select id="unitSelect"><option value="">选择单元</option></select>
+                        <select id="unitSelect" onchange="setPracticePath('unit')"><option value="">选择单元</option></select>
                     </div>
                 </div>
-                <div id="bookMultiRow" style="display:none;">
-                    <div id="bookMultiSelect"></div>
-                </div>
+                <div id="unitWrongHint" class="path-hint" style="display:none;">开始后练单元错题</div>
             </div>
-        </div>
-        <div id="practiceVerbSubBar" class="practice-verb-sub-bar">
-            <button class="practice-verb-sub-btn active" onclick="switchPracticeVerbSub('verbUnit')" id="practiceVerbUnitBtn">单元动词错题</button>
-            <button class="practice-verb-sub-btn" onclick="switchPracticeVerbSub('verbSummary')" id="practiceVerbSummaryBtn">汇总动词错题</button>
-        </div>
-        <div id="practiceWrongSubBar" class="practice-verb-sub-bar">
-            <button class="practice-verb-sub-btn active" onclick="switchPracticeWrongSub('unit')" id="practiceWrongUnitBtn">单元错题</button>
-            <button class="practice-verb-sub-btn" onclick="switchPracticeWrongSub('summary')" id="practiceWrongSummaryBtn">汇总错题</button>
+            <div class="sheet-label" id="bookPathLabel">按书本练习</div>
+            <div id="bookPathBlock" class="sheet-group path-block" onclick="setPracticePath('book')">
+                <div id="bookMultiSelect"></div>
+                <div id="bookWrongHint" class="path-hint" style="display:none;">开始后练汇总错题</div>
+            </div>
         </div>
         <button class="primary" style="width:100%;" onclick="startPractice()">开始练习</button>
         </div>
@@ -757,7 +761,9 @@
                     verbSubTab: 'verbUnit',   
                     grammarDirection: 'jp2cn',
                     wordDirection: 'cn2jp',
-                    mode: 'unit',
+                    mode: 'normal',
+                    path: 'unit',
+                    selectedBookIds: [],
                     multiAnswers: [],
                     pendingWrong: null,
                     currentItem: null,
@@ -1648,27 +1654,27 @@
 
             function getWrongListIdForCurrentPractice() {
                 const { practice: p } = state;
+                const fromBook = p.path === 'book';
                 if (p.category === 'grammar') {
                     if (p.mode === 'wrong') {
-                        if (p.wrongSubTab === 'unit') return p.grammarDirection === 'cn2jp' ? 'grammarUnitCnJp' : 'grammarUnitJpCn';
-                        else return p.grammarDirection === 'cn2jp' ? 'grammarSummaryCnJp' : 'grammarSummaryJpCn';
+                        if (p.wrongSubTab === 'summary' || fromBook) return p.grammarDirection === 'cn2jp' ? 'grammarSummaryCnJp' : 'grammarSummaryJpCn';
+                        return p.grammarDirection === 'cn2jp' ? 'grammarUnitCnJp' : 'grammarUnitJpCn';
                     }
-                    return p.grammarDirection === 'cn2jp' ? 'grammarUnitCnJp' : 'grammarUnitJpCn';
+                    return fromBook
+                        ? (p.grammarDirection === 'cn2jp' ? 'grammarSummaryCnJp' : 'grammarSummaryJpCn')
+                        : (p.grammarDirection === 'cn2jp' ? 'grammarUnitCnJp' : 'grammarUnitJpCn');
                 }
-                if (p.mode === 'verbWrong') {
-                    return p.verbSubTab === 'verbUnit' ? 'verbUnit' : 'verbSummary';
+                if (p.mode === 'verbWrong' || p.mode === 'verbJudge' || p.verbMode) {
+                    return (p.verbSubTab === 'verbSummary' || fromBook) ? 'verbSummary' : 'verbUnit';
                 }
                 if (p.mode === 'wrong') {
-                    // 单词常规错题
                     if (p.wordDirection === 'cn2jp') {
-                        return p.wrongSubTab === 'unit' ? 'wordUnitCnJp' : 'wordSummaryCnJp';
-                    } else {
-                        return p.wrongSubTab === 'unit' ? 'wordUnitJpCn' : 'wordSummaryJpCn';
+                        return (p.wrongSubTab === 'summary' || fromBook) ? 'wordSummaryCnJp' : 'wordUnitCnJp';
                     }
+                    return (p.wrongSubTab === 'summary' || fromBook) ? 'wordSummaryJpCn' : 'wordUnitJpCn';
                 }
-                // 其他模式（常规练习、动词练习等）默认单元错题
-                if (p.wordDirection === 'cn2jp') return 'wordUnitCnJp';
-                else return 'wordUnitJpCn';
+                if (fromBook) return p.wordDirection === 'cn2jp' ? 'wordSummaryCnJp' : 'wordSummaryJpCn';
+                return p.wordDirection === 'cn2jp' ? 'wordUnitCnJp' : 'wordUnitJpCn';
             }
 
             function addToWrongList(word) {
@@ -2115,22 +2121,27 @@
             window.updatePracticeCategory = function() {
                 const modeSel = document.getElementById('practiceMode');
                 const p = state.practice;
-                const oldMode = modeSel.value;   // 记住之前选的模式
-                if (p.category === 'grammar') {
-                    modeSel.innerHTML = `<option value="normal">📚 日常练习</option><option value="wrong">📌 错题重练</option>`;
-                } else { // 单词
-                    if (p.wordDirection === 'cn2jp') {
-                        modeSel.innerHTML = `<option value="normal">📚 标准练习</option><option value="verbJudge">⚡ 动词练习</option><option value="wrong">📌 标准错题</option><option value="verbWrong">📝 动词错题</option>`;
-                    } else { // 日→中
-                        modeSel.innerHTML = `<option value="normal">📚 日常练习</option><option value="wrong">📌 错题重练</option>`;
-                    }
+                let oldMode = modeSel.value;
+                if (oldMode === 'unit' || oldMode === 'review') oldMode = 'normal';
+                if (oldMode === 'summaryWrong') {
+                    oldMode = 'wrong';
+                    p.path = 'book';
                 }
-                // 如果之前的模式在新列表中还存在，就保持；否则回退到第一个
+                if (p.category === 'grammar') {
+                    modeSel.innerHTML = `<option value="normal">标准</option><option value="wrong">错题</option>`;
+                } else if (p.wordDirection === 'cn2jp') {
+                    modeSel.innerHTML = `<option value="normal">标准</option><option value="verbJudge">动词</option><option value="wrong">错题</option><option value="verbWrong">动词错题</option>`;
+                } else {
+                    modeSel.innerHTML = `<option value="normal">标准</option><option value="wrong">错题</option>`;
+                }
                 if ([...modeSel.options].some(opt => opt.value === oldMode)) {
                     modeSel.value = oldMode;
                 } else {
                     modeSel.value = modeSel.options[0].value;
                 }
+                const bookCat = p.category === 'grammar' ? 'grammar' : 'word';
+                const validBooks = new Set(state.decks.filter(d => d.type === 'book' && d.category === bookCat).map(d => String(d.id)));
+                p.selectedBookIds = (p.selectedBookIds || []).filter(id => validBooks.has(String(id)));
                 fillAllSelects();
                 updateModeUI();
             };
@@ -2170,8 +2181,10 @@
                 const grammarBooks = state.decks.filter(d => d.type === 'book' && d.category === 'grammar');
                 const bookSelect = document.getElementById('bookSelect');
                 if (bookSelect) {
+                    const prevBook = bookSelect.value;
                     const books = state.practice.category === 'grammar' ? grammarBooks : wordBooks;
                     bookSelect.innerHTML = '<option value="">选择书本</option>' + books.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+                    if ([...bookSelect.options].some(o => o.value === prevBook)) bookSelect.value = prevBook;
                 }
                 const wSel = document.getElementById('wordUnitBookSelect');
                 if (wSel) wSel.innerHTML = '<option value="">选择所属书本</option>' + wordBooks.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
@@ -2182,19 +2195,77 @@
                 renderBookMultiSelect();
             }
 
+            function escapeHtml(s) {
+                return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+            }
+
             function renderBookMultiSelect() {
                 const c = document.getElementById('bookMultiSelect');
                 if (!c) return;
-                const books = state.practice.category === 'grammar' ? state.decks.filter(d => d.type === 'book' && d.category === 'grammar') : state.decks.filter(d => d.type === 'book' && d.category === 'word');
-                c.innerHTML = books.length === 0 ? '<p>暂无书本</p>' : '<div class="checkbox-group">' + books.map(b => `<label><input type="checkbox" value="${b.id}" class="book-check"> ${b.name}</label>`).join('') + '</div>';
+                const books = state.practice.category === 'grammar'
+                    ? state.decks.filter(d => d.type === 'book' && d.category === 'grammar')
+                    : state.decks.filter(d => d.type === 'book' && d.category === 'word');
+                const selected = new Set((state.practice.selectedBookIds || []).map(String));
+                if (!books.length) {
+                    c.innerHTML = '<div class="lib-empty">暂无书本</div>';
+                    return;
+                }
+                c.innerHTML = books.map(b => {
+                    const on = selected.has(String(b.id));
+                    const units = state.decks.filter(d => d.type === 'unit' && String(d.parentId) === String(b.id)).length;
+                    return `<button type="button" class="book-pick-row${on ? ' selected' : ''}" data-book-id="${escapeHtml(String(b.id))}"><span class="book-pick-check"></span><span class="book-pick-name">${escapeHtml(b.name)}</span><span class="book-pick-meta">${units} 单元</span></button>`;
+                }).join('');
+                c.querySelectorAll('.book-pick-row').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        togglePracticeBook(btn.getAttribute('data-book-id'));
+                    });
+                });
+            }
+
+            window.togglePracticeBook = function(id) {
+                const sid = String(id);
+                const cur = (state.practice.selectedBookIds || []).map(String);
+                const i = cur.indexOf(sid);
+                if (i >= 0) cur.splice(i, 1);
+                else cur.push(sid);
+                state.practice.selectedBookIds = cur;
+                setPracticePath('book');
+                renderBookMultiSelect();
+            };
+
+            window.setPracticePath = function(path) {
+                state.practice.path = path === 'book' ? 'book' : 'unit';
+                if (state.practice.path === 'book') {
+                    state.practice.wrongSubTab = 'summary';
+                    state.practice.verbSubTab = 'verbSummary';
+                } else {
+                    state.practice.wrongSubTab = 'unit';
+                    state.practice.verbSubTab = 'verbUnit';
+                }
+                updatePathBlockUI();
+            };
+
+            function updatePathBlockUI() {
+                const path = state.practice.path === 'book' ? 'book' : 'unit';
+                const unitBlock = document.getElementById('unitPathBlock');
+                const bookBlock = document.getElementById('bookPathBlock');
+                if (unitBlock) unitBlock.classList.toggle('active', path === 'unit');
+                if (bookBlock) bookBlock.classList.toggle('active', path === 'book');
+                const unitLabel = document.getElementById('unitPathLabel');
+                const bookLabel = document.getElementById('bookPathLabel');
+                if (unitLabel) unitLabel.textContent = path === 'unit' ? '按单元练习 · 当前入口' : '按单元练习';
+                if (bookLabel) bookLabel.textContent = path === 'book' ? '按书本练习 · 当前入口' : '按书本练习';
             }
 
             window.loadUnitsForBook = function() {
                 const bookId = document.getElementById('bookSelect')?.value;
                 const sel = document.getElementById('unitSelect');
                 if (!sel) return;
+                const prev = sel.value;
                 const units = state.decks.filter(d => d.type === 'unit' && d.parentId == bookId);
                 sel.innerHTML = '<option value="">选择单元</option>' + units.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+                if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
             };
 
             window.updateImportCategory = function() {
@@ -2390,83 +2461,87 @@
             };
 
             window.startPracticeFromWrong = function() {
+                let targetMode = 'wrong';
+                let targetPath = 'unit';
                 if (state.wrongUI.category === 'grammar') {
                     setPracticeCategory('grammar');
-                    document.getElementById('practiceMode').value = state.wrongUI.currentTab === 'grammarUnit' ? 'wrong' : 'summaryWrong';
                     setGrammarDirection(state.wrongUI.grammarDirection);
+                    targetMode = 'wrong';
+                    targetPath = state.wrongUI.currentTab === 'grammarUnit' ? 'unit' : 'book';
                 } else {
                     setPracticeCategory('word');
                     if (state.wrongUI.wordDirection === 'cn2jp') {
-                        if (state.wrongUI.currentTab === 'unit') document.getElementById('practiceMode').value = 'wrong';
-                        else if (state.wrongUI.currentTab === 'summary') document.getElementById('practiceMode').value = 'summaryWrong';
-                        else if (state.wrongUI.currentTab === 'verb') { document.getElementById('practiceMode').value = 'verbWrong'; state.practice.verbSubTab = state.wrongUI.verbSubTab; switchPracticeVerbSub(state.wrongUI.verbSubTab); }
+                        if (state.wrongUI.currentTab === 'verb') {
+                            targetMode = 'verbWrong';
+                            targetPath = state.wrongUI.verbSubTab === 'verbSummary' ? 'book' : 'unit';
+                        } else {
+                            targetMode = 'wrong';
+                            targetPath = state.wrongUI.currentTab === 'summary' ? 'book' : 'unit';
+                        }
                         setWordDirection('cn2jp');
                     } else {
-                        document.getElementById('practiceMode').value = state.wrongUI.currentTab === 'unit' ? 'wrong' : 'summaryWrong';
+                        targetMode = 'wrong';
+                        targetPath = state.wrongUI.currentTab === 'summary' ? 'book' : 'unit';
                         setWordDirection('jp2cn');
                     }
                 }
                 updatePracticeCategory();
+                document.getElementById('practiceMode').value = targetMode;
+                setPracticePath(targetPath);
+                updateModeUI();
                 showPage('practice');
                 startPractice();
             };
 
             window.updateModeUI = function() {
                 const mode = document.getElementById('practiceMode').value;
+                const isWrong = mode === 'wrong' || mode === 'verbWrong';
                 const unitRow = document.getElementById('unitSelectRow');
-                const bookRow = document.getElementById('bookMultiRow');
-                const div = document.getElementById('bookUnitSelector');
-                const verbSubBar = document.getElementById('practiceVerbSubBar');
-                const wrongSubBar = document.getElementById('practiceWrongSubBar');
-
-                // 先全部隐藏
-                unitRow.style.display = 'none';
-                bookRow.style.display = 'none';
-                div.style.display = 'none';
-                verbSubBar.classList.remove('show');
-                wrongSubBar.classList.remove('show');
-
-                if (mode === 'unit' || mode === 'normal' || mode === 'verbJudge') {
-                    div.style.display = 'block';
-                    unitRow.style.display = 'block';
-                    if (mode !== 'unit') {
-                        bookRow.style.display = 'block';
-                        renderBookMultiSelect();
-                    }
-                } else if (mode === 'review') {
-                    div.style.display = 'block';
-                    bookRow.style.display = 'block';
-                    renderBookMultiSelect();
-                } else if (mode === 'wrong') {
-                    // 标准错题（单词中→日，或日→中，或语法）：显示错题子栏（单元/汇总）
-                    wrongSubBar.classList.add('show');
-                    // 初始化子栏按钮状态
-                    document.querySelectorAll('#practiceWrongSubBar .practice-verb-sub-btn').forEach(btn => {
-                              const isActive = (btn.id === 'practiceWrongUnitBtn' && state.practice.wrongSubTab === 'unit') ||
-                                                            (btn.id === 'practiceWrongSummaryBtn' && state.practice.wrongSubTab === 'summary');
-                               if (isActive) btn.classList.add('active');
-                               else btn.classList.remove('active');
-                      });
-                } else if (mode === 'verbWrong') {
-                    verbSubBar.classList.add('show');
-                    document.querySelectorAll('#practiceVerbSubBar .practice-verb-sub-btn').forEach(btn => {
-                        const isActive = (btn.id === 'practiceVerbUnitBtn' && state.practice.verbSubTab === 'verbUnit') ||
-                                         (btn.id === 'practiceVerbSummaryBtn' && state.practice.verbSubTab === 'verbSummary');
-                        if (isActive) btn.classList.add('active');
-                        else btn.classList.remove('active');
-                    });
+                const bookList = document.getElementById('bookMultiSelect');
+                const unitHint = document.getElementById('unitWrongHint');
+                const bookHint = document.getElementById('bookWrongHint');
+                if (unitRow) unitRow.style.display = isWrong ? 'none' : 'block';
+                if (bookList) bookList.style.display = isWrong ? 'none' : 'block';
+                if (unitHint) {
+                    unitHint.style.display = isWrong ? 'flex' : 'none';
+                    unitHint.textContent = mode === 'verbWrong' ? '开始后练单元动词错题' : '开始后练单元错题';
                 }
+                if (bookHint) {
+                    bookHint.style.display = isWrong ? 'flex' : 'none';
+                    bookHint.textContent = mode === 'verbWrong' ? '开始后练汇总动词错题' : '开始后练汇总错题';
+                }
+                if (!isWrong) renderBookMultiSelect();
+                updatePathBlockUI();
             };
 
             window.startPractice = function() {
-                const mode = document.getElementById('practiceMode').value;
+                let mode = document.getElementById('practiceMode').value;
                 const p = state.practice;
+                if (mode === 'unit' || mode === 'review') mode = 'normal';
+                if (mode === 'summaryWrong') {
+                    mode = 'wrong';
+                    p.path = 'book';
+                }
                 p.mode = mode;
                 p.category = state.practice.category;
+                p.path = p.path === 'book' ? 'book' : 'unit';
+                p.wrongSubTab = p.path === 'book' ? 'summary' : 'unit';
+                p.verbSubTab = p.path === 'book' ? 'verbSummary' : 'verbUnit';
                 p.verbMode = (p.category === 'word' && p.wordDirection === 'cn2jp' && (mode === 'verbJudge' || mode === 'verbWrong'));
 
                 let candidates = [];
                 p.words = null;
+
+                function vocabsFromSelectedBooks(pred) {
+                    const checked = (p.selectedBookIds || []).map(String);
+                    if (!checked.length) return { error: '请选择至少一本书' };
+                    const unitIds = [];
+                    checked.forEach(bid => {
+                        state.decks.filter(d => d.type === 'unit' && String(d.parentId) === String(bid)).forEach(u => unitIds.push(String(u.id)));
+                    });
+                    if (!unitIds.length) return { error: '所选书本下没有任何单元' };
+                    return { list: state.vocabs.filter(v => unitIds.includes(String(v.deckId)) && pred(v)) };
+                }
 
                 // 标准错题、动词错题、语法错题
                 if (mode === 'wrong' || mode === 'verbWrong') {
@@ -2534,36 +2609,16 @@
                         }
                         candidates = list.map(ww => findVocabByRef(ww)).filter(Boolean);
                     }
-                } else if (mode === 'normal' || mode === 'unit' || mode === 'review') {
-                    const unitId = document.getElementById('unitSelect').value;
-                    if (mode !== 'review' && unitId) {
-                        candidates = state.vocabs.filter(v => String(v.deckId) === String(unitId) && v.category === p.category);
-                    } else if (mode === 'unit' && !unitId) {
-                        alert('请选择单元'); return;
+                } else if (mode === 'normal' || mode === 'unit' || mode === 'review' || mode === 'verbJudge') {
+                    const pred = mode === 'verbJudge' ? isVerb : (v => v.category === p.category);
+                    if (p.path === 'unit') {
+                        const unitId = document.getElementById('unitSelect').value;
+                        if (!unitId) { alert('请选择单元'); return; }
+                        candidates = state.vocabs.filter(v => String(v.deckId) === String(unitId) && pred(v));
                     } else {
-                        const checked = Array.from(document.querySelectorAll('.book-check:checked')).map(cb => cb.value);
-                        if (!checked.length) { alert(mode === 'review' ? '请勾选至少一个书本' : '请选择一个单元或勾选至少一个书本'); return; }
-                        const unitIds = [];
-                        checked.forEach(bid => {
-                            state.decks.filter(d => d.type === 'unit' && String(d.parentId) === String(bid)).forEach(u => unitIds.push(String(u.id)));
-                        });
-                        if (unitIds.length === 0) { alert('所选书本下没有任何单元'); return; }
-                        candidates = state.vocabs.filter(v => unitIds.includes(String(v.deckId)) && v.category === p.category);
-                    }
-                } else if (mode === 'verbJudge') {
-                    // 动词练习
-                    const unitId = document.getElementById('unitSelect').value;
-                    if (unitId) {
-                        candidates = state.vocabs.filter(v => String(v.deckId) === String(unitId) && isVerb(v));
-                    } else {
-                        const checked = Array.from(document.querySelectorAll('.book-check:checked')).map(cb => cb.value);
-                        if (!checked.length) { alert('请选择单元或勾选书本'); return; }
-                        const unitIds = [];
-                        checked.forEach(bid => {
-                            state.decks.filter(d => d.type === 'unit' && String(d.parentId) === String(bid)).forEach(u => unitIds.push(String(u.id)));
-                        });
-                        if (unitIds.length === 0) { alert('所选书本下没有任何单元'); return; }
-                        candidates = state.vocabs.filter(v => unitIds.includes(String(v.deckId)) && isVerb(v));
+                        const picked = vocabsFromSelectedBooks(pred);
+                        if (picked.error) { alert(picked.error); return; }
+                        candidates = picked.list;
                     }
                 }
 

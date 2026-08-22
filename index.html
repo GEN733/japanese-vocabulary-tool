@@ -686,6 +686,7 @@
                 uploadHistory: [],
                 lastUploadInfo: null,
                 lastDownloadInfo: null,
+                lastSyncAt: null,
                 cloudSyncMeta: null,
                 github: { username: '', token: '', gistId: '' },
                 practice: {
@@ -1224,6 +1225,15 @@
                 return '未知设备';
             }
 
+            function getDeviceId() {
+                let id = localStorage.getItem('jp_device_id');
+                if (!id) {
+                    id = getDeviceName() + '-' + Math.random().toString(36).slice(2, 10);
+                    localStorage.setItem('jp_device_id', id);
+                }
+                return id;
+            }
+
             function extractChineseMeanings(rawChinese) {
                 const cleaned = rawChinese.replace(/【[^】]*】/g, '').replace(/（[^）]*）/g, '');
                 return cleaned.split(/[,;，；/、]/).map(s => s.trim()).filter(Boolean);
@@ -1304,6 +1314,7 @@
                 localStorage.setItem('jp_history', JSON.stringify(state.uploadHistory));
                 localStorage.setItem('jp_last_upload_info', JSON.stringify(state.lastUploadInfo));
                 localStorage.setItem('jp_last_download_info', JSON.stringify(state.lastDownloadInfo));
+                localStorage.setItem('jp_last_sync_at', state.lastSyncAt || '');
                 localStorage.setItem('jp_cloud_sync_meta', JSON.stringify(state.cloudSyncMeta));
                 localStorage.setItem('jp_github', JSON.stringify(state.github));
                 updateUIStats();
@@ -1332,6 +1343,7 @@
                     state.uploadHistory = JSON.parse(localStorage.getItem('jp_history') || '[]');
                     state.lastUploadInfo = JSON.parse(localStorage.getItem('jp_last_upload_info') || 'null');
                     state.lastDownloadInfo = JSON.parse(localStorage.getItem('jp_last_download_info') || 'null');
+                    state.lastSyncAt = localStorage.getItem('jp_last_sync_at') || null;
                     state.cloudSyncMeta = JSON.parse(localStorage.getItem('jp_cloud_sync_meta') || 'null');
                     const gh = localStorage.getItem('jp_github');
                     if (gh) state.github = JSON.parse(gh);
@@ -3139,7 +3151,7 @@
                     studyStats: state.studyStats,
                     settings: state.settings,
                     uploadHistory: state.uploadHistory,
-                    _syncMeta: syncMeta || { device: getDeviceName(), time: new Date().toISOString() }
+                    _syncMeta: syncMeta || { device: getDeviceName(), deviceId: getDeviceId(), time: new Date().toISOString() }
                 };
             }
 
@@ -3196,22 +3208,66 @@
                 return out;
             }
 
-            function mergeSpacedLists(localList, remoteList) {
-                const out = (localList || []).map(x => ({ ...x }));
-                (remoteList || []).forEach(rw => {
-                    const idx = findSpacedItem(rw);
-                    const existing = idx > -1 ? out[idx] : null;
-                    if (existing) {
-                        const localCount = existing.reviewCount != null ? existing.reviewCount : ((existing.repetitions || 0) + (existing.lapses || 0));
-                        const remoteCount = rw.reviewCount != null ? rw.reviewCount : ((rw.repetitions || 0) + (rw.lapses || 0));
-                        if ((rw.repetitions || 0) > (existing.repetitions || 0) ||
-                            ((rw.repetitions || 0) === (existing.repetitions || 0) && (rw.interval || 0) > (existing.interval || 0))) {
-                            out[idx] = { ...existing, ...rw, chinese: existing.chinese, japanese: existing.japanese };
-                        }
-                        out[idx].reviewCount = Math.max(localCount, remoteCount, out[idx].reviewCount || 0);
-                    } else out.push({ ...rw });
-                });
+            function spacedItemKey(item) {
+                if (!item) return '';
+                const cat = item.category || 'word';
+                if (item.vocabId != null && item.vocabId !== '') return cat + '#id:' + String(item.vocabId);
+                if (cat === 'grammar') return cat + '#jp:' + (item.japanese || '');
+                return cat + '#cj:' + (item.chinese || '') + '\n' + (item.japanese || '');
+            }
+
+            function pickBetterSpaced(a, b) {
+                if (!a) return b ? { ...b } : a;
+                if (!b) return { ...a };
+                const dueA = a.nextReviewDate || '';
+                const dueB = b.nextReviewDate || '';
+                if (dueB > dueA) return { ...b };
+                if (dueA > dueB) return { ...a };
+                const lastA = a.lastReviewDate || '';
+                const lastB = b.lastReviewDate || '';
+                if (lastB > lastA) return { ...b };
+                if (lastA > lastB) return { ...a };
+                if ((b.repetitions || 0) > (a.repetitions || 0)) return { ...b };
+                if ((a.repetitions || 0) > (b.repetitions || 0)) return { ...a };
+                if ((b.interval || 0) > (a.interval || 0)) return { ...b };
+                const countA = a.reviewCount != null ? a.reviewCount : ((a.repetitions || 0) + (a.lapses || 0));
+                const countB = b.reviewCount != null ? b.reviewCount : ((b.repetitions || 0) + (b.lapses || 0));
+                const winner = countB > countA ? b : a;
+                const out = { ...winner };
+                out.reviewCount = Math.max(countA, countB, out.reviewCount || 0);
                 return out;
+            }
+
+            function isCloudFromOtherDevice(remoteMeta) {
+                if (!remoteMeta) return false;
+                if (remoteMeta.deviceId) return remoteMeta.deviceId !== getDeviceId();
+                if (remoteMeta.device) return remoteMeta.device !== getDeviceName();
+                return false;
+            }
+
+            function mergeSpacedLists(localList, remoteList, remoteMeta) {
+                const local = localList || [];
+                const remote = remoteList || [];
+                const map = new Map();
+                const put = (item) => {
+                    const key = spacedItemKey(item);
+                    if (!key) return;
+                    map.set(key, map.has(key) ? pickBetterSpaced(map.get(key), item) : { ...item });
+                };
+                const remoteTime = remoteMeta && remoteMeta.time ? Date.parse(remoteMeta.time) : 0;
+                const localSync = state.lastSyncAt ? Date.parse(state.lastSyncAt) : 0;
+                const cloudNewer = !!(remoteTime && (!localSync || remoteTime > localSync));
+                if (isCloudFromOtherDevice(remoteMeta) && cloudNewer) {
+                    remote.forEach(put);
+                    local.forEach(item => {
+                        const key = spacedItemKey(item);
+                        if (key && map.has(key)) map.set(key, pickBetterSpaced(map.get(key), item));
+                    });
+                } else {
+                    local.forEach(put);
+                    remote.forEach(put);
+                }
+                return Array.from(map.values());
             }
 
             function mergeCloudData(data) {
@@ -3231,7 +3287,7 @@
                 Object.keys(state.wrong).forEach(k => {
                     state.wrong[k] = mergeWrongLists(state.wrong[k], remoteWrong[k] || []);
                 });
-                state.spacedItems = mergeSpacedLists(state.spacedItems, data.spacedRepetitionData || []);
+                state.spacedItems = mergeSpacedLists(state.spacedItems, data.spacedRepetitionData || [], data._syncMeta);
                 if (data.studyStats && data.studyStats.days) {
                     if (!state.studyStats.days) state.studyStats.days = {};
                     Object.keys(data.studyStats.days).forEach(day => {
@@ -3250,7 +3306,7 @@
             }
 
             function packData() {
-                const syncMeta = { device: getDeviceName(), time: new Date().toISOString() };
+                const syncMeta = { device: getDeviceName(), deviceId: getDeviceId(), time: new Date().toISOString() };
                 let cleanData;
                 try {
                     cleanData = JSON.parse(JSON.stringify(getAppDataObject(syncMeta)));
@@ -3329,6 +3385,7 @@
                 const now = new Date().toLocaleString();
                 state.lastUploadInfo = { device: getDeviceName(), time: now };
                 state.lastDownloadInfo = { device: getDeviceName(), time: now };
+                state.lastSyncAt = (meta && meta.time) || new Date().toISOString();
                 state.cloudSyncMeta = meta;
                 cloudFetchState = { status: 'ok', error: '', liveMeta: meta };
             }

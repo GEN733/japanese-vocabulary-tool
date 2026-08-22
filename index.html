@@ -205,9 +205,13 @@
         .practice-verb-sub-btn { flex: 1; padding: 10px 8px; background: none; border: none; border-radius: 12px; font-size: 0.9rem; color: #4a5f73; cursor: pointer; min-height: 44px; }
         .practice-verb-sub-btn.active { background: #1e3c5c; color: white; }
         .sync-info-box { background: #f8f9fc; border-radius: 14px; padding: 12px; margin: 10px 0; font-size: 0.9rem; color: #1e3c5c; border: 1px solid #e2eaf3; }
-        .spaced-stats { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 16px 0; }
+        .spaced-stats { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 12px 0 4px; }
         @media (min-width: 560px) { .spaced-stats { grid-template-columns: 1fr 1fr; } }
-        .spaced-card { background: #f2f6fc; border-radius: 16px; padding: 16px; text-align: center; }
+        .spaced-card { background: #fafcfe; border: 1px solid #e8eef5; border-radius: 16px; padding: 16px; text-align: left; }
+        .board-kicker { font-size: 0.85rem; font-weight: 600; color: #5f738c; margin-bottom: 12px; }
+        .board-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+        .board-metrics > div { background: #fff; border-radius: 12px; padding: 12px 8px; text-align: center; }
+        .board-cap { font-size: 0.78rem; color: #8a97a8; margin-top: 2px; }
         .spaced-word-list { max-height: 400px; overflow-y: auto; margin: 15px 0; -webkit-overflow-scrolling: touch; }
         .spaced-badge { font-size: 0.8rem; background: #cfe2ff; color: #0d47a1; padding: 2px 8px; border-radius: 8px; margin-left: 6px; }
         .spaced-badge.mastered { background: #d4edda; color: #155724; }
@@ -505,18 +509,24 @@
         </div>
 
         <div id="spacedPracticeTab">
-            <div class="sheet-label">单词</div>
-            <div class="sheet-group">
-                <div class="sheet-stat-row"><span class="sheet-stat-k">今日待复习</span><span class="sheet-stat-v" id="wordSpacedTodayCount">0</span></div>
-                <div class="sheet-stat-row"><span class="sheet-stat-k">总词数</span><span class="sheet-stat-v" id="wordSpacedTotalCount">0</span></div>
+            <div class="spaced-stats">
+                <div class="spaced-card">
+                    <div class="board-kicker">单词</div>
+                    <div class="board-metrics">
+                        <div><div class="stat-num" id="wordSpacedTodayCount">0</div><div class="board-cap">今日待复习</div></div>
+                        <div><div class="stat-num" id="wordSpacedTotalCount">0</div><div class="board-cap">总词数</div></div>
+                    </div>
+                    <button class="primary" style="width:100%;" onclick="startSpacedPractice('word')">开始单词复习</button>
+                </div>
+                <div class="spaced-card">
+                    <div class="board-kicker">语法</div>
+                    <div class="board-metrics">
+                        <div><div class="stat-num" id="grammarSpacedTodayCount">0</div><div class="board-cap">今日待复习</div></div>
+                        <div><div class="stat-num" id="grammarSpacedTotalCount">0</div><div class="board-cap">总词数</div></div>
+                    </div>
+                    <button class="primary" style="width:100%;" onclick="startSpacedPractice('grammar')">开始语法复习</button>
+                </div>
             </div>
-            <button class="primary" style="width:100%; margin-bottom:8px;" onclick="startSpacedPractice('word')">开始单词复习</button>
-            <div class="sheet-label">语法</div>
-            <div class="sheet-group">
-                <div class="sheet-stat-row"><span class="sheet-stat-k">今日待复习</span><span class="sheet-stat-v" id="grammarSpacedTodayCount">0</span></div>
-                <div class="sheet-stat-row"><span class="sheet-stat-k">总词数</span><span class="sheet-stat-v" id="grammarSpacedTotalCount">0</span></div>
-            </div>
-            <button class="primary" style="width:100%;" onclick="startSpacedPractice('grammar')">开始语法复习</button>
         </div>
 
         <div id="spacedLibraryTab" style="display:none;">

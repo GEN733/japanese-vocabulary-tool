@@ -133,6 +133,23 @@
         @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         @media (prefers-reduced-motion: reduce) { .example-box { animation: none; } }
         .section-title { font-weight: 600; margin: 8px 0 4px; font-size: 0.9rem; color: #5f738c; }
+        .sheet-label { font-size: 0.78rem; font-weight: 600; color: #8a97a8; letter-spacing: 0.06em; margin: 16px 2px 8px; }
+        .sheet-group { background: #fafcfe; border: 1px solid #e8eef5; border-radius: 14px; overflow: hidden; margin-bottom: 12px; }
+        .sheet-row { display: flex; align-items: center; gap: 10px; padding: 2px 12px; min-height: 52px; border-bottom: 1px solid #eef2f7; }
+        .sheet-row:last-child { border-bottom: none; }
+        .sheet-row-label { flex: 0 0 64px; font-size: 0.95rem; font-weight: 600; color: #1e3c5c; }
+        .sheet-row select, .sheet-row input { margin: 0; flex: 1; min-width: 0; border: none; background: transparent; padding: 12px 4px; }
+        .sheet-row select:focus, .sheet-row input:focus { outline: none; }
+        .sheet-seg { flex: 1; display: flex; gap: 4px; background: #f0f4f9; border-radius: 10px; padding: 3px; }
+        .sheet-seg .sub-tab-btn { flex: 1; margin: 0; min-height: 36px; padding: 8px 6px; font-size: 0.88rem; }
+        .sheet-stat-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #eef2f7; min-height: 52px; }
+        .sheet-stat-row:last-child { border-bottom: none; }
+        .sheet-stat-k { color: #5f738c; font-size: 0.92rem; }
+        .sheet-stat-v { font-size: 1.25rem; font-weight: 700; color: #1e3c5c; }
+        .sheet-group .checkbox-group { background: none; padding: 0; margin: 0; display: block; border-radius: 0; }
+        .sheet-group .checkbox-group label { padding: 12px 14px; border-bottom: 1px solid #eef2f7; margin: 0; border-radius: 0; }
+        .sheet-group .checkbox-group label:last-child { border-bottom: none; }
+        #practiceSetup .sub-tab-bar, #spacedSetup > .sub-tab-bar { margin-bottom: 4px; }
         #fixedInputArea, #spacedFixedInputArea {
             position: fixed;
             left: 50%;
@@ -306,43 +323,67 @@
 
     <div id="practice" class="page">
         <div id="practiceSetup">
-        <div class="sub-tab-bar">
-            <button class="sub-tab-btn active" onclick="setPracticeCategory('word')">单词练习</button>
-            <button class="sub-tab-btn" onclick="setPracticeCategory('grammar')">语法练习</button>
+        <div class="sub-tab-bar" id="practiceCatBar">
+            <button class="sub-tab-btn active" onclick="setPracticeCategory('word')">单词</button>
+            <button class="sub-tab-btn" onclick="setPracticeCategory('grammar')">语法</button>
         </div>
-        <div id="grammarDirectionBar" style="display:none;" class="sub-tab-bar">
-            <button class="sub-tab-btn" onclick="setGrammarDirection('cn2jp')">中→日</button>
-            <button class="sub-tab-btn active" onclick="setGrammarDirection('jp2cn')">日→中</button>
-        </div>
-        <div id="wordDirectionBar" style="display:flex;" class="sub-tab-bar">
-            <button class="sub-tab-btn active" onclick="setWordDirection('cn2jp')">中→日</button>
-            <button class="sub-tab-btn" onclick="setWordDirection('jp2cn')">日→中</button>
-        </div>
-        <div class="flex-row" style="justify-content: space-between;">
-            <select id="practiceMode" style="width: auto; flex:2;" onchange="updateModeUI()">
-                <option value="unit">单元练习</option>
-                <option value="review">书本汇总</option>
-                <option value="verbJudge">动词练习</option>
-                <option value="wrong">单元错题</option>
-                <option value="summaryWrong">汇总错题</option>
-                <option value="verbWrong">动词错题</option>
-            </select>
-            <select id="practiceCountSelect" style="width: auto; flex:1;" onchange="changePracticeCount()">
-                <option value="10">10</option><option value="20">20</option><option value="30">30</option><option value="50">50</option><option value="100">100</option><option value="0" selected>全部</option><option value="custom">自定义</option>
-            </select>
-        </div>
-        <div id="customCountRow" style="display:none;margin:10px 0"><input type="number" id="customCountInput" min="1" max="999" placeholder="数量" value="30"><button onclick="applyCustomCount()" class="primary">应用</button></div>
-        <div id="bookUnitSelector" style="margin:15px 0;">
-            <div id="unitSelectRow" style="display:none;margin-bottom:10px;">
-                <div class="section-title">按单元精确练习</div>
-                <div class="flex-row">
-                    <select id="bookSelect" style="flex:1;" onchange="loadUnitsForBook()"><option value="">选择书本</option></select>
-                    <select id="unitSelect" style="flex:1;"><option value="">选择单元</option></select>
+        <div class="sheet-label">范围</div>
+        <div class="sheet-group">
+            <div class="sheet-row" id="wordDirectionBar" style="display:flex;">
+                <span class="sheet-row-label">方向</span>
+                <div class="sheet-seg">
+                    <button class="sub-tab-btn active" onclick="setWordDirection('cn2jp')">中→日</button>
+                    <button class="sub-tab-btn" onclick="setWordDirection('jp2cn')">日→中</button>
                 </div>
             </div>
-            <div id="bookMultiRow" style="display:none;">
-                <div class="section-title">按书本随机抽取（可多选）</div>
-                <div id="bookMultiSelect"></div>
+            <div class="sheet-row" id="grammarDirectionBar" style="display:none;">
+                <span class="sheet-row-label">方向</span>
+                <div class="sheet-seg">
+                    <button class="sub-tab-btn" onclick="setGrammarDirection('cn2jp')">中→日</button>
+                    <button class="sub-tab-btn active" onclick="setGrammarDirection('jp2cn')">日→中</button>
+                </div>
+            </div>
+            <div class="sheet-row">
+                <span class="sheet-row-label">模式</span>
+                <select id="practiceMode" onchange="updateModeUI()">
+                    <option value="unit">单元练习</option>
+                    <option value="review">书本汇总</option>
+                    <option value="verbJudge">动词练习</option>
+                    <option value="wrong">单元错题</option>
+                    <option value="summaryWrong">汇总错题</option>
+                    <option value="verbWrong">动词错题</option>
+                </select>
+            </div>
+            <div class="sheet-row">
+                <span class="sheet-row-label">数量</span>
+                <select id="practiceCountSelect" onchange="changePracticeCount()">
+                    <option value="10">10</option><option value="20">20</option><option value="30">30</option><option value="50">50</option><option value="100">100</option><option value="0" selected>全部</option><option value="custom">自定义</option>
+                </select>
+            </div>
+        </div>
+        <div id="customCountRow" class="sheet-group" style="display:none;">
+            <div class="sheet-row">
+                <span class="sheet-row-label">自定义</span>
+                <input type="number" id="customCountInput" min="1" max="999" placeholder="数量" value="30">
+                <button onclick="applyCustomCount()" class="lib-link">应用</button>
+            </div>
+        </div>
+        <div id="bookUnitSelector" style="display:none;">
+            <div class="sheet-label">课本</div>
+            <div class="sheet-group">
+                <div id="unitSelectRow" style="display:none;">
+                    <div class="sheet-row">
+                        <span class="sheet-row-label">书本</span>
+                        <select id="bookSelect" onchange="loadUnitsForBook()"><option value="">选择书本</option></select>
+                    </div>
+                    <div class="sheet-row">
+                        <span class="sheet-row-label">单元</span>
+                        <select id="unitSelect"><option value="">选择单元</option></select>
+                    </div>
+                </div>
+                <div id="bookMultiRow" style="display:none;">
+                    <div id="bookMultiSelect"></div>
+                </div>
             </div>
         </div>
         <div id="practiceVerbSubBar" class="practice-verb-sub-bar">
@@ -464,20 +505,18 @@
         </div>
 
         <div id="spacedPracticeTab">
-            <div class="spaced-stats">
-                <div class="spaced-card">
-                    <div style="font-weight:600; margin-bottom:8px;">单词</div>
-                    <div class="stat-num" id="wordSpacedTodayCount">0</div><div>今日待复习</div>
-                    <div class="stat-num" id="wordSpacedTotalCount">0</div><div>总词数</div>
-                    <button class="primary" style="margin-top:10px; width:100%;" onclick="startSpacedPractice('word')">开始单词复习</button>
-                </div>
-                <div class="spaced-card">
-                    <div style="font-weight:600; margin-bottom:8px;">语法</div>
-                    <div class="stat-num" id="grammarSpacedTodayCount">0</div><div>今日待复习</div>
-                    <div class="stat-num" id="grammarSpacedTotalCount">0</div><div>总词数</div>
-                    <button class="primary" style="margin-top:10px; width:100%;" onclick="startSpacedPractice('grammar')">开始语法复习</button>
-                </div>
+            <div class="sheet-label">单词</div>
+            <div class="sheet-group">
+                <div class="sheet-stat-row"><span class="sheet-stat-k">今日待复习</span><span class="sheet-stat-v" id="wordSpacedTodayCount">0</span></div>
+                <div class="sheet-stat-row"><span class="sheet-stat-k">总词数</span><span class="sheet-stat-v" id="wordSpacedTotalCount">0</span></div>
             </div>
+            <button class="primary" style="width:100%; margin-bottom:8px;" onclick="startSpacedPractice('word')">开始单词复习</button>
+            <div class="sheet-label">语法</div>
+            <div class="sheet-group">
+                <div class="sheet-stat-row"><span class="sheet-stat-k">今日待复习</span><span class="sheet-stat-v" id="grammarSpacedTodayCount">0</span></div>
+                <div class="sheet-stat-row"><span class="sheet-stat-k">总词数</span><span class="sheet-stat-v" id="grammarSpacedTotalCount">0</span></div>
+            </div>
+            <button class="primary" style="width:100%;" onclick="startSpacedPractice('grammar')">开始语法复习</button>
         </div>
 
         <div id="spacedLibraryTab" style="display:none;">
@@ -485,19 +524,26 @@
                 <button class="sub-tab-btn active" onclick="setSpacedLibraryCategory('word')">单词题库</button>
                 <button class="sub-tab-btn" onclick="setSpacedLibraryCategory('grammar')">语法题库</button>
             </div>
-            <div id="spacedLibraryMeta" class="deck-meta" style="margin:8px 0;"></div>
-            <div class="spaced-action-row">
-                <button id="spacedImportBtn" onclick="importCurrentSpacedSummary()">导入汇总错题</button>
-                <button class="danger" onclick="clearSpacedData()">清空当前题库</button>
+            <div id="spacedLibraryMeta" class="deck-meta" style="margin:8px 4px;"></div>
+            <div class="sheet-label">筛选</div>
+            <div class="sheet-group">
+                <div class="sheet-row">
+                    <input type="search" id="spacedSearchInput" placeholder="搜索中文或日文" onkeydown="if(event.key==='Enter')searchSpacedWords()">
+                </div>
+                <div class="sheet-row">
+                    <input type="number" id="spacedFilterRep" placeholder="复习次数 ≥" onchange="renderSpacedWordList()">
+                </div>
+                <div class="sheet-row">
+                    <input type="number" id="spacedFilterInterval" placeholder="间隔天数 ≥" onchange="renderSpacedWordList()">
+                </div>
             </div>
-            <div class="flex-row" style="margin:10px 0;">
-                <input type="text" id="spacedSearchInput" placeholder="搜索中文/日文" style="flex:3;">
+            <div class="flex-row" style="margin:0 0 10px;">
                 <button onclick="searchSpacedWords()" style="flex:1;">搜索</button>
                 <button onclick="clearSpacedSearch()" style="flex:1;">重置</button>
             </div>
-            <div class="flex-row" style="margin:5px 0;">
-                <input type="number" id="spacedFilterRep" placeholder="复习次数≥" style="flex:1;" onchange="renderSpacedWordList()">
-                <input type="number" id="spacedFilterInterval" placeholder="间隔≥" style="flex:1;" onchange="renderSpacedWordList()">
+            <div class="spaced-action-row">
+                <button id="spacedImportBtn" onclick="importCurrentSpacedSummary()">导入汇总错题</button>
+                <button class="danger" onclick="clearSpacedData()">清空当前题库</button>
             </div>
             <div class="spaced-word-list" id="spacedWordList">暂无单词</div>
         </div>
@@ -621,7 +667,7 @@
             <strong>同步与备份</strong>
             <span>学前后点同步，导出导入、安装到主屏幕</span>
         </button>
-        <p class="tiny-note">网页版本 9。手机主屏幕若仍是旧版，请用浏览器打开下面的链接清缓存：</p>
+        <p class="tiny-note">网页版本 10。手机主屏幕若仍是旧版，请用浏览器打开下面的链接清缓存：</p>
         <a class="mine-card" href="./update.html" style="text-decoration:none;">
             <strong>清缓存并打开新版</strong>
             <span>不要点主屏幕图标，用手机浏览器打开这一页</span>
@@ -1963,7 +2009,7 @@
 
             window.setPracticeCategory = function(cat) {
                 state.practice.category = cat;
-                document.querySelectorAll('#practiceSetup > .sub-tab-bar:first-of-type .sub-tab-btn').forEach((btn, idx) => btn.classList.toggle('active', (idx===0 && cat==='word')||(idx===1 && cat==='grammar')));
+                document.querySelectorAll('#practiceCatBar .sub-tab-btn').forEach((btn, idx) => btn.classList.toggle('active', (idx===0 && cat==='word')||(idx===1 && cat==='grammar')));
                 document.getElementById('grammarDirectionBar').style.display = cat === 'grammar' ? 'flex' : 'none';
                 document.getElementById('wordDirectionBar').style.display = cat === 'word' ? 'flex' : 'none';
                 updatePracticeCategory();
@@ -2370,10 +2416,15 @@
                 verbSubBar.classList.remove('show');
                 wrongSubBar.classList.remove('show');
 
-                if (mode === 'normal' || mode === 'verbJudge') {
-                    // 标准练习、动词练习：显示单元选择 + 书本多选
+                if (mode === 'unit' || mode === 'normal' || mode === 'verbJudge') {
                     div.style.display = 'block';
                     unitRow.style.display = 'block';
+                    if (mode !== 'unit') {
+                        bookRow.style.display = 'block';
+                        renderBookMultiSelect();
+                    }
+                } else if (mode === 'review') {
+                    div.style.display = 'block';
                     bookRow.style.display = 'block';
                     renderBookMultiSelect();
                 } else if (mode === 'wrong') {
@@ -2473,14 +2524,15 @@
                         }
                         candidates = list.map(ww => findVocabByRef(ww)).filter(Boolean);
                     }
-                } else if (mode === 'normal') {
-                    // 日常练习 / 标准练习：优先单元，否则书本多选
+                } else if (mode === 'normal' || mode === 'unit' || mode === 'review') {
                     const unitId = document.getElementById('unitSelect').value;
-                    if (unitId) {
+                    if (mode !== 'review' && unitId) {
                         candidates = state.vocabs.filter(v => String(v.deckId) === String(unitId) && v.category === p.category);
+                    } else if (mode === 'unit' && !unitId) {
+                        alert('请选择单元'); return;
                     } else {
                         const checked = Array.from(document.querySelectorAll('.book-check:checked')).map(cb => cb.value);
-                        if (!checked.length) { alert('请选择一个单元或勾选至少一个书本'); return; }
+                        if (!checked.length) { alert(mode === 'review' ? '请勾选至少一个书本' : '请选择一个单元或勾选至少一个书本'); return; }
                         const unitIds = [];
                         checked.forEach(bid => {
                             state.decks.filter(d => d.type === 'unit' && String(d.parentId) === String(bid)).forEach(u => unitIds.push(String(u.id)));
@@ -3585,7 +3637,7 @@
 
             window.changePracticeCount = () => {
                 const s = document.getElementById('practiceCountSelect');
-                if (s.value === 'custom') document.getElementById('customCountRow').style.display = 'flex';
+                if (s.value === 'custom') document.getElementById('customCountRow').style.display = 'block';
                 else { state.settings.practiceCount = parseInt(s.value); saveAll(); document.getElementById('customCountRow').style.display = 'none'; }
             };
 

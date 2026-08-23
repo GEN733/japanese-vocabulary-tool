@@ -705,7 +705,7 @@
             <strong>同步设置与备份</strong>
             <span>Token、本地导出导入、安装到主屏幕</span>
         </button>
-        <p class="tiny-note">网页版本 14。手机主屏幕若仍是旧版，请用浏览器打开下面的链接清缓存：</p>
+        <p class="tiny-note">网页版本 15。手机主屏幕若仍是旧版，请用浏览器打开下面的链接清缓存：</p>
         <a class="mine-card" href="./update.html" style="text-decoration:none;">
             <strong>清缓存并打开新版</strong>
             <span>不要点主屏幕图标，用手机浏览器打开这一页</span>
@@ -1758,7 +1758,7 @@
                 refreshSyncLayout();
             };
 
-            function setProgressSyncBusy(busy) {
+            function setProgressSyncBusy(busy, action) {
                 const map = {
                     mineUploadBtn: '上传本机进度',
                     syncUploadBtn: '上传本机进度',
@@ -1774,9 +1774,12 @@
                         el.textContent = map[id];
                         return;
                     }
-                    if (id.indexOf('Upload') >= 0) el.textContent = '上传中…';
-                    else if (id.indexOf('Download') >= 0) el.textContent = '下载中…';
-                    else el.textContent = '处理中…';
+                    const isUpload = id.indexOf('Upload') >= 0;
+                    const isDownload = id.indexOf('Download') >= 0;
+                    if (action === 'upload' && isUpload) el.textContent = '上传中…';
+                    else if (action === 'download' && isDownload) el.textContent = '下载中…';
+                    else if (action === 'merge' && id === 'syncNowBtn') el.textContent = '处理中…';
+                    else el.textContent = map[id];
                 });
             }
 
@@ -3918,7 +3921,7 @@
                 if (remoteMeta) confirmMsg += `\n当前云端：${remoteMeta.device} · ${formatSyncTime(remoteMeta.time)}`;
                 else confirmMsg += '\n云端还没有进度，将第一次传上去。';
                 if (!confirm(confirmMsg)) return;
-                setProgressSyncBusy(true);
+                setProgressSyncBusy(true, 'upload');
                 try {
                     const { packed, meta } = packData();
                     await pushPackedToGist(packed);
@@ -3942,7 +3945,7 @@
                     return;
                 }
                 if (mode !== 'overwrite') return syncNow();
-                setProgressSyncBusy(true);
+                setProgressSyncBusy(true, 'download');
                 try {
                     const data = await readGistBackup();
                     if (!data) throw new Error('云端没有进度文件');
@@ -3956,7 +3959,7 @@
                     setProgressSyncBusy(false);
                     const confirmMsg = '用下面这份云端进度整份替换这台？这台现在的内容会被换掉（换之前会自动留备份）。\n\n' + summarizePayload(data) + '\nGist ' + shortGistId();
                     if (!confirm(confirmMsg)) return;
-                    setProgressSyncBusy(true);
+                    setProgressSyncBusy(true, 'download');
                     overwriteWithData(data);
                     state.lastDownloadInfo = { device: getDeviceName(), time: new Date().toLocaleString() };
                     saveAll();

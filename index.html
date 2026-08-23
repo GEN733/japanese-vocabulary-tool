@@ -695,7 +695,7 @@
             <strong>同步设置与备份</strong>
             <span>Token、本地导出导入、安装到主屏幕</span>
         </button>
-        <p class="tiny-note">网页版本 11。手机主屏幕若仍是旧版，请用浏览器打开下面的链接清缓存：</p>
+        <p class="tiny-note">网页版本 12。手机主屏幕若仍是旧版，请用浏览器打开下面的链接清缓存：</p>
         <a class="mine-card" href="./update.html" style="text-decoration:none;">
             <strong>清缓存并打开新版</strong>
             <span>不要点主屏幕图标，用手机浏览器打开这一页</span>
@@ -1504,7 +1504,7 @@
                 if (document.getElementById('library')) renderBookLists();
                 updateSyncInfoDisplay();
                 updateSafetySnapshotInfo();
-                if (document.getElementById('spaced').classList.contains('active')) updateSpacedUI();
+                updateSpacedUI();
                 if (document.getElementById('stats') && document.getElementById('stats').classList.contains('active')) renderStatsPage();
             }
 
@@ -1619,7 +1619,7 @@
                 if (cloudFetchState.status === 'ok' && cloudFetchState.liveMeta) {
                     const meta = cloudFetchState.liveMeta;
                     main.innerHTML = '<span class="sync-status-ok">云端 ' + formatSyncTime(meta.time) + '</span>（' + (meta.device || '未知设备') + '）';
-                    sub.textContent = '这是目前各设备应下载的最后一次进度。';
+                    sub.textContent = '这是目前各设备应下载的最后一次进度。 · Gist ' + shortGistId();
                     return;
                 }
                 main.textContent = '尚未向云端确认';
@@ -3307,9 +3307,32 @@
                     Accept: 'application/vnd.github.v3+json'
                 };
                 if (opt.body && !opt.headers['Content-Type']) opt.headers['Content-Type'] = 'application/json';
-                const r = await fetch(url, opt);
+                const r = await fetch(url, { ...opt, cache: 'no-store' });
                 if (!r.ok) { const e = await r.json().catch(() => ({ message: r.statusText })); throw new Error(e.message || `HTTP ${r.status}`); }
                 return r.json();
+            }
+
+            function decksFromPayload(data) {
+                return (data && (data.allDecks || data.allDecks)) || [];
+            }
+
+            function vocabsFromPayload(data) {
+                return (data && (data.allVocabularies || data.allVocabularies)) || [];
+            }
+
+            function spacedFromPayload(data) {
+                const list = data && (data.spacedRepetitionData || data.spacedRepetitionData);
+                return Array.isArray(list) ? list : [];
+            }
+
+            function summarizePayload(data) {
+                const decks = decksFromPayload(data);
+                const books = decks.filter(d => d.type === 'book').length;
+                const vocabs = vocabsFromPayload(data);
+                const spaced = spacedFromPayload(data);
+                const meta = data && data._syncMeta;
+                const from = meta ? ((meta.device || '未知设备') + ' · ' + formatSyncTime(meta.time)) : '未知';
+                return '来自 ' + from + '\n书本 ' + books + ' · 词条 ' + vocabs.length + ' · 复习 ' + spaced.length;
             }
 
             function getAppDataObject(syncMeta) {
@@ -3361,11 +3384,11 @@
 
             function overwriteWithData(data, skipSnapshot) {
                 if (!skipSnapshot) snapshotSafety('覆盖前自动备份');
-                state.decks = data.allDecks || [];
-                state.vocabs = data.allVocabularies || [];
+                state.decks = decksFromPayload(data);
+                state.vocabs = vocabsFromPayload(data);
                 const w = extractWrongFromData(data);
                 Object.keys(w).forEach(k => { state.wrong[k] = w[k]; });
-                state.spacedItems = Array.isArray(data.spacedRepetitionData) ? data.spacedRepetitionData : [];
+                state.spacedItems = spacedFromPayload(data);
                 state.spacedUI.practiceWords = [];
                 state.spacedUI.index = 0;
                 state.spacedUI.pendingAction = null;
@@ -3461,10 +3484,10 @@
 
             function mergeCloudData(data) {
                 snapshotSafety('合并前自动备份');
-                state.decks = mergeById(state.decks, data.allDecks || [], 'id');
+                state.decks = mergeById(state.decks, decksFromPayload(data), 'id');
                 const vocabMap = new Map();
                 state.vocabs.forEach(v => vocabMap.set(String(v.id), v));
-                (data.allVocabularies || []).forEach(v => {
+                vocabsFromPayload(data).forEach(v => {
                     const key = String(v.id);
                     if (!vocabMap.has(key)) {
                         const dup = state.vocabs.find(x => x.chinese === v.chinese && x.japanese === v.japanese && x.category === v.category);
@@ -3476,7 +3499,7 @@
                 Object.keys(state.wrong).forEach(k => {
                     state.wrong[k] = mergeWrongLists(state.wrong[k], remoteWrong[k] || []);
                 });
-                state.spacedItems = mergeSpacedLists(state.spacedItems, data.spacedRepetitionData || [], data._syncMeta);
+                state.spacedItems = mergeSpacedLists(state.spacedItems, spacedFromPayload(data), data._syncMeta);
                 if (data.studyStats && data.studyStats.days) {
                     if (!state.studyStats.days) state.studyStats.days = {};
                     Object.keys(data.studyStats.days).forEach(day => {
@@ -3521,18 +3544,22 @@
             }
 
             async function readGistBackup() {
-                const gist = await githubRequest(`https://api.github.com/gists/${state.github.gistId}`);
+                const gist = await githubRequest(`https://api.github.com/gists/${state.github.gistId}?t=${Date.now()}`);
                 const file = gist.files && gist.files['japanese_words_backup.json'];
                 if (!file) return null;
-                let raw = file.content;
-                if (file.truncated || !raw) {
-                    if (!file.raw_url) throw new Error('云端文件过大，无法读取全文');
-                    const r = await fetch(file.raw_url, {
+                const rawUrl = file.raw_url;
+                let raw = '';
+                if (rawUrl) {
+                    const r = await fetch(rawUrl + (rawUrl.indexOf('?') >= 0 ? '&' : '?') + 't=' + Date.now(), {
+                        cache: 'no-store',
                         headers: { Authorization: `token ${state.github.token}`, Accept: 'application/vnd.github.v3.raw' }
                     });
                     if (!r.ok) throw new Error('读取云端全文失败: ' + r.status);
                     raw = await r.text();
+                } else {
+                    raw = file.content;
                 }
+                if (!raw) return null;
                 return unpackData(raw);
             }
 
@@ -3683,27 +3710,28 @@
                     toggleSyncConfig(true);
                     return;
                 }
-                const isMerge = mode !== 'overwrite';
-                if (isMerge) return syncNow();
-                const remoteMeta = await fetchCloudSyncMeta();
-                let confirmMsg = '用云端最后一次进度整份替换这台？这台现在的内容会被换掉（换之前会自动留一份可恢复备份）。';
-                if (remoteMeta) confirmMsg += `\n云端来自：${remoteMeta.device} · ${formatSyncTime(remoteMeta.time)}`;
-                else confirmMsg += '\n没问到云端进度，可能下不下来。';
-                if (!confirm(confirmMsg)) return;
+                if (mode !== 'overwrite') return syncNow();
                 setProgressSyncBusy(true);
                 try {
                     const data = await readGistBackup();
                     if (!data) throw new Error('云端没有进度文件');
-                    overwriteWithData(data);
-                    state.lastDownloadInfo = { device: getDeviceName(), time: new Date().toLocaleString() };
                     if (data._syncMeta) {
                         state.cloudSyncMeta = data._syncMeta;
                         cloudFetchState = { status: 'ok', error: '', liveMeta: data._syncMeta };
+                    } else {
+                        cloudFetchState = { status: 'empty', error: '', liveMeta: null };
                     }
+                    updateSyncInfoDisplay();
+                    setProgressSyncBusy(false);
+                    const confirmMsg = '用下面这份云端进度整份替换这台？这台现在的内容会被换掉（换之前会自动留备份）。\n\n' + summarizePayload(data) + '\nGist ' + shortGistId();
+                    if (!confirm(confirmMsg)) return;
+                    setProgressSyncBusy(true);
+                    overwriteWithData(data);
+                    state.lastDownloadInfo = { device: getDeviceName(), time: new Date().toLocaleString() };
                     saveAll();
                     refreshAfterSync();
                     setSyncMessage('已下载云端进度', true);
-                    alert('已换成云端最后一次进度');
+                    alert('已换成云端进度\n' + summarizePayload(data));
                 } catch (e) { alert('下载失败: ' + e.message); }
                 finally {
                     setProgressSyncBusy(false);
@@ -3970,6 +3998,7 @@
             fillAllSelects();
             renderBookLists();
             renderWrongList();
+            updateSpacedUI();
             fillGithubConfigToUI();
             refreshSyncLayout();
             document.getElementById('practiceCountSelect').value = state.settings.practiceCount === 0 ? '0' : String(state.settings.practiceCount);

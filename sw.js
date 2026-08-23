@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jp-study-v16';
+const CACHE_NAME = 'jp-study-v17';
 const ASSETS = [
   './',
   './index.html',
@@ -24,6 +24,10 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
+  if (url.hostname === 'api.github.com' || url.hostname === 'gist.githubusercontent.com' || /\.github\.com$/.test(url.hostname)) {
+    event.respondWith(fetch(req, { cache: 'no-store' }));
+    return;
+  }
   const accept = req.headers.get('accept') || '';
   const isHTML = req.mode === 'navigate' || accept.indexOf('text/html') !== -1 || /\/$|\.html$/i.test(url.pathname);
 

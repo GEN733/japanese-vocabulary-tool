@@ -102,8 +102,12 @@
         .sync-step { background: #f2f6fc; border-radius: 16px; padding: 16px; margin: 18px 0; }
         .sync-step h4 { margin: 0 0 12px; color: var(--ink); }
         .sync-text-toggle { background: none; box-shadow: none; color: #5f738c; min-height: 44px; padding: 8px 4px; font-size: 0.9rem; width: auto; }
-        #syncNowBtn { width: 100%; margin-top: 12px; }
+        #syncNowBtn, #syncUploadBtn, #syncDownloadBtn { width: 100%; margin-top: 10px; }
         #syncAdvanced button, #syncSetupPanel .sync-step button.block { width: 100%; margin: 8px 0; }
+        .mine-sync { background: #f7fafd; border: 1px solid #e2eaf3; border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+        .mine-sync strong { display: block; font-size: 1.05rem; color: var(--ink); margin-bottom: 8px; }
+        .mine-sync-actions { display: flex; gap: 8px; margin-top: 12px; }
+        .mine-sync-actions button { flex: 1; margin: 0; }
         .sync-status-ok { color: #1e7a44; }
         .sync-status-err { color: #b33; }
         .error-msg { color: #b33; background: #ffe6e6; padding: 10px 16px; border-radius: 12px; font-size: 0.9rem; }
@@ -628,13 +632,13 @@
                 <div id="syncStatusMain"></div>
                 <div id="syncStatusSub" class="tiny-note"></div>
             </div>
-            <button class="primary" id="syncNowBtn" onclick="syncNow()">同步</button>
-            <p class="tiny-note">学之前点一次，学完再点一次。会先合并云端，再把结果传回去。</p>
+            <button class="primary" id="syncUploadBtn" onclick="uploadToGithub()">上传本机进度</button>
+            <button id="syncDownloadBtn" onclick="downloadFromGithub('overwrite')">下载云端进度</button>
+            <p class="tiny-note">学完的那台点上传；换设备后点下载。云端只保留最后一次整份进度，不再两边合并。</p>
             <button type="button" class="sync-text-toggle" id="syncAdvancedToggle" onclick="toggleSyncAdvanced()">高级 ▸</button>
             <div id="syncAdvanced" style="display:none;">
-                <p class="tiny-note">下面两项会丢掉另一边的数据，确认后再用。</p>
-                <button onclick="uploadToGithub()">用本机覆盖云端</button>
-                <button class="warning" onclick="downloadFromGithub('overwrite')">用云端覆盖本机</button>
+                <p class="tiny-note">合并会把两台的数据搅在一起，日常不要用。</p>
+                <button id="syncNowBtn" onclick="syncNow()">合并两边（一般不用）</button>
                 <button onclick="toggleSyncConfig(true)">更改配置</button>
             </div>
             <div id="syncMessage" style="margin-top:12px;"></div>
@@ -643,7 +647,7 @@
         <div id="syncSetupPanel">
             <div class="sync-step">
                 <h4>连接 GitHub</h4>
-                <p class="tiny-note">每台设备填同一份 Token，以及<strong>同一个</strong> Gist ID。保存后日常只需点「同步」。</p>
+                <p class="tiny-note">每台设备填同一份 Token，以及<strong>同一个</strong> Gist ID。保存后日常在「我的」里上传或下载进度。</p>
                 <input type="text" id="githubUser" placeholder="用户名（可不填）">
                 <input type="password" id="githubToken" placeholder="Token">
                 <input type="text" id="gistIdInput" placeholder="Gist ID">
@@ -669,6 +673,16 @@
 
     <div id="mine" class="page">
         <h3>我的</h3>
+        <div class="mine-sync">
+            <strong>进度同步</strong>
+            <div id="mineSyncMain">尚未连接云端</div>
+            <div id="mineSyncSub" class="tiny-note"></div>
+            <div class="mine-sync-actions">
+                <button class="primary" id="mineUploadBtn" onclick="uploadToGithub()">上传本机进度</button>
+                <button id="mineDownloadBtn" onclick="downloadFromGithub('overwrite')">下载云端进度</button>
+            </div>
+            <p class="tiny-note">学完的那台点上传；换设备打开后点下载。会整份换成最后一次进度。</p>
+        </div>
         <button class="mine-card" onclick="showPage('wrong')">
             <strong>错题本</strong>
             <span>查看和练习当前错题</span>
@@ -678,10 +692,10 @@
             <span>打卡、正确率、常错词</span>
         </button>
         <button class="mine-card" onclick="showPage('sync')">
-            <strong>同步与备份</strong>
-            <span>学前后点同步，导出导入、安装到主屏幕</span>
+            <strong>同步设置与备份</strong>
+            <span>Token、本地导出导入、安装到主屏幕</span>
         </button>
-        <p class="tiny-note">网页版本 10。手机主屏幕若仍是旧版，请用浏览器打开下面的链接清缓存：</p>
+        <p class="tiny-note">网页版本 11。手机主屏幕若仍是旧版，请用浏览器打开下面的链接清缓存：</p>
         <a class="mine-card" href="./update.html" style="text-decoration:none;">
             <strong>清缓存并打开新版</strong>
             <span>不要点主屏幕图标，用手机浏览器打开这一页</span>
@@ -1556,11 +1570,68 @@
                 refreshSyncLayout();
             };
 
+            function setProgressSyncBusy(busy) {
+                const map = {
+                    mineUploadBtn: '上传本机进度',
+                    syncUploadBtn: '上传本机进度',
+                    mineDownloadBtn: '下载云端进度',
+                    syncDownloadBtn: '下载云端进度',
+                    syncNowBtn: '合并两边（一般不用）'
+                };
+                Object.keys(map).forEach(id => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    el.disabled = busy;
+                    if (!busy) {
+                        el.textContent = map[id];
+                        return;
+                    }
+                    if (id.indexOf('Upload') >= 0) el.textContent = '上传中…';
+                    else if (id.indexOf('Download') >= 0) el.textContent = '下载中…';
+                    else el.textContent = '处理中…';
+                });
+            }
+
+            function fillMineSyncStatus() {
+                const main = document.getElementById('mineSyncMain');
+                const sub = document.getElementById('mineSyncSub');
+                if (!main || !sub) return;
+                if (!isGithubReady()) {
+                    main.textContent = '尚未连接云端';
+                    sub.textContent = '先到「同步设置与备份」填 Token 和同一个 Gist ID。';
+                    return;
+                }
+                if (cloudFetchState.status === 'loading') {
+                    main.textContent = '正在查看云端…';
+                    sub.textContent = '';
+                    return;
+                }
+                if (cloudFetchState.status === 'error') {
+                    main.innerHTML = '<span class="sync-status-err">没问到云端</span>';
+                    sub.textContent = cloudFetchState.error || '网络或 Token 有问题';
+                    return;
+                }
+                if (cloudFetchState.status === 'empty') {
+                    main.textContent = '云端还没有进度';
+                    sub.textContent = '在这台学完后点「上传本机进度」。';
+                    return;
+                }
+                if (cloudFetchState.status === 'ok' && cloudFetchState.liveMeta) {
+                    const meta = cloudFetchState.liveMeta;
+                    main.innerHTML = '<span class="sync-status-ok">云端 ' + formatSyncTime(meta.time) + '</span>（' + (meta.device || '未知设备') + '）';
+                    sub.textContent = '这是目前各设备应下载的最后一次进度。';
+                    return;
+                }
+                main.textContent = '尚未向云端确认';
+                sub.textContent = '打开这一页时会自动查看。';
+            }
+
             function updateSyncInfoDisplay() {
                 const main = document.getElementById('syncStatusMain');
                 const sub = document.getElementById('syncStatusSub');
-                if (!main || !sub) return;
                 refreshSyncLayout();
+                fillMineSyncStatus();
+                if (!main || !sub) return;
                 if (!isGithubReady()) {
                     main.textContent = '尚未连接云端';
                     sub.textContent = '请先保存 Token 和同一个 Gist ID。';
@@ -1570,7 +1641,7 @@
                 let localLine = '';
                 if (state.lastUploadInfo || state.lastDownloadInfo) {
                     const t = (state.lastUploadInfo && state.lastUploadInfo.time) || (state.lastDownloadInfo && state.lastDownloadInfo.time);
-                    localLine = '本机上次同步：' + t;
+                    localLine = '本机上次操作：' + t;
                 }
                 if (cloudFetchState.status === 'loading') {
                     main.textContent = '正在获取云端…';
@@ -1583,8 +1654,8 @@
                     return;
                 }
                 if (cloudFetchState.status === 'empty') {
-                    main.textContent = '云端还没有备份';
-                    sub.textContent = '点「同步」会把本机数据传上去。 · ' + gistLine;
+                    main.textContent = '云端还没有进度';
+                    sub.textContent = '点「上传本机进度」会把这台的数据传上去。 · ' + gistLine;
                     return;
                 }
                 if (cloudFetchState.status === 'ok' && cloudFetchState.liveMeta) {
@@ -2019,6 +2090,7 @@
                 if (pid === 'spaced') { updateSpacedUI(); }
                 if (pid === 'stats') { renderStatsPage(); }
                 if (pid === 'sync') { fillGithubConfigToUI(); refreshSyncLayout(); fetchCloudSyncMeta(); updateSafetySnapshotInfo(); updatePwaNote(); }
+                if (pid === 'mine') { updateSyncInfoDisplay(); fetchCloudSyncMeta(); }
                 if (pid === 'practice') updateModeUI();
                 window.scrollTo(0, 0);
             };
@@ -3522,7 +3594,7 @@
                     return;
                 }
                 const btn = document.getElementById('syncNowBtn');
-                if (btn) { btn.disabled = true; btn.textContent = '同步中…'; }
+                if (btn) { btn.disabled = true; btn.textContent = '合并中…'; }
                 setSyncMessage('正在连接云端…', true);
                 try {
                     let remote = null;
@@ -3537,14 +3609,14 @@
                     markSyncedNow(meta);
                     saveAll();
                     refreshAfterSync();
-                    setSyncMessage('同步完成', true);
-                    alert('同步完成');
+                    setSyncMessage('合并完成', true);
+                    alert('两边数据已合并并传回云端。日常请改用上传 / 下载进度。');
                 } catch (e) {
                     setSyncMessage(e.message, false);
                     alert('同步失败: ' + e.message);
                     fetchCloudSyncMeta();
                 } finally {
-                    if (btn) { btn.disabled = false; btn.textContent = '同步'; }
+                    if (btn) { btn.disabled = false; btn.textContent = '合并两边（一般不用）'; }
                     updateSyncInfoDisplay();
                 }
             };
@@ -3577,35 +3649,51 @@
 
             window.uploadToGithub = async () => {
                 readGithubFields();
-                if (!isGithubReady()) { alert('请先保存 Token 和 Gist ID'); return; }
+                if (!isGithubReady()) {
+                    alert('请先到「同步设置与备份」保存 Token 和 Gist ID');
+                    showPage('sync');
+                    toggleSyncConfig(true);
+                    return;
+                }
                 const remoteMeta = await fetchCloudSyncMeta();
-                let confirmMsg = '用本机数据覆盖云端？云端现有内容会被这台设备整份替换。';
+                let confirmMsg = '把这台现在的进度设成各设备都该下载的最后一次？云端旧进度会被整份换掉。';
                 if (remoteMeta) confirmMsg += `\n当前云端：${remoteMeta.device} · ${formatSyncTime(remoteMeta.time)}`;
-                else confirmMsg += '\n现在没问到云端记录，仍将把本机传上去。';
+                else confirmMsg += '\n云端还没有进度，将第一次传上去。';
                 if (!confirm(confirmMsg)) return;
+                setProgressSyncBusy(true);
                 try {
                     const { packed, meta } = packData();
                     await pushPackedToGist(packed);
                     markSyncedNow(meta);
                     saveAll();
-                    setSyncMessage('已用本机覆盖云端', true);
-                    alert('已用本机覆盖云端');
+                    setSyncMessage('已上传本机进度', true);
+                    alert('已上传。其他设备打开后点「下载云端进度」即可。');
                 } catch (e) { alert('上传失败: ' + e.message); }
+                finally {
+                    setProgressSyncBusy(false);
+                    updateSyncInfoDisplay();
+                }
             };
 
             window.downloadFromGithub = async (mode) => {
                 readGithubFields();
-                if (!isGithubReady()) { alert('请先保存 Token 和 Gist ID'); return; }
+                if (!isGithubReady()) {
+                    alert('请先到「同步设置与备份」保存 Token 和 Gist ID');
+                    showPage('sync');
+                    toggleSyncConfig(true);
+                    return;
+                }
                 const isMerge = mode !== 'overwrite';
                 if (isMerge) return syncNow();
                 const remoteMeta = await fetchCloudSyncMeta();
-                let confirmMsg = '用云端整份替换本机？这台设备当前数据会被覆盖（覆盖前会自动做一份可恢复备份）。';
-                if (remoteMeta) confirmMsg += `\n云端来源：${remoteMeta.device} · ${formatSyncTime(remoteMeta.time)}`;
-                else confirmMsg += '\n没问到云端记录，可能无法覆盖。';
+                let confirmMsg = '用云端最后一次进度整份替换这台？这台现在的内容会被换掉（换之前会自动留一份可恢复备份）。';
+                if (remoteMeta) confirmMsg += `\n云端来自：${remoteMeta.device} · ${formatSyncTime(remoteMeta.time)}`;
+                else confirmMsg += '\n没问到云端进度，可能下不下来。';
                 if (!confirm(confirmMsg)) return;
+                setProgressSyncBusy(true);
                 try {
                     const data = await readGistBackup();
-                    if (!data) throw new Error('云端没有备份文件');
+                    if (!data) throw new Error('云端没有进度文件');
                     overwriteWithData(data);
                     state.lastDownloadInfo = { device: getDeviceName(), time: new Date().toLocaleString() };
                     if (data._syncMeta) {
@@ -3614,9 +3702,13 @@
                     }
                     saveAll();
                     refreshAfterSync();
-                    setSyncMessage('已用云端覆盖本机', true);
-                    alert('已用云端覆盖本机');
+                    setSyncMessage('已下载云端进度', true);
+                    alert('已换成云端最后一次进度');
                 } catch (e) { alert('下载失败: ' + e.message); }
+                finally {
+                    setProgressSyncBusy(false);
+                    updateSyncInfoDisplay();
+                }
             };
 
             window.fetchGistIdFromList = async () => {

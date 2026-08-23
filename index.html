@@ -695,7 +695,7 @@
             <strong>同步设置与备份</strong>
             <span>Token、本地导出导入、安装到主屏幕</span>
         </button>
-        <p class="tiny-note">网页版本 12。手机主屏幕若仍是旧版，请用浏览器打开下面的链接清缓存：</p>
+        <p class="tiny-note">网页版本 13。手机主屏幕若仍是旧版，请用浏览器打开下面的链接清缓存：</p>
         <a class="mine-card" href="./update.html" style="text-decoration:none;">
             <strong>清缓存并打开新版</strong>
             <span>不要点主屏幕图标，用手机浏览器打开这一页</span>
@@ -3544,20 +3544,14 @@
             }
 
             async function readGistBackup() {
-                const gist = await githubRequest(`https://api.github.com/gists/${state.github.gistId}?t=${Date.now()}`);
+                const gist = await githubRequest(`https://api.github.com/gists/${state.github.gistId}`);
                 const file = gist.files && gist.files['japanese_words_backup.json'];
                 if (!file) return null;
-                const rawUrl = file.raw_url;
-                let raw = '';
-                if (rawUrl) {
-                    const r = await fetch(rawUrl + (rawUrl.indexOf('?') >= 0 ? '&' : '?') + 't=' + Date.now(), {
-                        cache: 'no-store',
-                        headers: { Authorization: `token ${state.github.token}`, Accept: 'application/vnd.github.v3.raw' }
-                    });
+                let raw = (!file.truncated && file.content) ? file.content : '';
+                if (!raw && file.raw_url) {
+                    const r = await fetch(file.raw_url, { cache: 'no-store' });
                     if (!r.ok) throw new Error('读取云端全文失败: ' + r.status);
                     raw = await r.text();
-                } else {
-                    raw = file.content;
                 }
                 if (!raw) return null;
                 return unpackData(raw);
@@ -3732,7 +3726,10 @@
                     refreshAfterSync();
                     setSyncMessage('已下载云端进度', true);
                     alert('已换成云端进度\n' + summarizePayload(data));
-                } catch (e) { alert('下载失败: ' + e.message); }
+                } catch (e) {
+                    const msg = String(e.message || e);
+                    alert(msg === 'Failed to fetch' ? '下载失败：连不上 GitHub。请确认电脑能打开 github.com，然后重试。' : ('下载失败: ' + msg));
+                }
                 finally {
                     setProgressSyncBusy(false);
                     updateSyncInfoDisplay();

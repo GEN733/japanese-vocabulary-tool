@@ -199,6 +199,8 @@
         .multi-meaning-hint { font-size: 0.95rem; color: #6a1b9a; margin-top: 5px; text-align: center; }
         .answer-list { font-size: 1.05rem; background: #f8f9fc; border-radius: 14px; padding: 12px; margin: 10px 0; word-break: break-word; overflow-wrap: anywhere; }
         #wrongActionBar button, #spacedWrongActionBar button { flex: 1; }
+        #meaningConfirmBar, #spacedMeaningConfirmBar { gap: 8px; margin-top: 8px; }
+        #meaningConfirmBar button, #spacedMeaningConfirmBar button { flex: 1; }
         .module-card { background: #ffffff; border-radius: 16px; padding: 16px; margin-bottom: 16px; border: 1px solid #eef2f7; }
         .module-card h3 { margin-top: 0; color: var(--ink); font-size: 1.05rem; }
         .grammar-module-bg { background-color: #eef2f8; }
@@ -433,6 +435,10 @@
                 <button onclick="handleWrongKeep()">保留</button>
                 <button class="warning" onclick="handleWrongRemove()">从错题集移除</button>
             </div>
+            <div class="flex-row" id="meaningConfirmBar" style="display:none;">
+                <button class="primary" onclick="confirmMeaningWrong()">记错了</button>
+                <button onclick="confirmMeaningRight()">意思对了</button>
+            </div>
         </div>
         </div>
     </div>
@@ -601,6 +607,10 @@
                 <button onclick="handleSpacedRemove()">移出</button>
                 <button class="warning" onclick="handleSpacedKeep()">保留</button>
             </div>
+            <div class="flex-row" id="spacedMeaningConfirmBar" style="display:none;">
+                <button class="primary" onclick="confirmMeaningWrong()">记错了</button>
+                <button onclick="confirmMeaningRight()">意思对了</button>
+            </div>
         </div>
     </div>
 
@@ -695,7 +705,7 @@
             <strong>同步设置与备份</strong>
             <span>Token、本地导出导入、安装到主屏幕</span>
         </button>
-        <p class="tiny-note">网页版本 13。手机主屏幕若仍是旧版，请用浏览器打开下面的链接清缓存：</p>
+        <p class="tiny-note">网页版本 14。手机主屏幕若仍是旧版，请用浏览器打开下面的链接清缓存：</p>
         <a class="mine-card" href="./update.html" style="text-decoration:none;">
             <strong>清缓存并打开新版</strong>
             <span>不要点主屏幕图标，用手机浏览器打开这一页</span>
@@ -780,6 +790,7 @@
                     selectedBookIds: [],
                     multiAnswers: [],
                     pendingWrong: null,
+                    pendingMeaning: null,
                     currentItem: null,
                 },
                 wrongUI: {
@@ -805,6 +816,7 @@
                     sortKey: null,
                     sortOrder: 'asc',
                     multiAnswers: [],
+                    pendingMeaning: null,
                 },
                 sync: {},
             };
@@ -927,8 +939,10 @@
                 clearAutoNext();
                 state.practice.words = [];
                 state.practice.pendingWrong = null;
+                state.practice.pendingMeaning = null;
                 state.practice.answerState = 'initial';
                 document.getElementById('wrongActionBar').style.display = 'none';
+                hideMeaningConfirmBars();
                 document.getElementById('answerInput').disabled = false;
                 refreshSessionChrome();
             };
@@ -940,9 +954,11 @@
                 const ui = state.spacedUI;
                 ui.practiceWords = [];
                 ui.pendingAction = null;
+                ui.pendingMeaning = null;
                 ui.answerState = 'initial';
                 hideSpacedGradeBar();
                 document.getElementById('spacedWrongActionBar').style.display = 'none';
+                hideMeaningConfirmBars();
                 document.getElementById('spacedAnswerInput').disabled = false;
                 document.getElementById('spacedPracticeArea').style.display = 'none';
                 refreshSessionChrome();
@@ -1069,6 +1085,178 @@
             function aliasMatches(alias, ans) {
                 return alias === ans || normalizeString(alias) === normalizeString(ans);
             }
+
+            function hideMeaningConfirmBars() {
+                const practiceBar = document.getElementById('meaningConfirmBar');
+                const spacedBar = document.getElementById('spacedMeaningConfirmBar');
+                if (practiceBar) practiceBar.style.display = 'none';
+                if (spacedBar) spacedBar.style.display = 'none';
+            }
+
+            function collectGrammarAliases(word, question) {
+                const out = [];
+                const add = (s) => {
+                    const t = String(s || '').trim();
+                    if (t && !out.some(x => aliasMatches(x, t))) out.push(t);
+                };
+                if (question && Array.isArray(question.aliases)) question.aliases.forEach(add);
+                if (word && word.chinese) {
+                    extractChineseMeanings(word.chinese).forEach(add);
+                    String(word.chinese).split('/').forEach(add);
+                }
+                const addAccepted = (item) => {
+                    if (item && Array.isArray(item.acceptedAnswers)) item.acceptedAnswers.forEach(add);
+                };
+                addAccepted(word);
+                if (word && word.japanese) {
+                    state.vocabs.forEach(v => {
+                        if (v.category === 'grammar' && v.japanese === word.japanese) addAccepted(v);
+                    });
+                }
+                return out;
+            }
+
+            function extraAcceptedForWord(word) {
+                const out = [];
+                const add = (s) => {
+                    const t = String(s || '').trim();
+                    if (t && !out.some(x => aliasMatches(x, t))) out.push(t);
+                };
+                if (word && Array.isArray(word.acceptedAnswers)) word.acceptedAnswers.forEach(add);
+                if (word && word.japanese) {
+                    state.vocabs.forEach(v => {
+                        if (v.category === 'grammar' && v.japanese === word.japanese && Array.isArray(v.acceptedAnswers)) {
+                            v.acceptedAnswers.forEach(add);
+                        }
+                    });
+                }
+                return out;
+            }
+
+            function rememberAcceptedAnswers(word, answers) {
+                if (!word) return;
+                const list = Array.isArray(answers) ? answers : [answers];
+                if (!Array.isArray(word.acceptedAnswers)) word.acceptedAnswers = [];
+                const alreadyOk = collectGrammarAliases(word, null);
+                list.forEach(ans => {
+                    const t = String(ans || '').trim();
+                    if (!t) return;
+                    if (alreadyOk.some(a => aliasMatches(a, t))) return;
+                    word.acceptedAnswers.push(t);
+                    alreadyOk.push(t);
+                });
+                saveAll();
+            }
+
+            function isGrammarJp2CnQuestion(question, category) {
+                if (category !== 'grammar' || !question) return false;
+                if (question.type === 'multi') return true;
+                return question.direction === 'jp2cn';
+            }
+
+            function grammarMeaningMatches(meaning, ans, extraAccepted) {
+                if (meaning.aliases.some(alias => aliasMatches(alias, ans))) return true;
+                return extraAccepted.some(a => aliasMatches(a, ans));
+            }
+
+            function beginPracticeMeaningConfirm(payload) {
+                clearAutoNext();
+                state.practice.answerState = 'meaningConfirm';
+                state.practice.pendingMeaning = payload;
+                const input = document.getElementById('answerInput');
+                input.disabled = false;
+                input.readOnly = true;
+                document.getElementById('meaningConfirmBar').style.display = 'flex';
+                const wrongBtn = document.querySelector('#meaningConfirmBar .primary');
+                if (wrongBtn) wrongBtn.focus();
+                revealFeedback('practice');
+            }
+
+            function beginSpacedMeaningConfirm(payload) {
+                clearAutoNext();
+                const ui = state.spacedUI;
+                ui.answerState = 'meaningConfirm';
+                ui.pendingMeaning = payload;
+                const input = document.getElementById('spacedAnswerInput');
+                input.disabled = false;
+                input.readOnly = true;
+                document.getElementById('spacedMeaningConfirmBar').style.display = 'flex';
+                const wrongBtn = document.querySelector('#spacedMeaningConfirmBar .primary');
+                if (wrongBtn) wrongBtn.focus();
+                revealFeedback('spaced');
+            }
+
+            function finishPracticeMeaningConfirm(accepted) {
+                const p = state.practice;
+                const payload = p.pendingMeaning;
+                if (p.answerState !== 'meaningConfirm' || !payload) return;
+                const word = payload.word || (payload.question && payload.question.item);
+                hideMeaningConfirmBars();
+                p.pendingMeaning = null;
+                const input = document.getElementById('answerInput');
+                input.readOnly = false;
+                const msgDiv = document.getElementById('resultMessage');
+                if (accepted) {
+                    rememberAcceptedAnswers(word, payload.answers);
+                    p.stats.correct++;
+                    msgDiv.className = 'result-badge correct';
+                    const standard = word && word.chinese ? word.chinese : '';
+                    msgDiv.innerHTML = `✓ 已按你的意思算对<br>标准释义：${standard}`;
+                    recordStudy({ correct: true, review: false });
+                    updateProgress();
+                    if (!handleCorrectForWrongPractice(word)) return;
+                    p.answerState = 'completed';
+                    keepInputFocus('practice');
+                    return;
+                }
+                p.stats.wrong++;
+                addToWrongList(word);
+                recordStudy({ correct: false, review: false });
+                updateProgress();
+                p.answerState = 'completed';
+                keepInputFocus('practice');
+            }
+
+            function finishSpacedMeaningConfirm(accepted) {
+                const ui = state.spacedUI;
+                const payload = ui.pendingMeaning;
+                if (ui.answerState !== 'meaningConfirm' || !payload) return;
+                const word = payload.word;
+                const question = payload.question || ui.currentQuestion;
+                const items = payload.items || getSpacedTargetItems(question);
+                hideMeaningConfirmBars();
+                ui.pendingMeaning = null;
+                const input = document.getElementById('spacedAnswerInput');
+                input.readOnly = false;
+                input.disabled = false;
+                const msgDiv = document.getElementById('spacedResultMessage');
+                if (accepted) {
+                    rememberAcceptedAnswers(word, payload.answers);
+                    ui.stats.correct++;
+                    msgDiv.className = 'result-badge correct';
+                    const standard = word && word.chinese ? word.chinese : '';
+                    msgDiv.innerHTML = `✓ 已按你的意思算对<br>标准释义：${standard}<br>请选择熟悉程度`;
+                    updateSpacedUI();
+                    showSpacedGradeBar();
+                    keepInputFocus('spaced');
+                    return;
+                }
+                ui.stats.wrong++;
+                items.forEach(item => sm2Update(item, 1));
+                recordStudy({ correct: false, review: true });
+                msgDiv.className = 'result-badge wrong';
+                const correctAnswer = word && word.chinese ? word.chinese : '';
+                msgDiv.innerHTML = `✗ 记错了。正确答案：${correctAnswer}。已重置，明天再复习。`;
+                document.getElementById('spacedWrongActionBar').style.display = 'none';
+                ui.pendingAction = null;
+                ui.answerState = 'completed';
+                updateSpacedUI();
+                saveAll();
+                keepInputFocus('spaced');
+            }
+
+            window.confirmMeaningWrong = function() { finishPracticeMeaningConfirm(false); finishSpacedMeaningConfirm(false); };
+            window.confirmMeaningRight = function() { finishPracticeMeaningConfirm(true); finishSpacedMeaningConfirm(true); };
 
             function getWordAliases(item) {
                 return extractChineseMeanings(item.chinese || '');
@@ -1832,8 +2020,11 @@
                 p.multiAnswers = [];
                 p.answerState = 'initial';
                 p.kanaCorrect = false;
+                p.pendingMeaning = null;
                 document.getElementById('wrongActionBar').style.display = 'none';
+                hideMeaningConfirmBars();
                 document.getElementById('answerInput').disabled = false;
+                document.getElementById('answerInput').readOnly = false;
                 if (question.type === 'multi') {
                     document.getElementById('questionWord').innerHTML = question.japanese;
                     document.getElementById('multiHint').innerHTML = `有 <b>${question.meanings.length}</b> 个含义，请逐个输入`;
@@ -1877,6 +2068,7 @@
 
             function checkAnswer() {
                 const { practice: p } = state;
+                if (p.answerState === 'meaningConfirm' || p.answerState === 'completed' || p.answerState === 'pendingChoice') return;
                 const question = p.words[p.index];
                 if (!question) return;
                 const ans = document.getElementById('answerInput').value.trim();
@@ -1901,9 +2093,8 @@
                 if (p.category === 'grammar' || isJp2Cn) {
                     let correct;
                     if (isJp2Cn && p.category === 'grammar') {
-                        const candidates = word.chinese.split('/').map(s => s.trim()).filter(Boolean);
-                        const normalizedAns = normalizeString(ans);
-                        correct = candidates.some(c => normalizeString(c) === normalizedAns);
+                        const candidates = collectGrammarAliases(word, question);
+                        correct = candidates.some(c => aliasMatches(c, ans));
                     } else if (isJp2Cn && p.category === 'word') {
                         const aliases = question.aliases && question.aliases.length ? question.aliases : extractChineseMeanings(word.chinese);
                         correct = aliases.some(a => aliasMatches(a, ans));
@@ -1925,6 +2116,13 @@
                             showExampleCard(document.getElementById('exampleCard'), formatExampleHtml(word.example, word.exampleCn, false));
                         }
                         if (!handleCorrectForWrongPractice(word)) { revealFeedback('practice'); return; }
+                    } else if (isGrammarJp2CnQuestion(question, p.category)) {
+                        msgDiv.innerHTML = `✗ 和标准释义不完全一样<br>标准释义：${word.chinese}<br><span class="tiny-note">回车 = 记错了</span>`;
+                        if (word.example) {
+                            showExampleCard(document.getElementById('exampleCard'), formatExampleHtml(word.example, word.exampleCn, false));
+                        }
+                        beginPracticeMeaningConfirm({ word, question, answers: [ans], isMulti: false });
+                        return;
                     } else {
                         p.stats.wrong++;
                         msgDiv.innerText = `✗ 错误 正确答案: ${isJp2Cn ? word.chinese : word.japanese}`;
@@ -1998,9 +2196,10 @@
             function finalizeMultiAnswer(question) {
                 const meanings = question.meanings;
                 const userSet = state.practice.multiAnswers;
+                const extra = state.practice.category === 'grammar' ? extraAcceptedForWord(question.item) : [];
                 let allMatched = true;
                 for (const meaning of meanings) {
-                    if (!userSet.some(ans => meaning.aliases.some(alias => aliasMatches(alias, ans)))) { allMatched = false; break; }
+                    if (!userSet.some(ans => grammarMeaningMatches(meaning, ans, extra))) { allMatched = false; break; }
                 }
                 const isCorrect = allMatched && userSet.length === meanings.length;
                 const msgDiv = document.getElementById('resultMessage');
@@ -2009,31 +2208,48 @@
                     state.practice.stats.correct++;
                     msgDiv.className = 'result-badge correct';
                     msg += '✓ 完全正确！';
-                } else {
-                    state.practice.stats.wrong++;
-                    msgDiv.className = 'result-badge wrong';
-                    const allAliases = meanings.map(m => m.aliases.join('/')).join('、');
-                    msg += `✗ 错误，正确答案：${allAliases}`;
-                    addToWrongList(question.item);
+                    msgDiv.innerHTML = msg;
+                    const exampleHtml = examplesFromItems(meanings.flatMap(m => m.items));
+                    showExampleCard(document.getElementById('exampleCard'), exampleHtml);
+                    document.getElementById('multiHint').style.display = 'none';
+                    document.getElementById('answerListArea').style.display = 'none';
+                    state.practice.answerState = 'completed';
+                    updateProgress();
+                    recordStudy({ correct: true, review: false });
+                    revealFeedback('practice');
+                    if (!handleCorrectForWrongPractice(question.item)) {
+                        state.practice.answerState = 'pendingChoice';
+                    }
+                    return;
                 }
+                msgDiv.className = 'result-badge wrong';
+                const allAliases = meanings.map(m => m.aliases.join('/')).join('、');
+                msg += `✗ 和标准释义不完全一样<br>标准释义：${allAliases}<br><span class="tiny-note">回车 = 记错了</span>`;
                 msgDiv.innerHTML = msg;
                 const exampleHtml = examplesFromItems(meanings.flatMap(m => m.items));
                 showExampleCard(document.getElementById('exampleCard'), exampleHtml);
                 document.getElementById('multiHint').style.display = 'none';
                 document.getElementById('answerListArea').style.display = 'none';
+                if (isGrammarJp2CnQuestion(question, state.practice.category)) {
+                    beginPracticeMeaningConfirm({ word: question.item, question, answers: userSet.slice(), isMulti: true });
+                    return;
+                }
+                state.practice.stats.wrong++;
+                addToWrongList(question.item);
                 state.practice.answerState = 'completed';
                 updateProgress();
-                recordStudy({ correct: isCorrect, review: false });
+                recordStudy({ correct: false, review: false });
                 revealFeedback('practice');
-                if (isCorrect && !handleCorrectForWrongPractice(question.item)) {
-                    state.practice.answerState = 'pendingChoice';
-                }
             }
 
             window.nextWord = function() {
                 const { practice: p } = state;
                 clearAutoNext();
                 if (p.pendingWrong) return;
+                if (p.answerState === 'meaningConfirm') {
+                    confirmMeaningWrong();
+                    return;
+                }
                 const question = p.words[p.index];
                 if (!question) return;
                 if (p.answerState === 'pendingChoice') { p.pendingWrong = null; p.answerState = 'completed'; }
@@ -2721,6 +2937,7 @@
                 p.stats = { total: p.words.length, correct: 0, wrong: 0 };
                 p.answerState = 'initial';
                 p.pendingWrong = null;
+                p.pendingMeaning = null;
                 p.currentItem = null;
                 saveAll();
                 showQuestion();
@@ -3074,8 +3291,11 @@
 
                 document.getElementById('spacedPreviewText').innerText = '';
                 document.getElementById('spacedWrongActionBar').style.display = 'none';
+                hideMeaningConfirmBars();
+                ui.pendingMeaning = null;
                 hideSpacedGradeBar();
                 document.getElementById('spacedAnswerInput').disabled = false;
+                document.getElementById('spacedAnswerInput').readOnly = false;
                 document.getElementById('spacedAnswerInput').value = '';
                 keepInputFocus('spaced');
                 refreshSessionChrome();
@@ -3143,46 +3363,55 @@
                 if (!question || question.type !== 'multi') return;
                 const meanings = question.meanings;
                 const userSet = ui.multiAnswers;
+                const extra = ui.currentCategory === 'grammar' ? extraAcceptedForWord(question.item) : [];
                 let allMatched = true;
                 for (const meaning of meanings) {
-                    if (!userSet.some(ans => meaning.aliases.some(alias => aliasMatches(alias, ans)))) {
+                    if (!userSet.some(ans => grammarMeaningMatches(meaning, ans, extra))) {
                         allMatched = false;
                         break;
                     }
                 }
                 const isCorrect = allMatched && userSet.length === meanings.length;
-                ui.stats.correct += isCorrect ? 1 : 0;
-                ui.stats.wrong += isCorrect ? 0 : 1;
                 const items = getSpacedTargetItems(question);
 
                 const msgDiv = document.getElementById('spacedResultMessage');
                 let msg = `已输入含义：${userSet.join('、')}<br>`;
-                if (isCorrect) {
-                    msgDiv.className = 'result-badge correct';
-                    msg += '✓ 完全正确！请选择熟悉程度';
-                } else {
-                    msgDiv.className = 'result-badge wrong';
-                    const allAliases = meanings.map(m => m.aliases.join('/')).join('、');
-                    msg += `✗ 错误，正确答案：${allAliases}`;
-                }
-                msgDiv.innerHTML = msg;
-
                 const exampleHtml = examplesFromItems(meanings.flatMap(m => m.items));
                 const exDiv = document.getElementById('spacedExampleCard');
                 if (exampleHtml) showExampleCard(exDiv, exampleHtml);
                 else showSpacedExample(question.item || items[0]);
-
                 document.getElementById('spacedMultiHint').style.display = 'none';
                 document.getElementById('spacedMultiAnswerList').style.display = 'none';
+
                 if (isCorrect) {
+                    ui.stats.correct += 1;
+                    msgDiv.className = 'result-badge correct';
+                    msg += '✓ 完全正确！请选择熟悉程度';
+                    msgDiv.innerHTML = msg;
                     showSpacedGradeBar();
-                } else {
-                    items.forEach(item => sm2Update(item, 1));
-                    recordStudy({ correct: false, review: true });
-                    ui.answerState = 'completed';
-                    updateSpacedUI();
-                    saveAll();
+                    revealFeedback('spaced');
+                    return;
                 }
+                msgDiv.className = 'result-badge wrong';
+                const allAliases = meanings.map(m => m.aliases.join('/')).join('、');
+                msg += `✗ 和标准释义不完全一样<br>标准释义：${allAliases}<br><span class="tiny-note">回车 = 记错了</span>`;
+                msgDiv.innerHTML = msg;
+                if (ui.currentCategory === 'grammar') {
+                    beginSpacedMeaningConfirm({
+                        word: question.item || items[0],
+                        question,
+                        answers: userSet.slice(),
+                        isMulti: true,
+                        items
+                    });
+                    return;
+                }
+                ui.stats.wrong += 1;
+                items.forEach(item => sm2Update(item, 1));
+                recordStudy({ correct: false, review: true });
+                ui.answerState = 'completed';
+                updateSpacedUI();
+                saveAll();
                 revealFeedback('spaced');
             }
 
@@ -3195,37 +3424,45 @@
 
             function checkSpacedAnswer(userAnswer) {
                 const ui = state.spacedUI;
+                if (ui.answerState === 'meaningConfirm' || ui.answerState === 'completed' || ui.answerState === 'waitingGrade') return;
                 const question = ui.currentQuestion;
                 const word = (question && question.item) || ui.currentItem;
                 if (!word) return;
                 let isCorrect = false;
                 if (ui.currentCategory === 'grammar') {
-                    const aliases = (question && question.aliases) || word.chinese.split('/').map(s => s.trim()).filter(Boolean);
+                    const aliases = collectGrammarAliases(word, question);
                     isCorrect = aliases.some(a => aliasMatches(a, userAnswer));
                 } else {
                     isCorrect = (userAnswer === word.japanese);
                 }
-                ui.stats.correct += isCorrect ? 1 : 0;
-                ui.stats.wrong += isCorrect ? 0 : 1;
                 const items = getSpacedTargetItems(question);
                 const msgDiv = document.getElementById('spacedResultMessage');
                 showSpacedExample(word);
                 if (isCorrect) {
+                    ui.stats.correct += 1;
                     msgDiv.className = 'result-badge correct';
                     msgDiv.innerHTML = '✓ 正确！请选择熟悉程度';
                     showSpacedGradeBar();
-                } else {
-                    items.forEach(item => sm2Update(item, 1));
-                    recordStudy({ correct: false, review: true });
-                    msgDiv.className = 'result-badge wrong';
-                    const correctAnswer = ui.currentCategory === 'grammar' ? word.chinese : word.japanese;
-                    msgDiv.innerHTML = `✗ 错误！正确答案：${correctAnswer}。已重置，明天再复习。`;
-                    document.getElementById('spacedWrongActionBar').style.display = 'none';
-                    ui.pendingAction = null;
-                    ui.answerState = 'completed';
-                    updateSpacedUI();
-                    saveAll();
+                    revealFeedback('spaced');
+                    return;
                 }
+                if (ui.currentCategory === 'grammar') {
+                    msgDiv.className = 'result-badge wrong';
+                    msgDiv.innerHTML = `✗ 和标准释义不完全一样<br>标准释义：${word.chinese}<br><span class="tiny-note">回车 = 记错了</span>`;
+                    document.getElementById('spacedWrongActionBar').style.display = 'none';
+                    beginSpacedMeaningConfirm({ word, question, answers: [userAnswer], isMulti: false, items });
+                    return;
+                }
+                ui.stats.wrong += 1;
+                items.forEach(item => sm2Update(item, 1));
+                recordStudy({ correct: false, review: true });
+                msgDiv.className = 'result-badge wrong';
+                msgDiv.innerHTML = `✗ 错误！正确答案：${word.japanese}。已重置，明天再复习。`;
+                document.getElementById('spacedWrongActionBar').style.display = 'none';
+                ui.pendingAction = null;
+                ui.answerState = 'completed';
+                updateSpacedUI();
+                saveAll();
                 revealFeedback('spaced');
             }
 
@@ -3962,13 +4199,26 @@
 
             // 事件绑定
             document.getElementById('answerInput').addEventListener('input', function() { document.getElementById('previewText').innerText = this.value; });
-            document.getElementById('answerInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); clearAutoNext(); if (state.practice.pendingWrong) return; if (state.practice.answerState === 'completed') nextWord(); else checkAnswer(); } });
+            document.getElementById('answerInput').addEventListener('keydown', e => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    clearAutoNext();
+                    if (state.practice.pendingWrong) return;
+                    if (state.practice.answerState === 'meaningConfirm') { confirmMeaningWrong(); return; }
+                    if (state.practice.answerState === 'completed') nextWord();
+                    else checkAnswer();
+                }
+            });
             document.getElementById('spacedAnswerInput').addEventListener('input', function() { document.getElementById('spacedPreviewText').innerText = this.value; });
             document.getElementById('spacedAnswerInput').addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     const ui = state.spacedUI;
                     if (ui.pendingAction && ui.pendingAction.type === 'mastered') return;
+                    if (ui.answerState === 'meaningConfirm') {
+                        confirmMeaningWrong();
+                        return;
+                    }
                     if (ui.answerState === 'waitingGrade') {
                         gradeSpacedAnswer(4);
                         return;

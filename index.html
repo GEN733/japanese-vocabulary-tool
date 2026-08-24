@@ -33,6 +33,24 @@
         button.warning { background: #f5b342; color: #1e1e1e; }
         button.danger { background: #d9534f; color: white; }
         button.text-btn { background: none; box-shadow: none; color: var(--ink); min-height: 56px; font-size: 1.35rem; font-weight: 700; padding: 12px 16px 12px 4px; }
+        button.session-end {
+            background: #fff;
+            border: 1.5px solid #c5d0de;
+            border-radius: 12px;
+            min-height: 36px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            padding: 6px 14px;
+            color: var(--ink);
+        }
+        button.session-go {
+            background: #eef3f9;
+            border-radius: 12px;
+            min-height: 36px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            padding: 6px 14px;
+        }
         input,select,textarea { width: 100%; padding: 14px 16px; border: 1px solid #d9e1ec; border-radius: 14px; font-size: 1rem; margin: 8px 0; background: white; }
         textarea { border-radius: 16px; resize: vertical; }
         .flex-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -102,8 +120,7 @@
         .sync-step { background: #f2f6fc; border-radius: 16px; padding: 16px; margin: 18px 0; }
         .sync-step h4 { margin: 0 0 12px; color: var(--ink); }
         .sync-text-toggle { background: none; box-shadow: none; color: #5f738c; min-height: 44px; padding: 8px 4px; font-size: 0.9rem; width: auto; }
-        #syncNowBtn, #syncUploadBtn, #syncDownloadBtn { width: 100%; margin-top: 10px; }
-        #syncAdvanced button, #syncSetupPanel .sync-step button.block { width: 100%; margin: 8px 0; }
+        .sync-text-toggle { background: none; box-shadow: none; color: #5f738c; min-height: 44px; padding: 8px 4px; font-size: 0.9rem; width: auto; }
         .mine-sync { background: #f7fafd; border: 1px solid #e2eaf3; border-radius: 16px; padding: 16px; margin-bottom: 14px; }
         .mine-sync strong { display: block; font-size: 1.05rem; color: var(--ink); margin-bottom: 8px; }
         .mine-sync-actions { display: flex; gap: 8px; margin-top: 12px; }
@@ -311,6 +328,24 @@
             background: #fff;
         }
         .session-meta { font-size: 1.05rem; color: #5f738c; font-weight: 600; }
+        #sessionResumeBar {
+            display: none;
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+            z-index: 45;
+            width: calc(100% - 24px);
+            max-width: 776px;
+        }
+        #sessionResumeBar button {
+            width: 100%;
+            background: var(--accent);
+            color: #fff;
+            box-shadow: 0 8px 20px rgba(59,130,246,0.28);
+        }
+        body.has-resume { padding-bottom: calc(132px + env(safe-area-inset-bottom, 0px)); }
+        body.session-active #sessionResumeBar { display: none !important; }
         #practiceSession { display: none; }
         body.session-active #appTitle,
         body.session-active #bottomNav,
@@ -412,8 +447,8 @@
         </div>
         <div id="practiceSession">
         <div class="session-bar">
-            <button class="text-btn" onclick="exitPracticeSession()">结束</button>
-            <span class="session-meta" id="practiceSessionMeta"></span>
+            <button class="session-end" onclick="exitPracticeSession()">结束</button>
+            <button class="session-go" onclick="leaveSessionToLibrary('practice')">去题库</button>
         </div>
         <div class="stats-grid">
             <div class="stat-card"><span class="stat-num" id="progressCurr">0</span>/<span id="progressTotal">0</span><br>进度</div>
@@ -575,8 +610,8 @@
 
         <div id="spacedPracticeArea" style="display:none;">
             <div class="session-bar">
-                <button class="text-btn" onclick="exitSpacedSession()">结束</button>
-                <span class="session-meta" id="spacedSessionMeta"></span>
+                <button class="session-end" onclick="exitSpacedSession()">结束</button>
+                <button class="session-go" onclick="leaveSessionToLibrary('spaced')">去题库</button>
             </div>
             <div class="stats-grid">
                 <div class="stat-card"><span class="stat-num" id="spacedProgressCurr">0</span>/<span id="spacedProgressTotal">0</span><br>进度</div>
@@ -635,29 +670,11 @@
 
     <div id="sync" class="page">
         <button class="page-back" onclick="showPage('mine')">‹ 我的</button>
-        <h3>同步与备份</h3>
-
-        <div id="syncReadyPanel" style="display:none;">
-            <div id="syncInfoBox" class="sync-info-box">
-                <div id="syncStatusMain"></div>
-                <div id="syncStatusSub" class="tiny-note"></div>
-            </div>
-            <button class="primary" id="syncUploadBtn" onclick="uploadToGithub()">上传本机进度</button>
-            <button id="syncDownloadBtn" onclick="downloadFromGithub('overwrite')">下载云端进度</button>
-            <p class="tiny-note">学完的那台点上传；换设备后点下载。云端只保留最后一次整份进度，不再两边合并。</p>
-            <button type="button" class="sync-text-toggle" id="syncAdvancedToggle" onclick="toggleSyncAdvanced()">高级 ▸</button>
-            <div id="syncAdvanced" style="display:none;">
-                <p class="tiny-note">合并会把两台的数据搅在一起，日常不要用。</p>
-                <button id="syncNowBtn" onclick="syncNow()">合并两边（一般不用）</button>
-                <button onclick="toggleSyncConfig(true)">更改配置</button>
-            </div>
-            <div id="syncMessage" style="margin-top:12px;"></div>
-        </div>
-
+        <h3>同步设置与备份</h3>
         <div id="syncSetupPanel">
             <div class="sync-step">
                 <h4>连接 GitHub</h4>
-                <p class="tiny-note">每台设备填同一份 Token，以及<strong>同一个</strong> Gist ID。保存后日常在「我的」里上传或下载进度。</p>
+                <p class="tiny-note">每台设备填同一份 Token，以及<strong>同一个</strong> Gist ID。日常在「我的」里上传或下载进度。</p>
                 <input type="text" id="githubUser" placeholder="用户名（可不填）">
                 <input type="password" id="githubToken" placeholder="Token">
                 <input type="text" id="gistIdInput" placeholder="Gist ID">
@@ -667,9 +684,9 @@
                 </div>
                 <button onclick="createNewGist()" class="warning" style="margin-top:10px;">创建新云端</button>
                 <span id="configStatus"></span>
-                <button type="button" class="sync-text-toggle" id="syncSetupHide" style="display:none;" onclick="toggleSyncConfig(false)">收起配置</button>
             </div>
         </div>
+        <div id="syncMessage" style="margin-top:12px;"></div>
 
         <hr>
         <h4>本地备份</h4>
@@ -703,15 +720,18 @@
         </button>
         <button class="mine-card" onclick="showPage('sync')">
             <strong>同步设置与备份</strong>
-            <span>Token、本地导出导入、安装到主屏幕</span>
+            <span>Token、Gist、本地导出导入</span>
         </button>
-        <p class="tiny-note">网页版本 15。手机主屏幕若仍是旧版，请用浏览器打开下面的链接清缓存：</p>
+        <p class="tiny-note">网页版本 16。手机主屏幕若仍是旧版，请用浏览器打开下面的链接清缓存：</p>
         <a class="mine-card" href="./update.html" style="text-decoration:none;">
             <strong>清缓存并打开新版</strong>
             <span>不要点主屏幕图标，用手机浏览器打开这一页</span>
         </a>
     </div>
 
+    <div id="sessionResumeBar">
+        <button type="button" id="sessionResumeBtn" onclick="resumePausedSession()">继续未完成的练习</button>
+    </div>
     <nav class="bottom-nav" id="bottomNav">
         <button class="nav-item active" data-page="spaced" onclick="showPage('spaced')">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
@@ -792,6 +812,7 @@
                     pendingWrong: null,
                     pendingMeaning: null,
                     currentItem: null,
+                    paused: false,
                 },
                 wrongUI: {
                     category: 'word',
@@ -810,6 +831,8 @@
                     stats: { total: 0, correct: 0, wrong: 0 },
                     answerState: 'answering',
                     pendingAction: null,
+                    pendingMeaning: null,
+                    paused: false,
                     currentItem: null,
                     currentQuestion: null,
                     currentCategory: null,
@@ -891,17 +914,90 @@
 
             function isSpacedPracticeActive() {
                 const ui = state.spacedUI;
-                return Array.isArray(ui.practiceWords) && ui.practiceWords.length > 0 && ui.index < ui.practiceWords.length;
-            }
-
-            function syncSpacedInputVisibility() {
-                const show = isSpacedPracticeActive();
-                document.getElementById('spacedFixedInputArea').style.display = show ? 'block' : 'none';
+                return !ui.paused && Array.isArray(ui.practiceWords) && ui.practiceWords.length > 0 && ui.index < ui.practiceWords.length;
             }
 
             function isPracticeSessionActive() {
                 const p = state.practice;
-                return Array.isArray(p.words) && p.words.length > 0 && p.index < p.words.length;
+                return !p.paused && Array.isArray(p.words) && p.words.length > 0 && p.index < p.words.length;
+            }
+
+            function hasPausedPractice() {
+                const p = state.practice;
+                return !!p.paused && Array.isArray(p.words) && p.words.length > 0 && p.index < p.words.length;
+            }
+
+            function hasPausedSpaced() {
+                const ui = state.spacedUI;
+                return !!ui.paused && Array.isArray(ui.practiceWords) && ui.practiceWords.length > 0 && ui.index < ui.practiceWords.length;
+            }
+
+            function hasOpenSession() {
+                const p = state.practice;
+                const ui = state.spacedUI;
+                const practiceOpen = Array.isArray(p.words) && p.words.length > 0 && p.index < p.words.length;
+                const spacedOpen = Array.isArray(ui.practiceWords) && ui.practiceWords.length > 0 && ui.index < ui.practiceWords.length;
+                return practiceOpen || spacedOpen;
+            }
+
+            function clearPracticeSessionSilent() {
+                const p = state.practice;
+                p.words = [];
+                p.pendingWrong = null;
+                p.pendingMeaning = null;
+                p.answerState = 'initial';
+                p.paused = false;
+                p.index = 0;
+                hideMeaningConfirmBars();
+                const input = document.getElementById('answerInput');
+                if (input) { input.disabled = false; input.readOnly = false; }
+                const bar = document.getElementById('wrongActionBar');
+                if (bar) bar.style.display = 'none';
+            }
+
+            function clearSpacedSessionSilent() {
+                const ui = state.spacedUI;
+                ui.practiceWords = [];
+                ui.pendingAction = null;
+                ui.pendingMeaning = null;
+                ui.answerState = 'initial';
+                ui.paused = false;
+                ui.index = 0;
+                hideSpacedGradeBar();
+                hideMeaningConfirmBars();
+                const input = document.getElementById('spacedAnswerInput');
+                if (input) { input.disabled = false; input.readOnly = false; }
+                const bar = document.getElementById('spacedWrongActionBar');
+                if (bar) bar.style.display = 'none';
+                const area = document.getElementById('spacedPracticeArea');
+                if (area) area.style.display = 'none';
+            }
+
+            function confirmReplaceOpenSession() {
+                if (!hasOpenSession()) return true;
+                return confirm('有未完成的练习或复习。开始新的会结束当前这一轮，确定吗？');
+            }
+
+            function updateResumeBar() {
+                const bar = document.getElementById('sessionResumeBar');
+                const btn = document.getElementById('sessionResumeBtn');
+                if (!bar || !btn) return;
+                if (hasPausedPractice()) {
+                    const p = state.practice;
+                    btn.textContent = '继续练习 · 第 ' + (p.index + 1) + '/' + p.words.length + ' 题';
+                    bar.style.display = 'block';
+                    document.body.classList.add('has-resume');
+                    return;
+                }
+                if (hasPausedSpaced()) {
+                    const ui = state.spacedUI;
+                    btn.textContent = '继续复习 · 第 ' + (ui.index + 1) + '/' + ui.practiceWords.length + ' 题';
+                    bar.style.display = 'block';
+                    document.body.classList.add('has-resume');
+                    return;
+                }
+                bar.style.display = 'none';
+                document.body.classList.remove('has-resume');
             }
 
             function refreshSessionChrome() {
@@ -916,54 +1012,66 @@
                 if (setup) setup.style.display = practiceOn ? 'none' : 'block';
                 if (session) session.style.display = practiceOn ? 'block' : 'none';
                 if (spacedSetup) spacedSetup.style.display = spacedOn ? 'none' : '';
-                if (practiceOn) {
-                    const p = state.practice;
-                    const answered = (p.stats.correct || 0) + (p.stats.wrong || 0);
-                    const rate = answered ? Math.round(p.stats.correct / answered * 100) : 0;
-                    const meta = document.getElementById('practiceSessionMeta');
-                    if (meta) meta.textContent = (p.index + 1) + '/' + p.words.length + ' · ' + rate + '%';
-                }
-                if (spacedOn) {
-                    const ui = state.spacedUI;
-                    const answered = (ui.stats.correct || 0) + (ui.stats.wrong || 0);
-                    const rate = answered ? Math.round(ui.stats.correct / answered * 100) : 0;
-                    const meta = document.getElementById('spacedSessionMeta');
-                    if (meta) meta.textContent = (ui.index + 1) + '/' + ui.practiceWords.length + ' · ' + rate + '%';
-                }
+                const spacedArea = document.getElementById('spacedPracticeArea');
+                if (spacedArea && !spacedOn) spacedArea.style.display = 'none';
+                updateResumeBar();
                 syncSpacedInputVisibility();
             }
 
+            window.leaveSessionToLibrary = function(kind) {
+                if (kind === 'spaced') {
+                    if (!isSpacedPracticeActive()) return;
+                    state.spacedUI.paused = true;
+                } else {
+                    if (!isPracticeSessionActive()) return;
+                    state.practice.paused = true;
+                }
+                hideMeaningConfirmBars();
+                const input = document.getElementById(kind === 'spaced' ? 'spacedAnswerInput' : 'answerInput');
+                if (input) input.blur();
+                refreshSessionChrome();
+                showPage('library');
+            };
+
+            window.resumePausedSession = function() {
+                if (hasPausedPractice()) {
+                    state.practice.paused = false;
+                    showPage('practice');
+                    showQuestion();
+                    refreshSessionChrome();
+                    return;
+                }
+                if (hasPausedSpaced()) {
+                    state.spacedUI.paused = false;
+                    showPage('spaced');
+                    const area = document.getElementById('spacedPracticeArea');
+                    if (area) area.style.display = 'block';
+                    showSpacedQuestion();
+                    refreshSessionChrome();
+                }
+            };
+
             window.exitPracticeSession = function() {
-                if (!isPracticeSessionActive()) { refreshSessionChrome(); return; }
+                if (!isPracticeSessionActive() && !hasPausedPractice()) { refreshSessionChrome(); return; }
                 if (!confirm('结束本次练习？本轮未完成的题目会退出，已记录的对错仍会保留。')) return;
                 clearAutoNext();
-                state.practice.words = [];
-                state.practice.pendingWrong = null;
-                state.practice.pendingMeaning = null;
-                state.practice.answerState = 'initial';
-                document.getElementById('wrongActionBar').style.display = 'none';
-                hideMeaningConfirmBars();
-                document.getElementById('answerInput').disabled = false;
+                clearPracticeSessionSilent();
                 refreshSessionChrome();
             };
 
             window.exitSpacedSession = function() {
-                if (!isSpacedPracticeActive()) { refreshSessionChrome(); return; }
+                if (!isSpacedPracticeActive() && !hasPausedSpaced()) { refreshSessionChrome(); return; }
                 if (!confirm('结束本次复习？')) return;
                 clearAutoNext();
-                const ui = state.spacedUI;
-                ui.practiceWords = [];
-                ui.pendingAction = null;
-                ui.pendingMeaning = null;
-                ui.answerState = 'initial';
-                hideSpacedGradeBar();
-                document.getElementById('spacedWrongActionBar').style.display = 'none';
-                hideMeaningConfirmBars();
-                document.getElementById('spacedAnswerInput').disabled = false;
-                document.getElementById('spacedPracticeArea').style.display = 'none';
+                clearSpacedSessionSilent();
                 refreshSessionChrome();
                 updateSpacedUI();
             };
+
+            function syncSpacedInputVisibility() {
+                const show = isSpacedPracticeActive();
+                document.getElementById('spacedFixedInputArea').style.display = show ? 'block' : 'none';
+            }
 
             window.closeMoreMenu = function() {};
             window.toggleMoreMenu = function() {};
@@ -1061,6 +1169,68 @@
                     if (byId) return byId;
                 }
                 return state.vocabs.find(v => v.chinese === ref.chinese && v.japanese === ref.japanese) || null;
+            }
+
+            function typeBadgeHtml(wordType) {
+                if (!wordType) return '';
+                return ` <span class="type-badge${wordType.includes('他') ? ' 他' : ''}">${wordType}</span>`;
+            }
+
+            function overlaySpacedFromVocab(item) {
+                if (!item) return item;
+                const v = findVocabByRef(item);
+                if (!v) return item;
+                item.japanese = v.japanese;
+                item.chinese = v.category === 'grammar' ? collectGrammarMeanings(v.japanese, v.chinese) : v.chinese;
+                item.example = v.example;
+                item.exampleCn = v.exampleCn;
+                item.wordType = v.wordType;
+                item.particle = v.particle;
+                if (v.id != null) item.vocabId = v.id;
+                return item;
+            }
+
+            function syncLinkedRecordsFromVocab(vocab, prev) {
+                if (!vocab) return;
+                (state.spacedItems || []).forEach(s => {
+                    const matchId = vocab.id != null && sameId(s.vocabId, vocab.id);
+                    const matchOld = prev && s.category === vocab.category && s.chinese === prev.chinese && s.japanese === prev.japanese;
+                    if (matchId || matchOld) overlaySpacedFromVocab(Object.assign(s, { vocabId: vocab.id, category: vocab.category || s.category }));
+                });
+                Object.keys(state.wrong || {}).forEach(k => {
+                    (state.wrong[k] || []).forEach(entry => {
+                        const matchId = vocab.id != null && (sameId(entry.vocabId, vocab.id) || sameId(entry.id, vocab.id));
+                        const matchOld = prev && entry.chinese === prev.chinese && entry.japanese === prev.japanese;
+                        if (matchId || matchOld) {
+                            entry.vocabId = vocab.id;
+                            entry.chinese = vocab.chinese;
+                            entry.japanese = vocab.japanese;
+                        }
+                    });
+                });
+                const refreshQuestion = (q) => {
+                    if (!q) return;
+                    const it = q.item;
+                    if (!it) return;
+                    const match = sameId(it.id, vocab.id) || sameId(it.vocabId, vocab.id) || (prev && it.chinese === prev.chinese && it.japanese === prev.japanese);
+                    if (!match) return;
+                    if (it !== vocab && it.deckId == null) {
+                        it.chinese = vocab.chinese;
+                        it.japanese = vocab.japanese;
+                        it.vocabId = vocab.id;
+                        it.wordType = vocab.wordType;
+                        it.particle = vocab.particle;
+                        it.example = vocab.example;
+                        it.exampleCn = vocab.exampleCn;
+                    }
+                    if (q.aliases) q.aliases = extractChineseMeanings(vocab.chinese);
+                    if (q.japanese && vocab.category === 'grammar') q.japanese = vocab.japanese;
+                };
+                (state.practice.words || []).forEach(refreshQuestion);
+                (state.spacedUI.practiceWords || []).forEach(q => {
+                    refreshQuestion(q);
+                    (q.spacedItems || []).forEach(overlaySpacedFromVocab);
+                });
             }
 
             function findWrongEntry(list, word) {
@@ -1662,6 +1832,7 @@
                                 : state.vocabs.find(x => x.chinese === item.chinese && x.japanese === item.japanese);
                             if (v) item.vocabId = v.id;
                         }
+                        overlaySpacedFromVocab(item);
                         if (item.lapses === undefined) item.lapses = 0;
                         if (!item.lastReviewDate) item.lastReviewDate = '';
                         if (item.reviewCount === undefined) {
@@ -1730,41 +1901,14 @@
             }
 
             function refreshSyncLayout() {
-                const ready = document.getElementById('syncReadyPanel');
                 const setup = document.getElementById('syncSetupPanel');
-                const hideBtn = document.getElementById('syncSetupHide');
-                if (!ready || !setup) return;
-                const forceSetup = setup.dataset.force === '1';
-                const configured = isGithubReady();
-                ready.style.display = configured && !forceSetup ? 'block' : 'none';
-                setup.style.display = !configured || forceSetup ? 'block' : 'none';
-                if (hideBtn) hideBtn.style.display = configured && forceSetup ? 'block' : 'none';
+                if (setup) setup.style.display = 'block';
             }
-
-            window.toggleSyncAdvanced = function() {
-                const box = document.getElementById('syncAdvanced');
-                const btn = document.getElementById('syncAdvancedToggle');
-                if (!box) return;
-                const open = box.style.display === 'none' || !box.style.display;
-                box.style.display = open ? 'block' : 'none';
-                if (btn) btn.textContent = open ? '高级 ▾' : '高级 ▸';
-            };
-
-            window.toggleSyncConfig = function(show) {
-                const setup = document.getElementById('syncSetupPanel');
-                if (!setup) return;
-                setup.dataset.force = show ? '1' : '';
-                if (show) fillGithubConfigToUI();
-                refreshSyncLayout();
-            };
 
             function setProgressSyncBusy(busy, action) {
                 const map = {
                     mineUploadBtn: '上传本机进度',
-                    syncUploadBtn: '上传本机进度',
-                    mineDownloadBtn: '下载云端进度',
-                    syncDownloadBtn: '下载云端进度',
-                    syncNowBtn: '合并两边（一般不用）'
+                    mineDownloadBtn: '下载云端进度'
                 };
                 Object.keys(map).forEach(id => {
                     const el = document.getElementById(id);
@@ -1778,7 +1922,6 @@
                     const isDownload = id.indexOf('Download') >= 0;
                     if (action === 'upload' && isUpload) el.textContent = '上传中…';
                     else if (action === 'download' && isDownload) el.textContent = '下载中…';
-                    else if (action === 'merge' && id === 'syncNowBtn') el.textContent = '处理中…';
                     else el.textContent = map[id];
                 });
             }
@@ -2035,18 +2178,18 @@
                     document.getElementById('answerInput').placeholder = '输入其中一个中文含义';
                     p.answerState = 'multiMeaning';
                 } else {
-                    const word = question.item;
+                    const word = findVocabByRef(question.item) || question.item;
                     const isJp2Cn = question.direction === 'jp2cn';
                     if (p.category === 'grammar') {
                         document.getElementById('questionWord').innerHTML = isJp2Cn ? word.japanese : word.chinese;
                         document.getElementById('answerInput').placeholder = isJp2Cn ? '输入中文意思' : '输入日语语法';
                     } else {
                         if (isJp2Cn) {
-                            document.getElementById('questionWord').innerHTML = word.japanese;
+                            document.getElementById('questionWord').innerHTML = (word.japanese || '') + typeBadgeHtml(word.wordType);
                             document.getElementById('answerInput').placeholder = '输入中文意思';
                         } else {
                             let html = word.chinese;
-                            if (!p.verbMode && word.wordType) html += ` <span class="type-badge${word.wordType.includes('他')?' 他':''}">${word.wordType}</span>`;
+                            if (!p.verbMode) html += typeBadgeHtml(word.wordType);
                             document.getElementById('questionWord').innerHTML = html;
                             document.getElementById('answerInput').placeholder = '输入日语假名';
                         }
@@ -2091,7 +2234,7 @@
                     if (p.multiAnswers.length >= question.meanings.length) finalizeMultiAnswer(question);
                     return;
                 }
-                const word = question.item;
+                const word = findVocabByRef(question.item) || question.item;
                 const isJp2Cn = question.direction === 'jp2cn';
                 if (p.category === 'grammar' || isJp2Cn) {
                     let correct;
@@ -2270,6 +2413,7 @@
                     alert(`练习完成！正确:${p.stats.correct} 错误:${p.stats.wrong}`);
                     p.words = [];
                     p.index = 0;
+                    p.paused = false;
                     refreshSessionChrome();
                 }
             };
@@ -2806,8 +2950,18 @@
             };
 
             window.startPractice = function() {
+                if (!confirmReplaceOpenSession()) return;
                 let mode = document.getElementById('practiceMode').value;
                 const p = state.practice;
+                const bakWords = p.words;
+                const bakIndex = p.index;
+                const bakPaused = p.paused;
+                const abortStart = (msg) => {
+                    p.words = bakWords;
+                    p.index = bakIndex;
+                    p.paused = bakPaused;
+                    if (msg) alert(msg);
+                };
                 if (mode === 'unit' || mode === 'review') mode = 'normal';
                 if (mode === 'summaryWrong') {
                     mode = 'wrong';
@@ -2872,7 +3026,7 @@
                                 rawQuestions.push({ type: 'single', item: meaning.items[0], direction: p.grammarDirection, aliases: meaning.aliases });
                             }
                         });
-                        if (!rawQuestions.length) { alert('当前没有语法错题。'); return; }
+                        if (!rawQuestions.length) { abortStart('当前没有语法错题。'); return; }
                         for (let i = rawQuestions.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [rawQuestions[i], rawQuestions[j]] = [rawQuestions[j], rawQuestions[i]]; }
                         let limit = state.settings.practiceCount;
                         if (limit > 0 && rawQuestions.length > limit) rawQuestions.length = limit;
@@ -2904,16 +3058,16 @@
                     const pred = mode === 'verbJudge' ? isVerb : (v => v.category === p.category);
                     if (p.path === 'unit') {
                         const unitId = document.getElementById('unitSelect').value;
-                        if (!unitId) { alert('请选择单元'); return; }
+                        if (!unitId) { abortStart('请选择单元'); return; }
                         candidates = state.vocabs.filter(v => String(v.deckId) === String(unitId) && pred(v));
                     } else {
                         const picked = vocabsFromSelectedBooks(pred);
-                        if (picked.error) { alert(picked.error); return; }
+                        if (picked.error) { abortStart(picked.error); return; }
                         candidates = picked.list;
                     }
                 }
 
-                if (!p.words && !candidates.length) { alert(`当前范围内没有${p.category==='grammar'?'语法':'单词'}。`); return; }
+                if (!p.words && !candidates.length) { abortStart(`当前范围内没有${p.category==='grammar'?'语法':'单词'}。`); return; }
 
                 // 以下和原来一样，生成题目数组
                 if (!p.words) {
@@ -2935,7 +3089,9 @@
                         }
                     }
                 }
-                if (!p.words || p.words.length === 0) { alert('没有可练习的内容。'); return; }
+                if (!p.words || p.words.length === 0) { abortStart('没有可练习的内容。'); return; }
+                clearSpacedSessionSilent();
+                p.paused = false;
                 p.index = 0;
                 p.stats = { total: p.words.length, correct: 0, wrong: 0 };
                 p.answerState = 'initial';
@@ -3022,6 +3178,7 @@
                 const label = cat === 'grammar' ? '语法' : '单词';
                 const today = getTodayStr();
                 const pool = state.spacedItems.filter(item => item.category === cat);
+                pool.forEach(overlaySpacedFromVocab);
                 const dueCount = pool.filter(item => item.nextReviewDate <= today).length;
                 const meta = document.getElementById('spacedLibraryMeta');
                 if (meta) meta.innerText = `${label}题库：共 ${pool.length} 条 · 今日待复习 ${dueCount}`;
@@ -3176,17 +3333,21 @@
             }
 
             window.startSpacedPractice = function(category) {
+                if (!confirmReplaceOpenSession()) return;
                 const today = getTodayStr();
                 const dueItems = state.spacedItems.filter(item => item.category === category && item.nextReviewDate <= today);
+                dueItems.forEach(overlaySpacedFromVocab);
                 if (!dueItems.length) {
                     alert(category === 'grammar' ? '今天没有需要复习的语法' : '今天没有需要复习的单词');
                     return;
                 }
+                clearPracticeSessionSilent();
                 for (let i = dueItems.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
                     [dueItems[i], dueItems[j]] = [dueItems[j], dueItems[i]];
                 }
                 const ui = state.spacedUI;
+                ui.paused = false;
                 ui.currentCategory = category;
                 ui.index = 0;
                 ui.pendingAction = null;
@@ -3251,6 +3412,7 @@
                 if (!ui.practiceWords.length || ui.index >= ui.practiceWords.length) {
                     document.getElementById('spacedPracticeArea').style.display = 'none';
                     ui.practiceWords = [];
+                    ui.paused = false;
                     refreshSessionChrome();
                     updateSpacedUI();
                     alert(`复习完成！正确:${ui.stats.correct} 错误:${ui.stats.wrong}`);
@@ -3280,13 +3442,14 @@
                     ui.answerState = 'multi';
                 } else {
                     const word = question.item;
+                    overlaySpacedFromVocab(word);
                     if (ui.currentCategory === 'grammar') {
                         document.getElementById('spacedQuestionWord').innerHTML = word.japanese;
                         document.getElementById('spacedAnswerInput').placeholder = '输入中文意思';
                     } else {
-                        const vocab = state.vocabs.find(v => v.chinese === word.chinese && v.japanese === word.japanese);
+                        const vocab = findVocabByRef(word);
                         let displayHtml = word.chinese;
-                        if (vocab && vocab.wordType) displayHtml += ` <span class="type-badge${vocab.wordType.includes('他')?' 他':''}">${vocab.wordType}</span>`;
+                        displayHtml += typeBadgeHtml((vocab && vocab.wordType) || word.wordType);
                         document.getElementById('spacedQuestionWord').innerHTML = displayHtml;
                         document.getElementById('spacedAnswerInput').placeholder = '输入日语假名';
                     }
@@ -3431,6 +3594,7 @@
                 const question = ui.currentQuestion;
                 const word = (question && question.item) || ui.currentItem;
                 if (!word) return;
+                overlaySpacedFromVocab(word);
                 let isCorrect = false;
                 if (ui.currentCategory === 'grammar') {
                     const aliases = collectGrammarAliases(word, question);
@@ -3638,125 +3802,6 @@
                 if (data._syncMeta) state.cloudSyncMeta = data._syncMeta;
             }
 
-            function mergeById(localArr, remoteArr, idKey) {
-                const map = new Map();
-                (localArr || []).forEach(item => map.set(String(item[idKey]), item));
-                (remoteArr || []).forEach(item => {
-                    const key = String(item[idKey]);
-                    if (!map.has(key)) map.set(key, item);
-                });
-                return Array.from(map.values());
-            }
-
-            function mergeWrongLists(localList, remoteList) {
-                const out = (localList || []).map(x => ({ ...x }));
-                (remoteList || []).forEach(rw => {
-                    const existing = findWrongEntry(out, { id: rw.vocabId, vocabId: rw.vocabId, chinese: rw.chinese, japanese: rw.japanese });
-                    if (existing) {
-                        existing.wrongCount = Math.max(existing.wrongCount || 1, rw.wrongCount || 1);
-                        if (rw.vocabId && !existing.vocabId) existing.vocabId = rw.vocabId;
-                    } else out.push({ ...rw });
-                });
-                return out;
-            }
-
-            function spacedItemKey(item) {
-                if (!item) return '';
-                const cat = item.category || 'word';
-                if (item.vocabId != null && item.vocabId !== '') return cat + '#id:' + String(item.vocabId);
-                if (cat === 'grammar') return cat + '#jp:' + (item.japanese || '');
-                return cat + '#cj:' + (item.chinese || '') + '\n' + (item.japanese || '');
-            }
-
-            function pickBetterSpaced(a, b) {
-                if (!a) return b ? { ...b } : a;
-                if (!b) return { ...a };
-                const dueA = a.nextReviewDate || '';
-                const dueB = b.nextReviewDate || '';
-                if (dueB > dueA) return { ...b };
-                if (dueA > dueB) return { ...a };
-                const lastA = a.lastReviewDate || '';
-                const lastB = b.lastReviewDate || '';
-                if (lastB > lastA) return { ...b };
-                if (lastA > lastB) return { ...a };
-                if ((b.repetitions || 0) > (a.repetitions || 0)) return { ...b };
-                if ((a.repetitions || 0) > (b.repetitions || 0)) return { ...a };
-                if ((b.interval || 0) > (a.interval || 0)) return { ...b };
-                const countA = a.reviewCount != null ? a.reviewCount : ((a.repetitions || 0) + (a.lapses || 0));
-                const countB = b.reviewCount != null ? b.reviewCount : ((b.repetitions || 0) + (b.lapses || 0));
-                const winner = countB > countA ? b : a;
-                const out = { ...winner };
-                out.reviewCount = Math.max(countA, countB, out.reviewCount || 0);
-                return out;
-            }
-
-            function isCloudFromOtherDevice(remoteMeta) {
-                if (!remoteMeta) return false;
-                if (remoteMeta.deviceId) return remoteMeta.deviceId !== getDeviceId();
-                if (remoteMeta.device) return remoteMeta.device !== getDeviceName();
-                return false;
-            }
-
-            function mergeSpacedLists(localList, remoteList, remoteMeta) {
-                const local = localList || [];
-                const remote = remoteList || [];
-                const map = new Map();
-                const put = (item) => {
-                    const key = spacedItemKey(item);
-                    if (!key) return;
-                    map.set(key, map.has(key) ? pickBetterSpaced(map.get(key), item) : { ...item });
-                };
-                const remoteTime = remoteMeta && remoteMeta.time ? Date.parse(remoteMeta.time) : 0;
-                const localSync = state.lastSyncAt ? Date.parse(state.lastSyncAt) : 0;
-                const cloudNewer = !!(remoteTime && (!localSync || remoteTime > localSync));
-                if (isCloudFromOtherDevice(remoteMeta) && cloudNewer) {
-                    remote.forEach(put);
-                    local.forEach(item => {
-                        const key = spacedItemKey(item);
-                        if (key && map.has(key)) map.set(key, pickBetterSpaced(map.get(key), item));
-                    });
-                } else {
-                    local.forEach(put);
-                    remote.forEach(put);
-                }
-                return Array.from(map.values());
-            }
-
-            function mergeCloudData(data) {
-                snapshotSafety('合并前自动备份');
-                state.decks = mergeById(state.decks, decksFromPayload(data), 'id');
-                const vocabMap = new Map();
-                state.vocabs.forEach(v => vocabMap.set(String(v.id), v));
-                vocabsFromPayload(data).forEach(v => {
-                    const key = String(v.id);
-                    if (!vocabMap.has(key)) {
-                        const dup = state.vocabs.find(x => x.chinese === v.chinese && x.japanese === v.japanese && x.category === v.category);
-                        if (!dup) vocabMap.set(key, v);
-                    }
-                });
-                state.vocabs = Array.from(vocabMap.values());
-                const remoteWrong = extractWrongFromData(data);
-                Object.keys(state.wrong).forEach(k => {
-                    state.wrong[k] = mergeWrongLists(state.wrong[k], remoteWrong[k] || []);
-                });
-                state.spacedItems = mergeSpacedLists(state.spacedItems, spacedFromPayload(data), data._syncMeta);
-                if (data.studyStats && data.studyStats.days) {
-                    if (!state.studyStats.days) state.studyStats.days = {};
-                    Object.keys(data.studyStats.days).forEach(day => {
-                        const a = state.studyStats.days[day] || { correct: 0, wrong: 0, reviews: 0 };
-                        const b = data.studyStats.days[day] || { correct: 0, wrong: 0, reviews: 0 };
-                        state.studyStats.days[day] = {
-                            correct: Math.max(a.correct || 0, b.correct || 0),
-                            wrong: Math.max(a.wrong || 0, b.wrong || 0),
-                            reviews: Math.max(a.reviews || 0, b.reviews || 0)
-                        };
-                    });
-                }
-                if (data.settings && data.settings.practiceCount != null && !state.settings.practiceCount) {
-                    state.settings.practiceCount = data.settings.practiceCount;
-                }
-            }
-
             function packData() {
                 const syncMeta = { device: getDeviceName(), deviceId: getDeviceId(), time: new Date().toISOString() };
                 let cleanData;
@@ -3847,41 +3892,6 @@
                 updateSpacedUI();
             }
 
-            window.syncNow = async function() {
-                readGithubFields();
-                if (!isGithubReady()) {
-                    alert('请先保存 Token 和 Gist ID');
-                    toggleSyncConfig(true);
-                    return;
-                }
-                const btn = document.getElementById('syncNowBtn');
-                if (btn) { btn.disabled = true; btn.textContent = '合并中…'; }
-                setSyncMessage('正在连接云端…', true);
-                try {
-                    let remote = null;
-                    try {
-                        remote = await readGistBackup();
-                    } catch (e) {
-                        throw new Error('拉云端失败：' + e.message);
-                    }
-                    if (remote) mergeCloudData(remote);
-                    const { packed, meta } = packData();
-                    await pushPackedToGist(packed);
-                    markSyncedNow(meta);
-                    saveAll();
-                    refreshAfterSync();
-                    setSyncMessage('合并完成', true);
-                    alert('两边数据已合并并传回云端。日常请改用上传 / 下载进度。');
-                } catch (e) {
-                    setSyncMessage(e.message, false);
-                    alert('同步失败: ' + e.message);
-                    fetchCloudSyncMeta();
-                } finally {
-                    if (btn) { btn.disabled = false; btn.textContent = '合并两边（一般不用）'; }
-                    updateSyncInfoDisplay();
-                }
-            };
-
             window.createNewGist = async () => {
                 readGithubFields();
                 if (!state.github.token) { alert('请先填写并保存 Token'); return; }
@@ -3913,7 +3923,6 @@
                 if (!isGithubReady()) {
                     alert('请先到「同步设置与备份」保存 Token 和 Gist ID');
                     showPage('sync');
-                    toggleSyncConfig(true);
                     return;
                 }
                 const remoteMeta = await fetchCloudSyncMeta();
@@ -3941,10 +3950,8 @@
                 if (!isGithubReady()) {
                     alert('请先到「同步设置与备份」保存 Token 和 Gist ID');
                     showPage('sync');
-                    toggleSyncConfig(true);
                     return;
                 }
-                if (mode !== 'overwrite') return syncNow();
                 setProgressSyncBusy(true, 'download');
                 try {
                     const data = await readGistBackup();
@@ -4071,8 +4078,6 @@
             window.saveGithubConfig = (skipFetch) => {
                 readGithubFields();
                 localStorage.setItem('jp_github', JSON.stringify(state.github));
-                const setup = document.getElementById('syncSetupPanel');
-                if (setup && isGithubReady()) setup.dataset.force = '';
                 const status = document.getElementById('configStatus');
                 if (status) {
                     status.innerHTML = '✅ 已保存';
@@ -4178,10 +4183,13 @@
                     ? [{ k: 'chinese', l: '中文', value: w.chinese }, { k: 'japanese', l: '日语语法', value: w.japanese }, { k: 'example', l: '例句', value: w.example, area: true }, { k: 'exampleCn', l: '翻译', value: w.exampleCn, area: true }]
                     : [{ k: 'chinese', l: '中文', value: w.chinese }, { k: 'japanese', l: '日语', value: w.japanese }, { k: 'wordType', l: '词性', value: w.wordType }, { k: 'particle', l: '助词', value: w.particle }, { k: 'example', l: '短句', value: w.example, area: true }];
                 openEditPanel('编辑词条', fields, (values) => {
+                    const prev = { chinese: w.chinese, japanese: w.japanese, category: w.category };
                     Object.keys(values).forEach(k => { w[k] = values[k]; });
+                    syncLinkedRecordsFromVocab(w, prev);
                     saveAll();
                     clearSearch();
                     renderBookLists();
+                    if (state.spacedUI.subTab === 'library') renderSpacedWordList();
                 });
             };
             window.deleteWord = (id) => {

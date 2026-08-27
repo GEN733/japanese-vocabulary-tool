@@ -722,7 +722,7 @@
             <strong>同步设置与备份</strong>
             <span>Token、Gist、本地导出导入</span>
         </button>
-        <p class="tiny-note">网页版本 16。手机主屏幕若仍是旧版，请用浏览器打开下面的链接清缓存：</p>
+        <p class="tiny-note">网页版本 17。手机主屏幕若仍是旧版，请用浏览器打开下面的链接清缓存：</p>
         <a class="mine-card" href="./update.html" style="text-decoration:none;">
             <strong>清缓存并打开新版</strong>
             <span>不要点主屏幕图标，用手机浏览器打开这一页</span>
@@ -1941,8 +1941,10 @@
                     return;
                 }
                 if (cloudFetchState.status === 'error') {
-                    main.innerHTML = '<span class="sync-status-err">没问到云端</span>';
-                    sub.textContent = cloudFetchState.error || '网络或 Token 有问题';
+                    main.innerHTML = '<span class="sync-status-err">刚才没连上云端</span>';
+                    const last = cloudFetchState.liveMeta;
+                    const lastLine = last ? ('上次看到：' + formatSyncTime(last.time) + '（' + (last.device || '未知设备') + '）') : '';
+                    sub.textContent = [cloudFetchState.error || '网络或 Token 有问题', lastLine, '配置还在，可再点上传'].filter(Boolean).join(' · ');
                     return;
                 }
                 if (cloudFetchState.status === 'empty') {
@@ -1983,8 +1985,10 @@
                     return;
                 }
                 if (cloudFetchState.status === 'error') {
-                    main.innerHTML = '<span class="sync-status-err">没问到云端</span>';
-                    sub.textContent = (cloudFetchState.error || '网络或 Token 有问题') + (localLine ? ' · ' + localLine : '') + ' · ' + gistLine;
+                    main.innerHTML = '<span class="sync-status-err">刚才没连上云端</span>';
+                    const last = cloudFetchState.liveMeta;
+                    const lastLine = last ? ('上次看到：' + formatSyncTime(last.time) + '（' + (last.device || '未知设备') + '）') : '';
+                    sub.textContent = [cloudFetchState.error || '网络或 Token 有问题', lastLine, localLine, gistLine].filter(Boolean).join(' · ');
                     return;
                 }
                 if (cloudFetchState.status === 'empty') {
@@ -3716,6 +3720,26 @@
                 return r.json();
             }
 
+            function githubErrorText(e) {
+                const msg = String((e && e.message) || e || '');
+                if (!msg || msg === 'Failed to fetch' || /NetworkError|Load failed|network/i.test(msg)) {
+                    return '连不上 GitHub（网络或被拦）';
+                }
+                if (/Bad credentials|Unauthorized|Requires authentication|401/i.test(msg)) {
+                    return 'Token 无效或过期，请到同步设置里重新保存';
+                }
+                if (/Not Found|404/i.test(msg)) {
+                    return '找不到这个 Gist，请核对 Gist ID';
+                }
+                if (/rate limit/i.test(msg)) {
+                    return 'GitHub 访问太频繁，请稍后再试';
+                }
+                if (/too large|validation failed|422|must be less/i.test(msg)) {
+                    return '进度文件太大，GitHub 拒收';
+                }
+                return msg;
+            }
+
             function decksFromPayload(data) {
                 return (data && (data.allDecks || data.allDecks)) || [];
             }
@@ -3849,28 +3873,43 @@
                 });
             }
 
+            function lastKnownCloudMeta() {
+                return (cloudFetchState && cloudFetchState.liveMeta) || state.cloudSyncMeta || null;
+            }
+
             async function fetchCloudSyncMeta() {
                 if (!isGithubReady()) {
                     cloudFetchState = { status: 'noconfig', error: '', liveMeta: null };
                     updateSyncInfoDisplay();
                     return null;
                 }
-                cloudFetchState = { status: 'loading', error: '', liveMeta: null };
+                const prevMeta = lastKnownCloudMeta();
+                cloudFetchState = { status: 'loading', error: '', liveMeta: prevMeta };
                 updateSyncInfoDisplay();
                 try {
-                    const data = await readGistBackup();
+                    const gist = await githubRequest(`https://api.github.com/gists/${state.github.gistId}`);
+                    const file = gist.files && gist.files['japanese_words_backup.json'];
+                    if (!file) {
+                        cloudFetchState = { status: 'empty', error: '', liveMeta: null };
+                        updateSyncInfoDisplay();
+                        return null;
+                    }
+                    let data = null;
+                    if (!file.truncated && file.content) {
+                        try { data = unpackData(file.content); } catch (e) { data = null; }
+                    }
+                    const meta = (data && data._syncMeta)
+                        || prevMeta
+                        || { device: '云端已有备份', time: gist.updated_at || gist.created_at };
                     if (data && data._syncMeta) {
                         state.cloudSyncMeta = data._syncMeta;
-                        cloudFetchState = { status: 'ok', error: '', liveMeta: data._syncMeta };
                         localStorage.setItem('jp_cloud_sync_meta', JSON.stringify(state.cloudSyncMeta));
-                        updateSyncInfoDisplay();
-                        return data._syncMeta;
                     }
-                    cloudFetchState = { status: 'empty', error: '', liveMeta: null };
+                    cloudFetchState = { status: 'ok', error: '', liveMeta: meta };
                     updateSyncInfoDisplay();
-                    return null;
+                    return meta;
                 } catch (e) {
-                    cloudFetchState = { status: 'error', error: e.message || '获取失败', liveMeta: null };
+                    cloudFetchState = { status: 'error', error: githubErrorText(e), liveMeta: prevMeta };
                     updateSyncInfoDisplay();
                     return null;
                 }
@@ -3925,10 +3964,16 @@
                     showPage('sync');
                     return;
                 }
-                const remoteMeta = await fetchCloudSyncMeta();
+                const lastMeta = lastKnownCloudMeta();
                 let confirmMsg = '把这台现在的进度设成各设备都该下载的最后一次？云端旧进度会被整份换掉。';
-                if (remoteMeta) confirmMsg += `\n当前云端：${remoteMeta.device} · ${formatSyncTime(remoteMeta.time)}`;
-                else confirmMsg += '\n云端还没有进度，将第一次传上去。';
+                if (cloudFetchState.status === 'error') {
+                    confirmMsg += '\n刚才没连上云端（' + (cloudFetchState.error || '网络问题') + '）。仍上传会整份覆盖。';
+                    if (lastMeta) confirmMsg += `\n上次看到：${lastMeta.device || '未知设备'} · ${formatSyncTime(lastMeta.time)}`;
+                } else if (lastMeta) {
+                    confirmMsg += `\n当前云端：${lastMeta.device || '未知设备'} · ${formatSyncTime(lastMeta.time)}`;
+                } else {
+                    confirmMsg += '\n本机还没成功看过云端内容，上传会整份覆盖。';
+                }
                 if (!confirm(confirmMsg)) return;
                 setProgressSyncBusy(true, 'upload');
                 try {
@@ -3938,7 +3983,9 @@
                     saveAll();
                     setSyncMessage('已上传本机进度', true);
                     alert('已上传。其他设备打开后点「下载云端进度」即可。');
-                } catch (e) { alert('上传失败: ' + e.message); }
+                } catch (e) {
+                    alert('上传失败：' + githubErrorText(e));
+                }
                 finally {
                     setProgressSyncBusy(false);
                     updateSyncInfoDisplay();
@@ -3975,7 +4022,7 @@
                     alert('已换成云端进度\n' + summarizePayload(data));
                 } catch (e) {
                     const msg = String(e.message || e);
-                    alert(msg === 'Failed to fetch' ? '下载失败：连不上 GitHub。请确认电脑能打开 github.com，然后重试。' : ('下载失败: ' + msg));
+                    alert(msg === 'Failed to fetch' ? '下载失败：连不上 GitHub。请确认电脑能打开 github.com，然后重试。' : ('下载失败: ' + githubErrorText(e)));
                 }
                 finally {
                     setProgressSyncBusy(false);

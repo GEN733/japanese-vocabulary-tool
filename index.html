@@ -125,6 +125,9 @@
         .mine-sync strong { display: block; font-size: 1.05rem; color: var(--ink); margin-bottom: 8px; }
         .mine-sync-actions { display: flex; gap: 8px; margin-top: 12px; }
         .mine-sync-actions button { flex: 1; margin: 0; }
+        .sync-snap { background: #fff; border: 1px solid #e2eaf3; border-radius: 12px; padding: 10px 12px; margin: 8px 0; }
+        .sync-snap-label { font-size: 0.75rem; color: #7a8b9f; font-weight: 600; margin-bottom: 2px; }
+        .sync-upload-hint { display: none; color: #c2410c; background: #fff7ed; border-radius: 10px; padding: 8px 10px; font-size: 0.85rem; margin-top: 8px; }
         .sync-status-ok { color: #1e7a44; }
         .sync-status-err { color: #b33; }
         .error-msg { color: #b33; background: #ffe6e6; padding: 10px 16px; border-radius: 12px; font-size: 0.9rem; }
@@ -702,8 +705,17 @@
         <h3>我的</h3>
         <div class="mine-sync">
             <strong>进度同步</strong>
-            <div id="mineSyncMain">尚未连接云端</div>
-            <div id="mineSyncSub" class="tiny-note"></div>
+            <div class="sync-snap">
+                <div class="sync-snap-label">本机</div>
+                <div id="mineLocalMain">这台还没有进度</div>
+                <div id="mineLocalSub" class="tiny-note"></div>
+            </div>
+            <div class="sync-snap">
+                <div class="sync-snap-label">云端</div>
+                <div id="mineSyncMain">尚未连接云端</div>
+                <div id="mineSyncSub" class="tiny-note"></div>
+            </div>
+            <div id="mineSyncHint" class="sync-upload-hint">本机比上次上传更新，学完记得点上传。</div>
             <div class="mine-sync-actions">
                 <button class="primary" id="mineUploadBtn" onclick="uploadToGithub()">上传本机进度</button>
                 <button id="mineDownloadBtn" onclick="downloadFromGithub('overwrite')">下载云端进度</button>
@@ -722,7 +734,7 @@
             <strong>同步设置与备份</strong>
             <span>Token、Gist、本地导出导入</span>
         </button>
-        <p class="tiny-note">网页版本 17。手机主屏幕若仍是旧版，请用浏览器打开下面的链接清缓存：</p>
+        <p class="tiny-note">网页版本 18。手机主屏幕若仍是旧版，请用浏览器打开下面的链接清缓存：</p>
         <a class="mine-card" href="./update.html" style="text-decoration:none;">
             <strong>清缓存并打开新版</strong>
             <span>不要点主屏幕图标，用手机浏览器打开这一页</span>
@@ -791,6 +803,7 @@
                 lastUploadInfo: null,
                 lastDownloadInfo: null,
                 lastSyncAt: null,
+                lastLocalProgressAt: null,
                 cloudSyncMeta: null,
                 github: { username: '', token: '', gistId: '' },
                 practice: {
@@ -1564,7 +1577,11 @@
                 else rec.wrong++;
                 if (review) rec.reviews++;
                 state.studyStats.lastStudyDate = day;
-                try { localStorage.setItem('jp_study_stats', JSON.stringify(state.studyStats)); } catch (e) {}
+                state.lastLocalProgressAt = new Date().toISOString();
+                try {
+                    localStorage.setItem('jp_study_stats', JSON.stringify(state.studyStats));
+                    localStorage.setItem('jp_last_local_progress_at', state.lastLocalProgressAt);
+                } catch (e) {}
             }
 
             function computeStreak() {
@@ -1717,7 +1734,10 @@
             }
 
             // ========== 数据持久化 ==========
-            function saveAll() {
+            function saveAll(opts) {
+                if (!(opts && opts.skipLocalTouch)) {
+                    state.lastLocalProgressAt = new Date().toISOString();
+                }
                 try {
                     state.decks = JSON.parse(JSON.stringify(state.decks));
                     state.vocabs = JSON.parse(JSON.stringify(state.vocabs));
@@ -1750,6 +1770,7 @@
                 localStorage.setItem('jp_last_download_info', JSON.stringify(state.lastDownloadInfo));
                 localStorage.setItem('jp_last_sync_at', state.lastSyncAt || '');
                 localStorage.setItem('jp_cloud_sync_meta', JSON.stringify(state.cloudSyncMeta));
+                localStorage.setItem('jp_last_local_progress_at', state.lastLocalProgressAt || '');
                 localStorage.setItem('jp_github', JSON.stringify(state.github));
                 updateUIStats();
             }
@@ -1779,6 +1800,17 @@
                     state.lastDownloadInfo = JSON.parse(localStorage.getItem('jp_last_download_info') || 'null');
                     state.lastSyncAt = localStorage.getItem('jp_last_sync_at') || null;
                     state.cloudSyncMeta = JSON.parse(localStorage.getItem('jp_cloud_sync_meta') || 'null');
+                    state.lastLocalProgressAt = localStorage.getItem('jp_last_local_progress_at') || null;
+                    if (!state.lastLocalProgressAt) {
+                        const hasLocal = (state.decks && state.decks.length)
+                            || (state.vocabs && state.vocabs.length)
+                            || (state.spacedItems && state.spacedItems.length);
+                        if (state.lastSyncAt) state.lastLocalProgressAt = state.lastSyncAt;
+                        else if (hasLocal) state.lastLocalProgressAt = new Date().toISOString();
+                        if (state.lastLocalProgressAt) {
+                            try { localStorage.setItem('jp_last_local_progress_at', state.lastLocalProgressAt); } catch (e) {}
+                        }
+                    }
                     const gh = localStorage.getItem('jp_github');
                     if (gh) state.github = JSON.parse(gh);
 
@@ -1926,7 +1958,44 @@
                 });
             }
 
+            function localProgressCounts() {
+                const books = (state.decks || []).filter(d => d.type === 'book').length;
+                const vocabs = (state.vocabs || []).length;
+                const spaced = (state.spacedItems || []).length;
+                return '书本 ' + books + ' · 词条 ' + vocabs + ' · 复习 ' + spaced;
+            }
+
+            function progressTimeMs(value) {
+                if (!value) return 0;
+                const t = Date.parse(value);
+                return isNaN(t) ? 0 : t;
+            }
+
+            function localNeedsUpload() {
+                const local = progressTimeMs(state.lastLocalProgressAt);
+                if (!local) return false;
+                const uploaded = progressTimeMs(state.lastSyncAt);
+                const cloud = progressTimeMs(lastKnownCloudMeta() && lastKnownCloudMeta().time);
+                const baseline = Math.max(uploaded, cloud);
+                if (!baseline) return true;
+                return local > baseline + 2000;
+            }
+
             function fillMineSyncStatus() {
+                const localMain = document.getElementById('mineLocalMain');
+                const localSub = document.getElementById('mineLocalSub');
+                const hint = document.getElementById('mineSyncHint');
+                if (localMain && localSub) {
+                    const counts = localProgressCounts();
+                    if (state.lastLocalProgressAt) {
+                        localMain.innerHTML = '<span class="sync-status-ok">本机 ' + formatSyncTime(state.lastLocalProgressAt) + '</span>（这台）';
+                        localSub.textContent = counts;
+                    } else {
+                        localMain.textContent = '这台';
+                        localSub.textContent = counts + ' · 做题或改词条后会记下时间';
+                    }
+                }
+                if (hint) hint.style.display = localNeedsUpload() ? 'block' : 'none';
                 const main = document.getElementById('mineSyncMain');
                 const sub = document.getElementById('mineSyncSub');
                 if (!main || !sub) return;
@@ -3824,6 +3893,7 @@
                 state.settings = data.settings || { practiceCount: 0 };
                 state.uploadHistory = data.uploadHistory || [];
                 if (data._syncMeta) state.cloudSyncMeta = data._syncMeta;
+                state.lastLocalProgressAt = (data && data._syncMeta && data._syncMeta.time) || new Date().toISOString();
             }
 
             function packData() {
@@ -3921,6 +3991,7 @@
                 state.lastDownloadInfo = { device: getDeviceName(), time: now };
                 state.lastSyncAt = (meta && meta.time) || new Date().toISOString();
                 state.cloudSyncMeta = meta;
+                state.lastLocalProgressAt = (meta && meta.time) || new Date().toISOString();
                 cloudFetchState = { status: 'ok', error: '', liveMeta: meta };
             }
 
@@ -3952,7 +4023,7 @@
                     if (gistEl) gistEl.value = data.id;
                     saveGithubConfig(true);
                     markSyncedNow(meta);
-                    saveAll();
+                    saveAll({ skipLocalTouch: true });
                     alert('已创建新云端。请把这个 Gist ID 填到其他设备上：\n' + data.id);
                 } catch (e) { alert('创建失败: ' + e.message); }
             };
@@ -3980,7 +4051,7 @@
                     const { packed, meta } = packData();
                     await pushPackedToGist(packed);
                     markSyncedNow(meta);
-                    saveAll();
+                    saveAll({ skipLocalTouch: true });
                     setSyncMessage('已上传本机进度', true);
                     alert('已上传。其他设备打开后点「下载云端进度」即可。');
                 } catch (e) {
@@ -4016,7 +4087,7 @@
                     setProgressSyncBusy(true, 'download');
                     overwriteWithData(data);
                     state.lastDownloadInfo = { device: getDeviceName(), time: new Date().toLocaleString() };
-                    saveAll();
+                    saveAll({ skipLocalTouch: true });
                     refreshAfterSync();
                     setSyncMessage('已下载云端进度', true);
                     alert('已换成云端进度\n' + summarizePayload(data));
@@ -4070,7 +4141,7 @@
                     try {
                         const data = JSON.parse(e.target.result);
                         overwriteWithData(data);
-                        saveAll();
+                        saveAll({ skipLocalTouch: true });
                         alert('导入完成');
                         renderBookLists();
                         renderWrongList();
@@ -4088,7 +4159,7 @@
                     if (!confirm('用最近一次安全备份覆盖当前数据？')) return;
                     const snap = JSON.parse(raw);
                     overwriteWithData(snap.data || {}, true);
-                    saveAll();
+                    saveAll({ skipLocalTouch: true });
                     renderBookLists();
                     renderWrongList();
                     fillAllSelects();
@@ -4108,7 +4179,9 @@
                 state.settings = { practiceCount: 0 };
                 state.uploadHistory = [];
                 state.lastUploadInfo = state.lastDownloadInfo = state.cloudSyncMeta = null;
-                saveAll();
+                state.lastLocalProgressAt = null;
+                state.lastSyncAt = null;
+                saveAll({ skipLocalTouch: true });
             };
 
             window.changePracticeCount = () => {
